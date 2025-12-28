@@ -1,13 +1,71 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, Button, Flex, Text, TextArea, Box, Badge } from '@radix-ui/themes';
-import { Sparkles, Save, X, Merge } from 'lucide-react';
+import { Dialog, Button, Flex, Text, TextArea, Box, Badge, Callout } from '@radix-ui/themes';
+import { Sparkles, Save, X, Merge, AlertTriangle } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { generateQuestions, generateAnswers } from '../../services/anthropic';
 
-const BlockModal = ({ isOpen, onClose, block, parents, onSave }) => {
+const BlockModal = ({ isOpen, onClose, block, parents, onSave, pyramidContext, allBlocks }) => {
+  const { apiKey } = useAuth();
   const [answer, setAnswer] = useState('');
   const [question, setQuestion] = useState('');
   const [combinedQuestion, setCombinedQuestion] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
+  const [suggestionTarget, setSuggestionTarget] = useState(null); // 'question', 'combined', or 'answer'
+  const [aiError, setAiError] = useState(null);
+
+  // Helper to format block ID to Chess notation (e.g. 1-A)
+  const formatBlockLabel = (id) => {
+    if (!id) return '';
+    const [u, v] = id.split('-').map(Number);
+    const rank = u + 1;
+    const file = String.fromCharCode(65 + v);
+    return `${rank}-${file}`;
+  };
+
+  const buildHistoryContext = () => {
+      if (!block || !allBlocks) return "";
+      
+      const history = [];
+      const visited = new Set();
+      const queue = [block];
+
+      // Reverse BFS to find all ancestors
+      while (queue.length > 0) {
+          const current = queue.shift();
+          if (visited.has(current.id)) continue;
+          visited.add(current.id);
+
+          if (current.id !== block.id) { // Don't add self to history yet
+              history.push(current);
+          }
+
+          if (current.parentIds) {
+              current.parentIds.forEach(pid => {
+                  if (allBlocks[pid] && !visited.has(pid)) {
+                      queue.push(allBlocks[pid]);
+                  }
+              });
+          }
+      }
+
+      // Sort history to provide a chronological flow (Top-Down or Root-to-Leaf)
+      // Sorting by ID (u then v) roughly gives levels
+      history.sort((a, b) => {
+          const [u1, v1] = a.id.split('-').map(Number);
+          const [u2, v2] = b.id.split('-').map(Number);
+          if (u1 !== u2) return u1 - u2;
+          return v1 - v2;
+      });
+
+      return history.map(h => {
+          const label = formatBlockLabel(h.id);
+          return `Block ${label}:
+Question: ${h.question || h.content || "N/A"}
+Answer: ${h.answer || "N/A"}
+`;
+      }).join('\n');
+  };
 
   useEffect(() => {
     if (block) {
@@ -15,6 +73,8 @@ const BlockModal = ({ isOpen, onClose, block, parents, onSave }) => {
       setQuestion(block.question || block.content || '');
       setCombinedQuestion(block.combinedQuestion || '');
       setSuggestions([]);
+      setSuggestionTarget(null);
+      setAiError(null);
     }
   }, [block]);
 
@@ -31,48 +91,139 @@ const BlockModal = ({ isOpen, onClose, block, parents, onSave }) => {
   };
 
   const handleAiGenerate = async () => {
+    if (!apiKey) {
+        setAiError("Please set your API Key in the Navbar first.");
+        return;
+    }
     setIsGenerating(true);
+    setAiError(null);
     setSuggestions([]);
-    // TODO: Call AI service
-    setTimeout(() => {
-      setSuggestions([
-        "How does the previous answer impact the overall goal?",
-        "What are the potential risks identified here?",
-        "Is there a missing link in the logic?"
-      ]);
-      setIsGenerating(false);
-    }, 1000);
+    setSuggestionTarget('question');
+
+    try {
+        const effectiveParentQuestion = parents && parents.length > 1 
+            ? combinedQuestion 
+            : (parents?.[0]?.question || parents?.[0]?.content || "Start of the pyramid");
+
+        const historyContext = buildHistoryContext();
+
+        const result = await generateQuestions(apiKey, pyramidContext || "General Problem Solving", 'regular', {
+            parentQuestion: effectiveParentQuestion,
+            currentAnswer: answer || "No answer provided yet",
+            historyContext
+        });
+        setSuggestions(result);
+    } catch (error) {
+        console.error(error);
+        setAiError(error.message || "Failed to generate suggestions.");
+    } finally {
+        setIsGenerating(false);
+    }
   };
 
   const handleAiCombine = async () => {
+    if (!apiKey) {
+        setAiError("Please set your API Key in the Navbar first.");
+        return;
+    }
     setIsGenerating(true);
+    setAiError(null);
     setSuggestions([]);
-    // TODO: Call AI service to combine parent questions
-    setTimeout(() => {
-        const combined = `[AI Combined] How do "${parents[0]?.question || '...'}" and "${parents[1]?.question || '...'}" relate to each other?`;
-        setCombinedQuestion(combined);
+    setSuggestionTarget('combined');
+
+    try {
+        const parentQuestions = parents.map(p => p.question || p.content);
+        const historyContext = buildHistoryContext();
+        const result = await generateQuestions(apiKey, pyramidContext || "General Problem Solving", 'combined', {
+            parentQuestions,
+            historyContext
+        });
+        setSuggestions(result);
+    } catch (error) {
+        console.error(error);
+        setAiError(error.message || "Failed to combine questions.");
+    } finally {
         setIsGenerating(false);
-    }, 1000);
+    }
   };
 
-  // Helper to format block ID to Chess notation (e.g. 1-A)
-  const formatBlockLabel = (id) => {
-    if (!id) return '';
-    const [u, v] = id.split('-').map(Number);
-    const rank = u + 1;
-    const file = String.fromCharCode(65 + v);
-    return `${rank}-${file}`;
+  const handleAiAnswer = async () => {
+    if (!apiKey) {
+        setAiError("Please set your API Key in the Navbar first.");
+        return;
+    }
+    setIsGenerating(true);
+    setAiError(null);
+    setSuggestions([]);
+    setSuggestionTarget('answer');
+
+    try {
+        // Determine the prompt question: Combined Question > Parent Question > Default
+        const promptQuestion = (parents && parents.length > 1 && combinedQuestion) 
+            ? combinedQuestion 
+            : (parents?.[0]?.question || parents?.[0]?.content || "What is the key insight?");
+
+        if (!promptQuestion) {
+             throw new Error("No question available to generate an answer from.");
+        }
+
+        const historyContext = buildHistoryContext();
+        const result = await generateAnswers(apiKey, pyramidContext || "General Problem Solving", promptQuestion, historyContext);
+        setSuggestions(result);
+    } catch (error) {
+        console.error(error);
+        setAiError(error.message || "Failed to generate answer.");
+    } finally {
+        setIsGenerating(false);
+    }
+  };
+
+  const applySuggestion = (text) => {
+      if (suggestionTarget === 'combined') {
+          setCombinedQuestion(text);
+      } else if (suggestionTarget === 'answer') {
+          setAnswer(text);
+      } else {
+          setQuestion(text);
+      }
+      setSuggestions([]);
+      setSuggestionTarget(null);
+  };
+
+  const renderSuggestions = (target) => {
+    if (suggestionTarget !== target || suggestions.length === 0) return null;
+    return (
+        <Flex gap="2" direction="column" className="mb-2 mt-2 bg-purple-50 p-2 rounded border border-purple-100">
+            <Text size="1" color="purple" weight="bold">AI Suggestions:</Text>
+            {suggestions.map((s, i) => (
+                <Box 
+                    key={i} 
+                    onClick={() => applySuggestion(s)}
+                    className="cursor-pointer hover:bg-purple-100 p-1 rounded text-xs text-purple-800 transition-colors"
+                >
+                    • {s}
+                </Box>
+            ))}
+        </Flex>
+    );
   };
 
   if (!block) return null;
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={onClose}>
-      <Dialog.Content style={{ maxWidth: 500 }}>
+      <Dialog.Content style={{ maxWidth: 1000 }}>
         <Dialog.Title>Edit Block {formatBlockLabel(block.id)}</Dialog.Title>
         <Dialog.Description size="2" mb="4">
           Provide an answer to the previous level and formulate a new question.
         </Dialog.Description>
+
+        {aiError && (
+            <Callout.Root color="red" size="1" className="mb-4">
+                <Callout.Icon><AlertTriangle size={16} /></Callout.Icon>
+                <Callout.Text>{aiError}</Callout.Text>
+            </Callout.Root>
+        )}
 
         <Flex direction="column" gap="4">
           {/* Parent Context Section */}
@@ -118,22 +269,38 @@ const BlockModal = ({ isOpen, onClose, block, parents, onSave }) => {
                     value={combinedQuestion}
                     onChange={(e) => setCombinedQuestion(e.target.value)}
                     rows={2}
+                    style={{ minHeight: '80px', resize: 'vertical' }}
                 />
+                {renderSuggestions('combined')}
             </Box>
           )}
 
           {/* Answer Input - Hidden for the first block (1-A / 0-0) */}
           {block.id !== '0-0' && (
             <Box>
-                <Text as="label" size="2" weight="bold" className="mb-1 block">
-                    {parents && parents.length > 1 ? "Answer to Combined Question" : "Answer to Previous Question"}
-                </Text>
+                <Flex justify="between" align="center" className="mb-1">
+                    <Text as="label" size="2" weight="bold">
+                        {parents && parents.length > 1 ? "Answer to Combined Question" : "Answer to Previous Question"}
+                    </Text>
+                    <Button 
+                        size="1" 
+                        variant="ghost" 
+                        color="purple" 
+                        onClick={handleAiAnswer}
+                        disabled={isGenerating}
+                    >
+                        <Sparkles size={14} className="mr-1" />
+                        {isGenerating ? 'Generating...' : 'AI Answer'}
+                    </Button>
+                </Flex>
                 <TextArea 
                 placeholder="Write your answer/insight..." 
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
                 rows={3}
+                style={{ minHeight: '100px', resize: 'vertical' }}
                 />
+                {renderSuggestions('answer')}
             </Box>
           )}
 
@@ -157,28 +324,14 @@ const BlockModal = ({ isOpen, onClose, block, parents, onSave }) => {
               </Flex>
             </Flex>
 
-            {/* Suggestions */}
-            {suggestions.length > 0 && (
-                <Flex gap="2" direction="column" className="mb-2 mt-2 bg-purple-50 p-2 rounded border border-purple-100">
-                    <Text size="1" color="purple" weight="bold">AI Suggestions:</Text>
-                    {suggestions.map((s, i) => (
-                        <Box 
-                            key={i} 
-                            onClick={() => { setQuestion(s); setSuggestions([]); }}
-                            className="cursor-pointer hover:bg-purple-100 p-1 rounded text-xs text-purple-800 transition-colors"
-                        >
-                            • {s}
-                        </Box>
-                    ))}
-                </Flex>
-            )}
-
             <TextArea 
               placeholder="What is the key question or insight for this block?" 
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               rows={3}
+              style={{ minHeight: '100px', resize: 'vertical' }}
             />
+            {renderSuggestions('question')}
           </Box>
         </Flex>
 

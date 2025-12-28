@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Text, Flex, IconButton, Tooltip } from '@radix-ui/themes';
 import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
-import { getPyramid, updatePyramidBlocks } from '../../services/pyramidService';
+import { subscribeToPyramid, updatePyramidBlocks } from '../../services/pyramidService';
 import { calculateCoordinates, BLOCK_SIZE } from '../../utils/pyramidLayout';
 import Block from './Block';
 import BlockModal from './BlockModal';
@@ -56,17 +56,18 @@ const PyramidBoard = ({ pyramidId }) => {
   }, []);
 
   useEffect(() => {
-    const fetchPyramid = async () => {
-      try {
-        const data = await getPyramid(pyramidId);
-        setPyramid(data);
-      } catch (error) {
-        console.error("Failed to load pyramid:", error);
-      } finally {
+    if (!pyramidId) return;
+
+    const unsubscribe = subscribeToPyramid(pyramidId, (data) => {
+        if (data) {
+            setPyramid(data);
+        } else {
+            console.error("Pyramid not found");
+        }
         setLoading(false);
-      }
-    };
-    if (pyramidId) fetchPyramid();
+    });
+
+    return () => unsubscribe();
   }, [pyramidId]);
 
   const handleBlockClick = (block) => {
@@ -190,7 +191,9 @@ const PyramidBoard = ({ pyramidId }) => {
         onClose={() => setIsModalOpen(false)}
         block={selectedBlock}
         parents={parentBlocks}
+        allBlocks={pyramid.blocks}
         onSave={handleSaveBlock}
+        pyramidContext={pyramid.context}
       />
     </Box>
   );

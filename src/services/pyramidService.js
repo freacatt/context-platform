@@ -8,7 +8,8 @@ import {
   doc, 
   getDoc,
   serverTimestamp,
-  updateDoc
+  updateDoc,
+  onSnapshot
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { createBlock } from '../utils/pyramidLayout';
@@ -60,6 +61,18 @@ export const getPyramid = async (pyramidId) => {
   }
 };
 
+// Subscribe to pyramid updates
+export const subscribeToPyramid = (pyramidId, onUpdate) => {
+  const docRef = doc(db, 'pyramids', pyramidId);
+  return onSnapshot(docRef, (docSnap) => {
+    if (docSnap.exists()) {
+      onUpdate({ id: docSnap.id, ...docSnap.data() });
+    } else {
+      onUpdate(null);
+    }
+  });
+};
+
 // Update pyramid blocks (save state)
 export const updatePyramidBlocks = async (pyramidId, blocks) => {
   try {
@@ -70,6 +83,20 @@ export const updatePyramidBlocks = async (pyramidId, blocks) => {
     });
   } catch (error) {
     console.error("Error updating pyramid blocks: ", error);
+    throw error;
+  }
+};
+
+// Update pyramid context
+export const updatePyramidContext = async (pyramidId, context) => {
+  try {
+    const docRef = doc(db, 'pyramids', pyramidId);
+    await updateDoc(docRef, {
+      context,
+      lastModified: serverTimestamp()
+    });
+  } catch (error) {
+    console.error("Error updating pyramid context: ", error);
     throw error;
   }
 };

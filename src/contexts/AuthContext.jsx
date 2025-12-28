@@ -5,7 +5,7 @@ import {
   signOut, 
   onAuthStateChanged 
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
 
 const AuthContext = createContext();
@@ -14,6 +14,7 @@ export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [apiKey, setApiKey] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -38,8 +39,11 @@ export const AuthProvider = ({ children }) => {
           photoURL: user.photoURL,
           createdAt: serverTimestamp(),
           apiKey: '', // To be filled by user
-          context: '' // To be filled by user
         });
+      } else {
+        // Load existing API key
+        const userData = userSnap.data();
+        if (userData.apiKey) setApiKey(userData.apiKey);
       }
     } catch (error) {
       console.error("Error signing in with Google", error);
@@ -47,11 +51,39 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => signOut(auth);
+  const updateApiKey = async (newKey) => {
+    if (!user) return;
+    try {
+        const userRef = doc(db, 'users', user.uid);
+        // Use setDoc with merge: true to handle cases where the user document doesn't exist
+        await setDoc(userRef, { apiKey: newKey }, { merge: true });
+        setApiKey(newKey);
+    } catch (error) {
+        console.error("Error updating API key:", error);
+        throw error;
+    }
+  };
+
+  const logout = () => {
+    setApiKey('');
+    return signOut(auth);
+  };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
+      if (user) {
+        // Fetch extra user data like API Key
+        try {
+            const userRef = doc(db, 'users', user.uid);
+            const userSnap = await getDoc(userRef);
+            if (userSnap.exists()) {
+                setApiKey(userSnap.data().apiKey || '');
+            }
+        } catch (e) {
+            console.error("Error fetching user data", e);
+        }
+      }
       setLoading(false);
     });
 
@@ -60,6 +92,8 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+    apiKey,
+    updateApiKey,
     signInWithGoogle,
     logout,
     loading,

@@ -1,6 +1,8 @@
 import { Flex, Text, Button, Avatar, DropdownMenu } from '@radix-ui/themes';
 import { useAuth } from '../../contexts/AuthContext';
-import { Key, FileText, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
+import APIKeyModal from './APIKeyModal';
+import ContextModal from './ContextModal';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -13,15 +15,9 @@ const Navbar = () => {
         </Text>
 
         <Flex gap="3" align="center">
-          <Button variant="ghost" color="gray">
-            <Key className="w-4 h-4 mr-2" />
-            API Key
-          </Button>
+          <APIKeyModal />
           
-          <Button variant="ghost" color="gray">
-            <FileText className="w-4 h-4 mr-2" />
-            Context
-          </Button>
+          <ContextModal />
 
           <DropdownMenu.Root>
             <DropdownMenu.Trigger>
