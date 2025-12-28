@@ -35,20 +35,17 @@ const PyramidCard = ({ pyramid, onDelete, onDuplicate }) => {
   };
 
   return (
-    <Card className="hover:shadow-md transition-shadow cursor-pointer relative group h-full flex flex-col" onClick={handleOpen}>
+    <Card className="cursor-pointer relative group h-full flex flex-col backdrop-blur-md bg-white/70 border border-white/50 shadow-sm hover:shadow-lg transition-all duration-300 rounded-2xl ring-1 ring-black/5" onClick={handleOpen}>
       <Flex direction="column" gap="3" className="h-full">
         <Flex justify="between" align="start">
           <Box className="flex-1 min-w-0 pr-2">
-            <Text size="5" weight="bold" className="block mb-1 truncate" title={pyramid.title}>
+            <Text size="5" weight="bold" className="block mb-1 truncate tracking-tight text-gray-900" title={pyramid.title}>
               {pyramid.title}
             </Text>
             <Flex align="center" gap="2">
-              <Badge color="indigo" variant="soft">
-                {pyramid.status === 'completed' ? 'Completed' : 'In Progress'}
-              </Badge>
               <Flex align="center" gap="1">
-                <Clock size={12} className="text-gray-500" />
-                <Text size="1" color="gray">
+                <Clock size={12} className="text-gray-400" />
+                <Text size="1" color="gray" className="text-gray-500 font-medium">
                   {formatDate(pyramid.createdAt)}
                 </Text>
               </Flex>
@@ -74,10 +71,6 @@ const PyramidCard = ({ pyramid, onDelete, onDuplicate }) => {
             </DropdownMenu.Root>
           </Box>
         </Flex>
-
-        <Text size="2" color="gray" className="line-clamp-3 flex-grow">
-          {pyramid.context || "No context provided."}
-        </Text>
 
         <Flex justify="end" align="center" className="mt-auto pt-2">
           <Button variant="soft" size="1" onClick={(e) => { e.stopPropagation(); handleOpen(); }}>

@@ -10,7 +10,7 @@ const Navbar = () => {
   return (
     <div className="border-b border-gray-200 px-4 py-3 bg-white">
       <Flex justify="between" align="center">
-        <Text size="5" weight="bold" className="text-indigo-600">
+        <Text size="5" weight="bold" className="text-black">
           Pyramid Solver
         </Text>
 
