@@ -17,7 +17,6 @@ import { getPyramid } from '../services/pyramidService';
 import { getContextDocument } from '../services/contextDocumentService';
 import TopicEditModal from '../components/ProductDefinition/TopicEditModal';
 import ContextSelectorModal from '../components/ProductDefinition/ContextSelectorModal';
-import ChatPanel from '../components/Chat/ChatPanel';
 
 // Layout configuration
 const LEVEL_1_RADIUS = 300;
@@ -304,14 +303,6 @@ const ProductDefinitionEditorContent = () => {
         node={selectedNode}
         onSave={handleSaveDescription}
         productTitle={definition.title}
-      />
-
-      {/* Chat Panel - Integrated with Product Definition Context */}
-      <ChatPanel 
-        pyramidId={definitionId} 
-        pyramid={null}
-        parentCollection="productDefinitions"
-        productDefinition={definition}
       />
     </Flex>
   );

@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Container, Heading, Text, Button, Flex, Badge } from '@radix-ui/themes';
-import Navbar from '../components/Navbar/Navbar';
 import PyramidBoard from '../components/Board/PyramidBoard';
-import ChatPanel from '../components/Chat/ChatPanel';
 import { ArrowLeft, Link as LinkIcon, Download } from 'lucide-react';
 import { getPyramid } from '../services/pyramidService';
 import { exportToExcel } from '../services/exportService';
@@ -88,14 +86,6 @@ const PyramidEditor = () => {
             onPyramidLoaded={setCurrentPyramid} 
         />
       </Box>
-
-      {/* Chat Panel - Only show if pyramid is loaded */}
-      {currentPyramid && (
-        <ChatPanel 
-            pyramidId={pyramidId} 
-            pyramid={currentPyramid} 
-        />
-      )}
     </Box>
   );
 };

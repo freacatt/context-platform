@@ -1,42 +1,77 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Flex, Text, TextArea, Button, IconButton, ScrollArea, Tooltip, Dialog } from '@radix-ui/themes';
-import { Send, ChevronDown, ChevronUp, Trash2, MessageSquare, Bot, X, Maximize2 } from 'lucide-react';
+import { Box, Flex, Text, TextArea, IconButton, Tooltip, Dialog, ScrollArea, Button } from '@radix-ui/themes';
+import { Send, Trash2, MessageSquare, Bot, X, Plus, MessageCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGlobalContext } from '../../contexts/GlobalContext';
-import { sendMessage, subscribeToChat, clearChatHistory } from '../../services/chatService';
-import { sendChatMessage, sendProductDefinitionChatMessage } from '../../services/anthropic';
+import { sendMessage, subscribeToChat, clearChatHistory, subscribeToConversations, createConversation, deleteConversation, updateConversationTitle } from '../../services/chatService';
+import { sendChatMessage, sendProductDefinitionChatMessage, sendGlobalChatMessage } from '../../services/anthropic';
 import ChatMessage from './ChatMessage';
 
 const ChatPanel = ({ 
-  pyramidId, 
-  pyramid, 
-  parentCollection = 'pyramids',
+  isOpen,
+  onClose,
+  parentId, // This will be userId for global chat
+  parentCollection = 'conversations',
+  // Optional legacy props if we ever want to re-enable context-specific chat
+  pyramid = null,
   productDefinition = null,
   additionalContext = null
 }) => {
   const { user, apiKey } = useAuth();
   const { aggregatedContext: globalContext } = useGlobalContext();
-  const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]);
+  const [conversations, setConversations] = useState([]);
+  const [activeConversationId, setActiveConversationId] = useState(null);
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef(null);
 
-  // Subscribe to chat messages
+  // Subscribe to conversations list
   useEffect(() => {
-    if (!user || !pyramidId) return;
-    const unsubscribe = subscribeToChat(user.uid, pyramidId, (msgs) => {
-      setMessages(msgs);
-    }, parentCollection);
+    if (!user) return;
+    const unsubscribe = subscribeToConversations(user.uid, (convs) => {
+      setConversations(convs);
+      // Select first conversation if none selected and not explicitly creating new
+      if (!activeConversationId && convs.length > 0) {
+        // setActiveConversationId(convs[0].id); // Optional: Auto-select latest
+      }
+    });
     return () => unsubscribe();
-  }, [user, pyramidId, parentCollection]);
+  }, [user]);
+
+  // Subscribe to chat messages for active conversation
+  useEffect(() => {
+    if (!user || !activeConversationId) {
+        setMessages([]);
+        return;
+    }
+    const unsubscribe = subscribeToChat(user.uid, activeConversationId, (msgs) => {
+      setMessages(msgs);
+    }, 'conversations');
+    return () => unsubscribe();
+  }, [user, activeConversationId]);
 
   // Auto-scroll to bottom
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, isOpen, isTyping]);
+  }, [messages, isOpen, isTyping, activeConversationId]);
+
+  const handleNewChat = async () => {
+    setActiveConversationId(null); // Reset active ID to show empty state/ready for new
+    setMessages([]);
+  };
+
+  const handleDeleteConversation = async (e, convId) => {
+      e.stopPropagation();
+      if (window.confirm("Delete this conversation?")) {
+          if (activeConversationId === convId) {
+              setActiveConversationId(null);
+          }
+          await deleteConversation(convId);
+      }
+  };
 
   const handleSend = async () => {
     if (!input.trim() || !apiKey) return;
@@ -46,15 +81,24 @@ const ChatPanel = ({
     setIsTyping(true);
 
     try {
+      let currentConversationId = activeConversationId;
+
+      // Create new conversation if none active
+      if (!currentConversationId) {
+          const newConv = await createConversation(user.uid, userMsg.substring(0, 30) + (userMsg.length > 30 ? '...' : ''));
+          currentConversationId = newConv.id;
+          setActiveConversationId(currentConversationId);
+      }
+
       // 1. Save user message
-      await sendMessage(user.uid, pyramidId, 'user', userMsg, {}, parentCollection);
+      await sendMessage(user.uid, currentConversationId, 'user', userMsg, {}, 'conversations');
 
       // 2. Get AI Response
       let response;
       const combinedContext = (additionalContext || "") + "\n\n" + (globalContext || "");
 
       if (parentCollection === 'productDefinitions' && productDefinition) {
-        // Use Product Definition Chat Mode
+        // Use Product Definition Chat Mode (Legacy/Specific)
         response = await sendProductDefinitionChatMessage(
             apiKey, 
             productDefinition, 
@@ -62,14 +106,16 @@ const ChatPanel = ({
             messages, 
             userMsg
         );
-      } else {
-        // Use Standard Pyramid Chat Mode
-        // Pass additionalContext (aggregated) if available
+      } else if (parentCollection === 'pyramids' && pyramid) {
+        // Use Standard Pyramid Chat Mode (Legacy/Specific)
         response = await sendChatMessage(apiKey, pyramid, messages, userMsg, combinedContext, parentCollection);
+      } else {
+        // Use Global Chat Mode
+        response = await sendGlobalChatMessage(apiKey, globalContext, messages, userMsg);
       }
 
       // 3. Save AI message
-      await sendMessage(user.uid, pyramidId, 'assistant', response, {}, parentCollection);
+      await sendMessage(user.uid, currentConversationId, 'assistant', response, {}, 'conversations');
 
     } catch (error) {
       console.error("Chat Error:", error);
@@ -78,154 +124,187 @@ const ChatPanel = ({
     }
   };
 
-  const handleClear = async () => {
-    if (window.confirm("Are you sure you want to clear the chat history?")) {
-        await clearChatHistory(user.uid, pyramidId, parentCollection);
-    }
-  };
-
   const handleCopy = (text) => {
     navigator.clipboard.writeText(text);
   };
 
   return (
-    <>
-      {/* Trigger Button (Fixed at bottom right) */}
-      {!isOpen && (
-        <Box 
-          className="fixed bottom-8 right-8 z-40"
-        >
-            <Button 
-                size="4" 
-                variant="solid" 
-                className="shadow-xl bg-indigo-600 hover:bg-indigo-700 text-white rounded-full h-14 w-14 p-0 flex items-center justify-center transition-transform hover:scale-105"
-                onClick={() => setIsOpen(true)}
-                style={{ borderRadius: '9999px', cursor: 'pointer' }}
-            >
-                <Bot size={28} />
-            </Button>
-            {messages.length > 0 && (
-                <Box className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-white">
-                    {messages.length > 9 ? '9+' : messages.length}
+    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <Dialog.Content style={{ maxWidth: 1100, height: '85vh', padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRadius: '16px', border: '1px solid #e5e7eb', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)' }}>
+          <Flex className="h-full bg-white">
+            {/* Sidebar - History */}
+            <Box className="w-[280px] border-r border-gray-200 bg-gray-50/50 flex flex-col h-full flex-shrink-0">
+                <Box className="p-4">
+                    <Button 
+                        size="3"
+                        variant="soft" 
+                        color="gray" 
+                        className="w-full cursor-pointer justify-start bg-white border border-gray-300 shadow-sm hover:border-gray-400 hover:bg-gray-50 text-gray-700"
+                        onClick={handleNewChat}
+                    >
+                        <Plus size={18} className="mr-2" /> 
+                        <Text weight="medium">New Chat</Text>
+                    </Button>
                 </Box>
-            )}
-        </Box>
-      )}
+                
+                <Box className="px-4 pb-2">
+                    <Text size="1" weight="bold" color="gray" className="uppercase tracking-wider opacity-60">History</Text>
+                </Box>
 
-      {/* Big Modal Dialog */}
-      <Dialog.Root open={isOpen} onOpenChange={setIsOpen}>
-        <Dialog.Content style={{ maxWidth: 900, height: '85vh', padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            {/* Header */}
-            <Flex 
-                justify="between" 
-                align="center" 
-                className="p-4 border-b border-gray-200 bg-gray-50"
-            >
-                <Flex gap="3" align="center">
-                    <Box className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
-                        <Bot size={24} />
-                    </Box>
-                    <Box>
-                        <Dialog.Title size="4" className="m-0">AI Pyramid Assistant</Dialog.Title>
-                        <Dialog.Description size="1" color="gray" className="m-0">
-                            Context-aware help for your pyramid problem solving
-                        </Dialog.Description>
-                    </Box>
-                </Flex>
-                <Flex gap="2">
-                    <Tooltip content="Clear Chat History">
-                        <IconButton variant="soft" color="red" onClick={handleClear}>
-                            <Trash2 size={18} />
-                        </IconButton>
-                    </Tooltip>
+                <ScrollArea className="flex-1 px-3 pb-4">
+                    <Flex direction="column" gap="1">
+                        {conversations.map(conv => (
+                            <Box 
+                                key={conv.id}
+                                className={`
+                                    p-3 rounded-lg cursor-pointer transition-all duration-200 group relative
+                                    ${activeConversationId === conv.id 
+                                        ? 'bg-white shadow-sm ring-1 ring-gray-200 text-gray-900' 
+                                        : 'text-gray-600 hover:bg-gray-100/80 hover:text-gray-900'}
+                                `}
+                                onClick={() => setActiveConversationId(conv.id)}
+                            >
+                                <Text size="2" className="block truncate pr-6 font-medium">
+                                    {conv.title || "New Chat"}
+                                </Text>
+                                <Text size="1" className="block truncate opacity-50 mt-0.5">
+                                    {conv.updatedAt?.toDate().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                </Text>
+                                <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <IconButton 
+                                        size="1" 
+                                        variant="ghost" 
+                                        color="red" 
+                                        onClick={(e) => handleDeleteConversation(e, conv.id)}
+                                        className="hover:bg-red-50"
+                                    >
+                                        <Trash2 size={14} />
+                                    </IconButton>
+                                </div>
+                            </Box>
+                        ))}
+                        {conversations.length === 0 && (
+                            <Box className="p-8 text-center opacity-40">
+                                <MessageSquare size={24} className="mx-auto mb-2" />
+                                <Text size="2">No history yet</Text>
+                            </Box>
+                        )}
+                    </Flex>
+                </ScrollArea>
+            </Box>
+
+            {/* Main Chat Area */}
+            <Flex direction="column" className="flex-1 h-full min-w-0 bg-white relative">
+                {/* Header */}
+                <Flex 
+                    justify="between" 
+                    align="center" 
+                    className="px-6 py-4 border-b border-gray-100"
+                >
+                    <Flex gap="3" align="center">
+                        <Text size="3" weight="bold" className="text-gray-900">
+                            {activeConversationId ? (conversations.find(c => c.id === activeConversationId)?.title || "Chat") : "New Chat"}
+                        </Text>
+                        <Box className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-medium tracking-wide">
+                        
+                        </Box>
+                    </Flex>
                     <Dialog.Close>
-                        <IconButton variant="ghost" color="gray">
-                            <X size={24} />
+                        <IconButton variant="ghost" color="gray" className="cursor-pointer hover:bg-gray-100 rounded-full">
+                            <X size={20} />
                         </IconButton>
                     </Dialog.Close>
                 </Flex>
-            </Flex>
 
-            {/* Messages Area */}
-            <Box className="flex-1 overflow-y-auto p-6 bg-white" ref={scrollRef}>
-                {messages.length === 0 ? (
-                    <Flex direction="column" align="center" justify="center" className="h-full text-center opacity-50 space-y-4">
-                        <Box className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-300 mb-4">
-                            <MessageSquare size={40} />
-                        </Box>
-                        <Text size="5" weight="bold" color="gray">No messages yet</Text>
-                        <Text size="2" color="gray" style={{ maxWidth: 400 }}>
-                            Start a conversation with the AI. It understands your pyramid structure, blocks, and progress. Ask for patterns, suggestions, or logic checks.
-                        </Text>
-                    </Flex>
-                ) : (
-                    <Flex direction="column" gap="4">
-                        {messages.map((msg) => (
-                            <ChatMessage 
-                                key={msg.id} 
-                                message={msg} 
-                                onCopy={handleCopy} 
-                            />
-                        ))}
-                        {isTyping && (
-                            <Flex gap="3" className="mb-4">
-                                <Box className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white flex-shrink-0 mt-1">
-                                    <Bot size={16} />
+                {/* Messages Area */}
+                <Box className="flex-1 overflow-y-auto px-4 md:px-20 py-8 scroll-smooth" ref={scrollRef}>
+                    <Box className="max-w-3xl mx-auto w-full">
+                        {messages.length === 0 && !activeConversationId ? (
+                            <Flex direction="column" align="center" justify="center" className="min-h-[400px] text-center space-y-6">
+                                <Box className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 mb-2 ring-1 ring-gray-100">
+                                    <Bot size={32} />
                                 </Box>
-                                <Box className="bg-gray-100 p-4 rounded-2xl rounded-tl-none">
-                                    <Flex gap="1.5" align="center" height="24px">
-                                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                                    </Flex>
+                                <Box>
+                                    <Text size="6" weight="bold" className="block mb-2 text-gray-900">How can I help you?</Text>
+                                    <Text size="2" color="gray" className="max-w-md mx-auto leading-relaxed">
+                                        I have access to your selected global context. Ask me anything about your pyramids or product definitions.
+                                    </Text>
                                 </Box>
                             </Flex>
+                        ) : (
+                            <Flex direction="column">
+                                {messages.map((msg) => (
+                                    <ChatMessage 
+                                        key={msg.id} 
+                                        message={msg} 
+                                        onCopy={handleCopy} 
+                                        role={msg.role}
+                                    />
+                                ))}
+                                {isTyping && (
+                                    <Flex gap="4" className="mb-6 animate-pulse">
+                                        <Box className="w-8 h-8 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+                                            <Bot size={16} />
+                                        </Box>
+                                        <Box className="flex items-center gap-1 mt-2">
+                                            <div className="w-1.5 h-1.5 bg-gray-400 rounded-full" />
+                                            <div className="w-1.5 h-1.5 bg-gray-400 rounded-full" />
+                                            <div className="w-1.5 h-1.5 bg-gray-400 rounded-full" />
+                                        </Box>
+                                    </Flex>
+                                )}
+                            </Flex>
                         )}
-                    </Flex>
-                )}
-            </Box>
+                    </Box>
+                </Box>
 
-            {/* Input Area */}
-            <Box className="p-4 border-t border-gray-200 bg-gray-50">
-                <Flex gap="3">
-                    <TextArea 
-                        placeholder={apiKey ? "Ask a question about your pyramid..." : "Please set API Key in Navbar first"}
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSend();
-                            }
-                        }}
-                        disabled={!apiKey || isTyping}
-                        size="3"
-                        rows={1}
-                        className="flex-1 min-h-[60px] max-h-[150px]"
-                        style={{ resize: 'none' }}
-                    />
-                    <Flex direction="column" justify="end">
-                        <IconButton 
-                            size="4" 
-                            variant="solid" 
-                            color="indigo" 
-                            onClick={handleSend}
-                            disabled={!input.trim() || !apiKey || isTyping}
-                            className="h-[60px] w-[60px]"
-                        >
-                            <Send size={24} />
-                        </IconButton>
-                    </Flex>
-                </Flex>
-                {!apiKey && (
-                    <Text size="1" color="red" className="mt-2 block text-center">
-                        API Key required to chat.
-                    </Text>
-                )}
-            </Box>
-        </Dialog.Content>
-      </Dialog.Root>
-    </>
+                {/* Input Area */}
+                <Box className="p-6 bg-gradient-to-t from-white via-white to-transparent">
+                    <Box className="max-w-3xl mx-auto w-full relative">
+                        <Box className="relative shadow-lg rounded-2xl bg-white ring-1 ring-gray-200 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all duration-200">
+                            <TextArea 
+                                placeholder={apiKey ? "Message AI Assistant..." : "Please set API Key in Navbar first"}
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSend();
+                                    }
+                                }}
+                                disabled={!apiKey || isTyping}
+                                size="3"
+                                rows={1}
+                                className="w-full min-h-[56px] max-h-[200px] py-4 pl-5 pr-14 bg-transparent border-none focus:ring-0 resize-none text-base"
+                                style={{ boxShadow: 'none' }}
+                            />
+                            <Box className="absolute right-2 bottom-2">
+                                <IconButton 
+                                    size="2" 
+                                    variant={input.trim() ? "solid" : "soft"}
+                                    color={input.trim() ? "indigo" : "gray"}
+                                    onClick={handleSend}
+                                    disabled={!input.trim() || !apiKey || isTyping}
+                                    className={`rounded-xl transition-all duration-200 ${input.trim() ? 'shadow-md hover:scale-105' : 'opacity-50'}`}
+                                >
+                                    <Send size={16} />
+                                </IconButton>
+                            </Box>
+                        </Box>
+                        {!apiKey && (
+                            <Text size="1" color="red" className="mt-2 block text-center font-medium">
+                                API Key required to chat.
+                            </Text>
+                        )}
+                        <Text size="1" align="center" color="gray" className="mt-3 opacity-50 text-[11px]">
+                            AI can make mistakes. Please verify important information.
+                        </Text>
+                    </Box>
+                </Box>
+            </Flex>
+          </Flex>
+      </Dialog.Content>
+    </Dialog.Root>
   );
 };
 

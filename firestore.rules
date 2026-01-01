@@ -18,6 +18,11 @@ service cloud.firestore {
     // Users collection
     match /users/{userId} {
       allow read, write: if isOwner(userId);
+
+      // Chat subcollection for Global Chat
+      match /chat/{messageId} {
+        allow read, write: if isOwner(userId);
+      }
     }
     
     // Pyramids collection (Root level)
@@ -42,6 +47,16 @@ service cloud.firestore {
       // Chat subcollection for Product Definitions
       match /chat/{messageId} {
         allow read, write: if parentIsOwned('productDefinitions', definitionId);
+      }
+    }
+
+    // Independent Conversations collection
+    match /conversations/{conversationId} {
+      allow create: if isOwner(request.resource.data.userId);
+      allow read, update, delete: if isOwner(resource.data.userId);
+
+      match /messages/{messageId} {
+        allow read, write: if parentIsOwned('conversations', conversationId);
       }
     }
 

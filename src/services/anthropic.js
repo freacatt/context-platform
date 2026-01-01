@@ -273,6 +273,58 @@ ASSISTANT:
 };
 
 /**
+ * Send a global chat message to Claude AI
+ */
+export const sendGlobalChatMessage = async (apiKey, globalContext, chatHistory, userMessage) => {
+  if (!apiKey) throw new Error("API Key is missing");
+
+  const anthropic = new Anthropic({
+    apiKey: apiKey,
+    dangerouslyAllowBrowser: true
+  });
+
+  const systemPrompt = `
+You are an intelligent assistant for the "Pyramid Solver" platform.
+You have access to a global context of documents, product definitions, and problem-solving pyramids.
+
+GLOBAL CONTEXT:
+${globalContext || "No context provided."}
+
+Your role is to:
+1. Assist the user with their queries based on the provided context.
+2. Help connect dots between different documents or projects if they are in the context.
+3. Be concise and helpful.
+
+Markdown is supported in your response.
+`;
+
+  // Convert chat history
+  const recentHistory = chatHistory.slice(-20).map(msg => ({
+    role: msg.role === 'user' ? 'user' : 'assistant',
+    content: msg.content
+  }));
+
+  const messages = [
+    ...recentHistory,
+    { role: "user", content: userMessage }
+  ];
+
+  try {
+    const msg = await anthropic.messages.create({
+      model: "claude-3-haiku-20240307",
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages: messages,
+    });
+
+    return msg.content[0].text;
+  } catch (error) {
+    console.error("Global Chat Error:", error);
+    throw error;
+  }
+};
+
+/**
  * Generate answer suggestions using Claude AI
  * 
  * @param {string} apiKey - The user's Anthropic API Key

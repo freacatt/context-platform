@@ -1,10 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { Box, Flex, Text, Avatar, IconButton } from '@radix-ui/themes';
 import ReactMarkdown from 'react-markdown';
-import { Bot, User, Copy, RefreshCw } from 'lucide-react';
+import { Bot, Copy } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
-const ChatMessage = ({ message, onCopy, onRegenerate, isLastAiMessage }) => {
+const ChatMessage = ({ message, onCopy }) => {
   const isUser = message.role === 'user';
   const { user } = useAuth();
 
@@ -12,9 +12,9 @@ const ChatMessage = ({ message, onCopy, onRegenerate, isLastAiMessage }) => {
     <Flex 
       direction="column" 
       align={isUser ? 'end' : 'start'} 
-      className={`mb-4 ${isUser ? 'items-end' : 'items-start'}`}
+      className={`mb-6 w-full ${isUser ? 'items-end' : 'items-start'}`}
     >
-      <Flex gap="2" className={`max-w-[85%] ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+      <Flex gap="4" className={`max-w-[85%] ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
         {/* Avatar */}
         <Box className="flex-shrink-0 mt-1">
           {isUser ? (
@@ -22,61 +22,60 @@ const ChatMessage = ({ message, onCopy, onRegenerate, isLastAiMessage }) => {
                 src={user?.photoURL} 
                 fallback={user?.displayName?.[0] || 'U'} 
                 radius="full" 
-                size="1" 
+                size="1"
+                className="w-8 h-8" 
              />
           ) : (
-             <Box className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white">
-                <Bot size={14} />
+             <Box className="w-8 h-8 rounded-full bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600">
+                <Bot size={16} />
              </Box>
           )}
         </Box>
 
-        {/* Message Bubble */}
-        <Box 
-          className={`
-            p-3 rounded-lg text-sm relative group
-            ${isUser 
-              ? 'bg-blue-600 text-white rounded-tr-none' 
-              : 'bg-gray-100 text-gray-800 rounded-tl-none border border-gray-200'}
-          `}
-        >
-          {isUser ? (
-            <Text>{message.content}</Text>
-          ) : (
-            <Box className="markdown-content">
-              <ReactMarkdown>{message.content}</ReactMarkdown>
-            </Box>
-          )}
-
-          {/* Action Buttons (Hover) */}
-          {!isUser && (
-            <Flex 
-                className="absolute -bottom-6 left-0 opacity-0 group-hover:opacity-100 transition-opacity gap-1"
-                align="center"
-            >
-                <IconButton 
-                    size="1" 
-                    variant="ghost" 
-                    color="gray" 
-                    onClick={() => onCopy(message.content)}
-                    title="Copy message"
+        {/* Message Content */}
+        <Box className="flex-1 min-w-0">
+            <Flex direction="column" gap="1">
+                <Box className="flex items-baseline gap-2">
+                    <Text size="2" weight="bold" color="gray" className="opacity-90">
+                        {isUser ? 'You' : 'AI Assistant'}
+                    </Text>
+                </Box>
+                
+                <Box 
+                  className={`
+                    text-[15px] leading-relaxed relative group
+                    ${isUser 
+                      ? 'bg-gray-100 text-gray-900 px-4 py-3 rounded-2xl rounded-tr-sm' 
+                      : 'text-gray-800 py-1 pr-4'}
+                  `}
                 >
-                    <Copy size={12} />
-                </IconButton>
-                {/* Only show regenerate for the last AI message if needed, or general logic */}
-                {/* {isLastAiMessage && (
-                    <IconButton 
-                        size="1" 
-                        variant="ghost" 
-                        color="gray" 
-                        onClick={() => onRegenerate(message)}
-                        title="Regenerate response"
+                  {isUser ? (
+                    <Text>{message.content}</Text>
+                  ) : (
+                    <Box className="markdown-content prose prose-sm max-w-none text-gray-800 prose-p:my-1 prose-pre:bg-gray-50 prose-pre:border prose-pre:border-gray-100">
+                      <ReactMarkdown>{message.content}</ReactMarkdown>
+                    </Box>
+                  )}
+
+                  {/* Action Buttons (Hover) */}
+                  {!isUser && (
+                    <Flex 
+                        className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity gap-2"
+                        align="center"
                     >
-                        <RefreshCw size={12} />
-                    </IconButton>
-                )} */}
+                        <IconButton 
+                            size="1" 
+                            variant="ghost" 
+                            color="gray" 
+                            onClick={() => onCopy(message.content)}
+                            className="hover:bg-gray-100 rounded-full"
+                        >
+                            <Copy size={14} />
+                        </IconButton>
+                    </Flex>
+                  )}
+                </Box>
             </Flex>
-          )}
         </Box>
       </Flex>
     </Flex>

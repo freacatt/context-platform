@@ -9,10 +9,11 @@ const GlobalContext = createContext();
 export const useGlobalContext = () => useContext(GlobalContext);
 
 export const GlobalProvider = ({ children }) => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   
   // State for selected context sources (array of { type, id, title })
   const [selectedSources, setSelectedSources] = useState([]);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const [aggregatedContext, setAggregatedContext] = useState("");
   const [isContextLoading, setIsContextLoading] = useState(false);
@@ -20,8 +21,11 @@ export const GlobalProvider = ({ children }) => {
 
   // Load from local storage when user changes
   useEffect(() => {
+    if (authLoading) return;
+
     if (!user) {
       setSelectedSources([]);
+      setIsInitialized(true);
       return;
     }
     const key = `globalContextSources_${user.uid}`;
@@ -36,14 +40,15 @@ export const GlobalProvider = ({ children }) => {
     } else {
       setSelectedSources([]);
     }
-  }, [user]);
+    setIsInitialized(true);
+  }, [user, authLoading]);
 
   // Save to local storage whenever selectedSources changes
   useEffect(() => {
-    if (!user) return;
+    if (authLoading || !user || !isInitialized) return;
     const key = `globalContextSources_${user.uid}`;
     localStorage.setItem(key, JSON.stringify(selectedSources));
-  }, [selectedSources, user]);
+  }, [selectedSources, user, authLoading, isInitialized]);
 
   // Fetch and aggregate context data
   const fetchAndAggregateContext = useCallback(async (sources) => {

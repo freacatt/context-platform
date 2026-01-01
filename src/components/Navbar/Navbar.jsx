@@ -1,10 +1,12 @@
+import React, { useState } from 'react';
 import { Flex, Text, Button, Avatar, DropdownMenu, Badge } from '@radix-ui/themes';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGlobalContext } from '../../contexts/GlobalContext';
-import { LogOut, Download, Home, LayoutGrid, Globe } from 'lucide-react';
+import { LogOut, Download, Home, LayoutGrid, Globe, Bot } from 'lucide-react';
 import APIKeyModal from './APIKeyModal';
 import ContextModal from './ContextModal';
 import ContextSelectorModal from '../ProductDefinition/ContextSelectorModal';
+import ChatPanel from '../Chat/ChatPanel';
 import { exportToExcel } from '../../services/exportService';
 import { useLocation, Link } from 'react-router-dom';
 
@@ -18,6 +20,7 @@ const Navbar = () => {
     selectedSources 
   } = useGlobalContext();
   
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const location = useLocation();
 
   return (
@@ -49,6 +52,12 @@ const Navbar = () => {
             )}
           </Button>
 
+          {/* Global Chat Button */}
+          <Button variant="ghost" color="gray" onClick={() => setIsChatOpen(true)} className="cursor-pointer hover:bg-gray-100 transition-colors">
+            <Bot size={16} className="text-gray-400" />
+            AI Chat
+          </Button>
+
           {/* Global Context Modal */}
           <ContextSelectorModal 
             isOpen={isContextModalOpen}
@@ -61,6 +70,14 @@ const Navbar = () => {
           <APIKeyModal />
           
           <ContextModal />
+          
+          {/* Global Chat Panel */}
+          <ChatPanel 
+            isOpen={isChatOpen}
+            onClose={() => setIsChatOpen(false)}
+            parentId={user?.uid}
+            parentCollection="users"
+          />
 
           <DropdownMenu.Root>
             <DropdownMenu.Trigger>
