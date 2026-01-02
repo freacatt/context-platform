@@ -3,12 +3,12 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBBSqv6bh1Xwqut4uBRcVx6Z2r7apLRy9o",
-  authDomain: "pyramid-s.firebaseapp.com",
-  projectId: "pyramid-s",
-  storageBucket: "pyramid-s.firebasestorage.app",
-  messagingSenderId: "767685344402",
-  appId: "1:767685344402:web:fcd239e0686420e4267a4b"
+  apiKey: "AIzaSyApg083XFoxlffCA_ivKy12BH8aD2kgFwc",
+  authDomain: "product-platform-c9bb9.firebaseapp.com",
+  projectId: "product-platform-c9bb9",
+  storageBucket: "product-platform-c9bb9.firebasestorage.app",
+  messagingSenderId: "258380714726",
+  appId: "1:258380714726:web:cc44b2afef98422305a127"
 };
 
 const app = initializeApp(firebaseConfig);
