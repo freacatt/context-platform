@@ -10,6 +10,8 @@ import PyramidEditor from './pages/PyramidEditor';
 import ProductDefinitionEditor from './pages/ProductDefinitionEditor';
 import ContextDocumentsPage from './pages/ContextDocumentsPage';
 import ContextDocumentEditor from './pages/ContextDocumentEditor';
+import { TechnicalArchitecturesPage } from './pages/TechnicalArchitecturesPage';
+import { TechnicalArchitectureEditorPage } from './pages/TechnicalArchitectureEditorPage';
 
 import AuthenticatedLayout from './components/Layout/AuthenticatedLayout';
 
@@ -98,6 +100,21 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
+
+              {/* Technical Architecture Tool Routes */}
+              <Route 
+                path="/technical-architectures" 
+                element={
+                    <TechnicalArchitecturesPage />
+                } 
+              />
+              <Route 
+                path="/technical-architecture/:id" 
+                element={
+                    <TechnicalArchitectureEditorPage />
+                } 
+              />
+
             </Routes>
           </Router>
         </GlobalProvider>

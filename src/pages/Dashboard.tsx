@@ -1,6 +1,6 @@
 import React from 'react';
 import { Container, Box, Flex, Heading, Card, Text, Button } from '@radix-ui/themes';
-import { GitMerge, ArrowRight, BookOpen, Pyramid, LucideIcon } from 'lucide-react';
+import { GitMerge, ArrowRight, BookOpen, Pyramid, LucideIcon, Server } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 
@@ -65,6 +65,14 @@ const Dashboard: React.FC = () => {
                 icon={BookOpen}
                 to="/context-documents"
                 color="bg-amber-600"
+            />
+
+            <ToolCard 
+                title="Technical Architecture" 
+                description="Define the full technical architecture of your application. Specify system layers, technology stack, and engineering standards."
+                icon={Server}
+                to="/technical-architectures"
+                color="bg-purple-600"
             />
         </div>
       </Container>

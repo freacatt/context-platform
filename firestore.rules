@@ -61,9 +61,15 @@ rules_version = '2';
      } 
  
      // Context Documents collection 
-     match /contextDocuments/{documentId} { 
-       allow create: if isOwner(request.resource.data.userId); 
-       allow read, update, delete: if isOwner(resource.data.userId); 
-     } 
-   } 
- }
+    match /contextDocuments/{documentId} { 
+      allow create: if isOwner(request.resource.data.userId); 
+      allow read, update, delete: if isOwner(resource.data.userId); 
+    }
+
+    // Technical Architectures collection
+    match /technicalArchitectures/{architectureId} {
+      allow create: if isOwner(request.resource.data.userId);
+      allow read, update, delete: if isOwner(resource.data.userId);
+    }
+  } 
+}

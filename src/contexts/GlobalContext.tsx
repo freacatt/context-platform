@@ -3,9 +3,10 @@ import { useAuth } from './AuthContext';
 import { getPyramid } from '../services/pyramidService';
 import { getProductDefinition } from '../services/productDefinitionService';
 import { getContextDocument } from '../services/contextDocumentService';
+import { getTechnicalArchitecture } from '../services/technicalArchitectureService';
 
 interface ContextSource {
-    type: 'pyramid' | 'productDefinition' | 'contextDocument';
+    type: 'pyramid' | 'productDefinition' | 'contextDocument' | 'technicalArchitecture';
     id: string;
     title: string;
 }
@@ -98,6 +99,22 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
             }
           } else if (source.type === 'productDefinition') {
             const pd = await getProductDefinition(source.id);
+            if (pd) {
+                contextText += `\n--- PRODUCT DEFINITION: ${pd.title} ---\n`;
+                // Basic representation of product definition data
+                contextText += JSON.stringify(pd.data, null, 2);
+            }
+          } else if (source.type === 'technicalArchitecture') {
+            const ta = await getTechnicalArchitecture(source.id);
+            if (ta) {
+                contextText += `\n--- TECHNICAL ARCHITECTURE: ${ta.title} ---\n`;
+                // Add key sections to context
+                contextText += `Architecture Type: ${ta.system_architecture.main.architecture_type}\n`;
+                contextText += `Core Principles: ${ta.system_architecture.main.core_principles.join(', ')}\n`;
+                contextText += `Tech Stack: ${ta.technology_stack.main.frontend.framework}, ${ta.technology_stack.main.backend.runtime}, ${ta.technology_stack.main.backend.database}\n`;
+                contextText += JSON.stringify(ta.system_architecture, null, 2);
+            }
+          } else if (source.type === 'contextDocument') {
             contextText += `\n--- PRODUCT DEFINITION: ${pd.title} ---\n`;
             
             // Format the product definition tree structure

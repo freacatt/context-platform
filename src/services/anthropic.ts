@@ -185,6 +185,55 @@ If the context doesn't provide enough information, make reasonable assumptions b
 };
 
 /**
+ * Generate a suggestion for a Technical Architecture field
+ */
+export const generateTechnicalArchitectureSuggestion = async (
+    apiKey: string, 
+    architectureTitle: string, 
+    fieldTitle: string, 
+    fieldDescription: string,
+    fieldPath: string
+): Promise<string> => {
+  if (!apiKey) throw new Error("API Key is missing");
+
+  const anthropic = new Anthropic({
+    apiKey: apiKey,
+    dangerouslyAllowBrowser: true
+  });
+
+  const prompt = `
+You are an expert software architect assistant.
+
+ARCHITECTURE TITLE: "${architectureTitle}"
+
+CURRENT FIELD: "${fieldTitle}"
+PATH: ${fieldPath}
+DESCRIPTION/CONTEXT: "${fieldDescription}"
+
+TASK:
+Suggest a professional, best-practice value for this field.
+- If the field expects a list, provide a bulleted list or newline-separated items.
+- If it expects a key-value map, provide "Key: Value" format.
+- If it expects a description, provide a concise but comprehensive paragraph.
+
+Your response should be ONLY the content to be inserted into the field, without conversational filler.
+  `;
+
+  try {
+    const msg = await anthropic.messages.create({
+      model: "claude-3-haiku-20240307",
+      max_tokens: 1024,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    return (msg.content[0] as any).text;
+  } catch (error) {
+    console.error("AI Suggestion Error:", error);
+    throw error;
+  }
+};
+
+/**
  * Send a chat message to Claude AI with pyramid context
  */
 export const sendChatMessage = async (apiKey: string, pyramid: Pyramid, chatHistory: ChatMessage[], userMessage: string, additionalContext: string | null = null): Promise<string> => {
