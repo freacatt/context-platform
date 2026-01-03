@@ -1,3 +1,5 @@
+import typography from '@tailwindcss/typography';
+
 export default {
   content: [
     "./index.html",
@@ -15,8 +17,21 @@ export default {
         "border-active": "var(--gray-8)",
         foreground: "var(--gray-12)",
         "foreground-muted": "var(--gray-11)",
+        brand: {
+          light: "#8257e5", // Lighter purple
+          DEFAULT: "#6c5ce7", // Standard purple
+          dark: "#5849be", // Darker purple
+        }
       },
+      borderRadius: {
+        '3xl': '1.5rem', // Extra rounded for cards
+      },
+      fontFamily: {
+        sans: ['"Ubuntu"', 'Inter'],
+      }
     },
   },
-  plugins: [],
+  plugins: [
+    typography,
+  ],
 }

@@ -1,0 +1,56 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { getTechnicalArchitecture, updateTechnicalArchitecture } from '../services/technicalArchitectureService';
+import { TechnicalArchitecture } from '../types';
+import AuthenticatedLayout from '../components/Layout/AuthenticatedLayout';
+import { TechnicalArchitectureEditor } from '../components/TechnicalArchitecture/TechnicalArchitectureEditor';
+
+export const TechnicalArchitectureEditorPage: React.FC = () => {
+    const { id } = useParams<{ id: string }>();
+    const { user } = useAuth();
+    const navigate = useNavigate();
+    const [architecture, setArchitecture] = useState<TechnicalArchitecture | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (user && id) {
+            loadArchitecture();
+        }
+    }, [user, id]);
+
+    const loadArchitecture = async () => {
+        if (!id) return;
+        setLoading(true);
+        const data = await getTechnicalArchitecture(id);
+        if (data) {
+            setArchitecture(data);
+        } else {
+            navigate('/technical-architectures');
+        }
+        setLoading(false);
+    };
+
+    if (loading) {
+        return (
+            <AuthenticatedLayout>
+                <div className="flex justify-center items-center h-screen">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                </div>
+            </AuthenticatedLayout>
+        );
+    }
+
+    if (!architecture) return null;
+
+    return (
+        <AuthenticatedLayout>
+            <TechnicalArchitectureEditor 
+                architecture={architecture}
+                onSave={() => {
+                    // Optional: show toast notification
+                }}
+            />
+        </AuthenticatedLayout>
+    );
+};
