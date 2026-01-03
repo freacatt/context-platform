@@ -21,7 +21,7 @@ const ProductDefinitionsPage: React.FC = () => {
   const fetchDefinitions = async () => {
     if (!user) return;
     try {
-      const data = await getUserProductDefinitions(user.id);
+      const data = await getUserProductDefinitions(user.uid);
       setDefinitions(data);
     } catch (error) {
       console.error("Failed to load product definitions", error);
@@ -38,7 +38,7 @@ const ProductDefinitionsPage: React.FC = () => {
       if (!user || !newTitle.trim()) return;
       setIsCreating(true);
       try {
-          const id = await createProductDefinition(user.id, newTitle);
+          const id = await createProductDefinition(user.uid, newTitle);
           setIsCreateOpen(false);
           setNewTitle('');
           // Navigate to editor

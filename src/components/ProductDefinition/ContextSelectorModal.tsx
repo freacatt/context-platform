@@ -50,9 +50,9 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
     if (isOpen && user) {
       setLoading(true);
       Promise.all([
-        getUserPyramids(user.id),
-        getUserProductDefinitions(user.id),
-        getUserContextDocuments(user.id)
+        getUserPyramids(user.uid),
+        getUserProductDefinitions(user.uid),
+        getUserContextDocuments(user.uid)
       ]).then(([pyramidsData, definitionsData, documentsData]) => {
         setPyramids(pyramidsData);
         setDefinitions(definitionsData.filter(d => d.id !== currentDefinitionId)); // Exclude self

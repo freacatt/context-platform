@@ -50,7 +50,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
       setIsInitialized(true);
       return;
     }
-    const key = `globalContextSources_${user.id}`;
+    const key = `globalContextSources_${user.uid}`;
     const saved = localStorage.getItem(key);
     if (saved) {
       try {
@@ -68,7 +68,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
   // Save to local storage whenever selectedSources changes
   useEffect(() => {
     if (authLoading || !user || !isInitialized) return;
-    const key = `globalContextSources_${user.id}`;
+    const key = `globalContextSources_${user.uid}`;
     localStorage.setItem(key, JSON.stringify(selectedSources));
   }, [selectedSources, user, authLoading, isInitialized]);
 

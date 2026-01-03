@@ -21,7 +21,7 @@ const ContextDocumentsPage: React.FC = () => {
   const fetchDocuments = async () => {
     if (!user) return;
     try {
-      const data = await getUserContextDocuments(user.id);
+      const data = await getUserContextDocuments(user.uid);
       setDocuments(data);
     } catch (error) {
       console.error("Failed to load documents", error);
@@ -38,7 +38,7 @@ const ContextDocumentsPage: React.FC = () => {
       if (!user || !newTitle.trim()) return;
       setIsCreating(true);
       try {
-          const id = await createContextDocument(user.id, newTitle, 'text');
+          const id = await createContextDocument(user.uid, newTitle, 'text');
           setIsCreateOpen(false);
           setNewTitle('');
           if (id) {

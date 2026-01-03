@@ -1,19 +1,20 @@
-import { supabase } from './supabase';
+import { db } from './firebase';
+import { collection, addDoc, getDoc, getDocs, doc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { ProductDefinition, ProductDefinitionNode } from '../types';
 
-const TABLE_NAME = 'product_definitions';
+const TABLE_NAME = 'productDefinitions';
 
 // Helper to map DB snake_case to JS camelCase
-const mapDefinitionFromDB = (data: any): ProductDefinition | null => {
+const mapDefinitionFromDB = (data: any, id: string): ProductDefinition | null => {
     if (!data) return null;
     return {
-        id: data.id,
-        userId: data.user_id,
+        id: id,
+        userId: data.userId || data.user_id,
         title: data.title,
-        createdAt: data.created_at ? new Date(data.created_at) : null,
-        lastModified: data.last_modified ? new Date(data.last_modified) : null,
-        linkedPyramidId: data.linked_pyramid_id,
-        contextSources: data.context_sources,
+        createdAt: (data.createdAt || data.created_at) ? new Date(data.createdAt || data.created_at) : null,
+        lastModified: (data.lastModified || data.last_modified) ? new Date(data.lastModified || data.last_modified) : null,
+        linkedPyramidId: data.linkedPyramidId || data.linked_pyramid_id,
+        contextSources: data.contextSources || data.context_sources,
         data: data.data
     };
 };
@@ -25,11 +26,12 @@ export const createProductDefinition = async (userId: string, title: string = "N
   if (!userId) return null;
 
   const newDoc = {
-    user_id: userId,
+    userId: userId,
     title,
-    last_modified: new Date().toISOString(),
-    linked_pyramid_id: null, 
-    context_sources: [], 
+    createdAt: new Date().toISOString(),
+    lastModified: new Date().toISOString(),
+    linkedPyramidId: null, 
+    contextSources: [], 
     data: {
       "root": {
         id: "root",
@@ -39,18 +41,18 @@ export const createProductDefinition = async (userId: string, title: string = "N
         children: ["1", "2", "3", "4", "5", "6", "7", "8"]
       },
       "1": { id: "1", label: "1. Problem & Goals", parent: "root", children: ["1-1", "1-2", "1-3"] },
-        "1-1": { id: "1-1", label: "Problem Statement", question: "What specific customer pain exists?", parent: "1", children: ["1-1-1", "1-1-2", "1-1-3"] },
-          "1-1-1": { id: "1-1-1", label: "Customer Pain", question: "What specific customer pain exists?", parent: "1-1", description: "" },
-          "1-1-2": { id: "1-1-2", label: "Current Workarounds", question: "What are the current workarounds users employ?", parent: "1-1", description: "" },
-          "1-1-3": { id: "1-1-3", label: "Timing", question: "Why is now the right time to solve this?", parent: "1-1", description: "" },
-        "1-2": { id: "1-2", label: "Investment Limits", parent: "1", children: ["1-2-1", "1-2-2", "1-2-3"] },
-          "1-2-1": { id: "1-2-1", label: "Timeframe", question: "What is the expected timeframe?", parent: "1-2", description: "" },
-          "1-2-2": { id: "1-2-2", label: "Resources", question: "What resources are available?", parent: "1-2", description: "" },
-          "1-2-3": { id: "1-2-3", label: "Scope Flexibility", question: "Is the scope flexible or fixed?", parent: "1-2", description: "" },
-        "1-3": { id: "1-3", label: "Baseline Comparison", parent: "1", children: ["1-3-1", "1-3-2", "1-3-3"] },
-          "1-3-1": { id: "1-3-1", label: "Existing Solution", question: "What exists today?", parent: "1-3", description: "" },
-          "1-3-2": { id: "1-3-2", label: "User Behavior", question: "How do users solve this now?", parent: "1-3", description: "" },
-          "1-3-3": { id: "1-3-3", label: "Success Definition", question: "What does success look like?", parent: "1-3", description: "" },
+      "1-1": { id: "1-1", label: "Problem Statement", question: "What specific customer pain exists?", parent: "1", children: ["1-1-1", "1-1-2", "1-1-3"] },
+        "1-1-1": { id: "1-1-1", label: "Customer Pain", question: "What specific customer pain exists?", parent: "1-1", description: "" },
+        "1-1-2": { id: "1-1-2", label: "Current Workarounds", question: "What are the current workarounds users employ?", parent: "1-1", description: "" },
+        "1-1-3": { id: "1-1-3", label: "Timing", question: "Why is now the right time to solve this?", parent: "1-1", description: "" },
+      "1-2": { id: "1-2", label: "Investment Limits", parent: "1", children: ["1-2-1", "1-2-2", "1-2-3"] },
+        "1-2-1": { id: "1-2-1", label: "Timeframe", question: "What is the expected timeframe?", parent: "1-2", description: "" },
+        "1-2-2": { id: "1-2-2", label: "Resources", question: "What resources are available?", parent: "1-2", description: "" },
+        "1-2-3": { id: "1-2-3", label: "Scope Flexibility", question: "Is the scope flexible or fixed?", parent: "1-2", description: "" },
+      "1-3": { id: "1-3", label: "Baseline Comparison", parent: "1", children: ["1-3-1", "1-3-2", "1-3-3"] },
+        "1-3-1": { id: "1-3-1", label: "Existing Solution", question: "What exists today?", parent: "1-3", description: "" },
+        "1-3-2": { id: "1-3-2", label: "User Behavior", question: "How do users solve this now?", parent: "1-3", description: "" },
+        "1-3-3": { id: "1-3-3", label: "Success Definition", question: "What does success look like?", parent: "1-3", description: "" },
 
       "2": { id: "2", label: "2. Solution Concepts", parent: "root", children: ["2-1", "2-2", "2-3"] },
         "2-1": { id: "2-1", label: "Key Flows", parent: "2", children: ["2-1-1", "2-1-2", "2-1-3"] },
@@ -156,72 +158,76 @@ export const createProductDefinition = async (userId: string, title: string = "N
     }
   };
 
-  const { data, error } = await supabase.from(TABLE_NAME).insert(newDoc).select().single();
-  if (error) throw error;
-  return data.id;
+  try {
+      const docRef = await addDoc(collection(db, TABLE_NAME), newDoc);
+      return docRef.id;
+  } catch (error) {
+      console.error("Error creating product definition:", error);
+      throw error;
+  }
 };
 
 /**
  * Get a single product definition
  */
 export const getProductDefinition = async (id: string): Promise<ProductDefinition> => {
-  const { data, error } = await supabase.from(TABLE_NAME).select('*').eq('id', id).single();
-  
-  if (error) throw error;
-  if (!data) throw new Error("Product Definition not found");
+  try {
+      const docRef = doc(db, TABLE_NAME, id);
+      const docSnap = await getDoc(docRef);
 
-  return mapDefinitionFromDB(data) as ProductDefinition;
+      if (!docSnap.exists()) {
+          throw new Error("Product Definition not found");
+      }
+
+      return mapDefinitionFromDB(docSnap.data(), docSnap.id) as ProductDefinition;
+  } catch (error) {
+      console.error("Error fetching product definition:", error);
+      throw error;
+  }
 };
 
 /**
  * Get all product definitions for a user
  */
 export const getUserProductDefinitions = async (userId: string): Promise<ProductDefinition[]> => {
-    const { data, error } = await supabase
-        .from(TABLE_NAME)
-        .select('*')
-        .eq('user_id', userId)
-        .order('last_modified', { ascending: false });
-
-    if (error) throw error;
-    
-    return (data || []).map(mapDefinitionFromDB).filter((d): d is ProductDefinition => d !== null);
+      try {
+        const q = query(collection(db, TABLE_NAME), where('userId', '==', userId));
+        const querySnapshot = await getDocs(q);
+        
+        const definitions = querySnapshot.docs.map(doc => mapDefinitionFromDB(doc.data(), doc.id)).filter((d): d is ProductDefinition => d !== null);
+        
+        // Sort in memory
+        return definitions.sort((a, b) => {
+            const dateA = a.lastModified ? new Date(a.lastModified).getTime() : 0;
+            const dateB = b.lastModified ? new Date(b.lastModified).getTime() : 0;
+            return dateB - dateA;
+        });
+    } catch (error) {
+        console.error("Error fetching product definitions:", error);
+        throw error;
+    }
 };
 
 /**
  * Update a node's description or other data
  */
 export const updateProductDefinitionNode = async (definitionId: string, nodeId: string, newData: Partial<ProductDefinitionNode>) => {
-  // Fetch current data
-  const { data: currentDoc, error: fetchError } = await supabase
-      .from(TABLE_NAME)
-      .select('data')
-      .eq('id', definitionId)
-      .single();
-  
-  if (fetchError || !currentDoc) throw new Error("Document not found");
-  
-  const currentData = currentDoc.data;
-  
-  // Update in memory
-  const updatedData = {
-      ...currentData,
-      [nodeId]: {
-          ...currentData[nodeId],
-          ...newData
-      }
+  // Use dot notation to update nested fields efficiently
+  const updatePayload: any = {
+      lastModified: new Date().toISOString()
   };
 
-  // Save back
-  const { error } = await supabase
-      .from(TABLE_NAME)
-      .update({
-          data: updatedData,
-          last_modified: new Date().toISOString()
-      })
-      .eq('id', definitionId);
+  for (const key in newData) {
+      // @ts-ignore
+      updatePayload[`data.${nodeId}.${key}`] = newData[key];
+  }
 
-  if (error) throw error;
+  try {
+      await updateDoc(doc(db, TABLE_NAME, definitionId), updatePayload);
+  } catch (error) {
+      console.error("Error updating product definition node:", error);
+      throw error;
+  }
 };
 
 /**
@@ -235,6 +241,10 @@ export const updateNodeDescription = async (definitionId: string, nodeId: string
  * Delete a product definition
  */
 export const deleteProductDefinition = async (id: string) => {
-    const { error } = await supabase.from(TABLE_NAME).delete().eq('id', id);
-    if (error) throw error;
+    try {
+        await deleteDoc(doc(db, TABLE_NAME, id));
+    } catch (error) {
+        console.error("Error deleting product definition:", error);
+        throw error;
+    }
 };

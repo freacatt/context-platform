@@ -17,7 +17,7 @@ const PyramidsPage: React.FC = () => {
   const fetchPyramids = async () => {
     if (!user) return;
     try {
-      const data = await getUserPyramids(user.id);
+      const data = await getUserPyramids(user.uid);
       setPyramids(data);
     } catch (error) {
       console.error("Failed to load pyramids", error);
@@ -42,7 +42,7 @@ const PyramidsPage: React.FC = () => {
   const handleDuplicate = async (id: string) => {
     if (!user) return;
     try {
-      await duplicatePyramid(user.id, id);
+      await duplicatePyramid(user.uid, id);
       fetchPyramids(); 
     } catch (error) {
       alert("Failed to duplicate pyramid");

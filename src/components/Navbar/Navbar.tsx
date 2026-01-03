@@ -14,7 +14,8 @@ const Navbar: React.FC = () => {
   const { 
     setIsContextModalOpen, 
     selectedSources,
-    setSelectedSources
+    setSelectedSources,
+    isContextModalOpen // Add this line
   } = useGlobalContext();
   
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
@@ -71,8 +72,8 @@ const Navbar: React.FC = () => {
           <ChatPanel 
             isOpen={isChatOpen}
             onClose={() => setIsChatOpen(false)}
-            parentId={user?.id}
-            parentCollection="users"
+            parentId={user?.uid}
+            parentCollection="conversations"
           />
 
           <DropdownMenu.Root>

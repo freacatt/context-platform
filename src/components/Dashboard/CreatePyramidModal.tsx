@@ -17,7 +17,7 @@ const CreatePyramidModal: React.FC = () => {
     
     setLoading(true);
     try {
-      const pyramidId = await createPyramid(user.id, title);
+      const pyramidId = await createPyramid(user.uid, title);
       setOpen(false);
       // Reset state
       setTitle('');

@@ -1,14 +1,14 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { supabase } from '../services/supabase';
-import { User } from '@supabase/supabase-js';
+import { auth, db } from '../services/firebase';
+import { User, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
+import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 
 interface AuthContextType {
   user: User | null;
   apiKey: string;
   loading: boolean;
   error: string | null;
-  signUp: (email: string, password: string) => Promise<any>;
-  signIn: (email: string, password: string) => Promise<any>;
+  signInWithGoogle: () => Promise<any>;
   updateApiKey: (newKey: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -29,34 +29,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const signUp = async (email: string, password: string) => {
+  const signInWithGoogle = async () => {
     setError(null);
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
+      const provider = new GoogleAuthProvider();
+      const userCredential = await signInWithPopup(auth, provider);
       
-      if (error) throw error;
-      return data;
+      // Check if user doc exists, if not create it
+      const userDocRef = doc(db, 'users', userCredential.user.uid);
+      const userDoc = await getDoc(userDocRef);
+      
+      if (!userDoc.exists()) {
+        await setDoc(userDocRef, {
+          email: userCredential.user.email,
+          apiKey: '',
+          createdAt: new Date().toISOString()
+        });
+      }
+      return userCredential.user;
     } catch (error: any) {
-      console.error("Error signing up:", error);
-      setError(error.message);
-      throw error;
-    }
-  };
-
-  const signIn = async (email: string, password: string) => {
-    setError(null);
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) throw error;
-      return data;
-    } catch (error: any) {
-      console.error("Error signing in:", error);
+      console.error("Error signing in with Google:", error);
       setError(error.message);
       throw error;
     }
@@ -65,12 +57,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updateApiKey = async (newKey: string) => {
     if (!user) return;
     try {
-        const { error } = await supabase
-            .from('users')
-            .update({ api_key: newKey })
-            .eq('id', user.id);
-            
-        if (error) throw error;
+        await setDoc(doc(db, 'users', user.uid), {
+            apiKey: newKey
+        }, { merge: true });
         setApiKey(newKey);
     } catch (error) {
         console.error("Error updating API key:", error);
@@ -81,46 +70,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     setApiKey('');
     try {
-        await supabase.auth.signOut();
+        await signOut(auth);
     } catch (error) {
         console.error("Error signing out:", error);
     }
   };
 
   useEffect(() => {
-    // Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const currentUser = session?.user ?? null;
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-      
       if (currentUser) {
-        // Fetch extra user data like API Key
+        // Fetch API key
         try {
-            const { data, error } = await supabase
-                .from('users')
-                .select('api_key')
-                .eq('id', currentUser.id)
-                .single();
-            
-            if (data) {
-                setApiKey(data.api_key || '');
+            const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+            if (userDoc.exists()) {
+                const data = userDoc.data();
+                setApiKey(data.apiKey || data.api_key || '');
             }
-        } catch (e) {
-            console.error("Error fetching user data", e);
+        } catch (err) {
+            console.error("Error fetching user data:", err);
         }
       } else {
         setApiKey('');
       }
+      setLoading(false);
     });
 
-    return () => {
-        subscription.unsubscribe();
-    };
+    return () => unsubscribe();
   }, []);
 
   const value = {
@@ -128,8 +104,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     apiKey,
     loading,
     error,
-    signUp,
-    signIn,
+    signInWithGoogle,
     updateApiKey,
     logout
   };

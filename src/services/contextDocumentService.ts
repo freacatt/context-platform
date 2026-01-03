@@ -1,20 +1,21 @@
-import { supabase } from './supabase';
+import { db } from './firebase';
+import { collection, addDoc, getDoc, getDocs, doc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { ContextDocument } from '../types';
 
-const TABLE_NAME = 'context_documents';
+const TABLE_NAME = 'contextDocuments';
 
 // Helper to map DB snake_case to JS camelCase
-const mapDocumentFromDB = (data: any): ContextDocument | null => {
+const mapDocumentFromDB = (data: any, id: string): ContextDocument | null => {
     if (!data) return null;
     return {
-        id: data.id,
-        userId: data.user_id,
+        id: id,
+        userId: data.userId || data.user_id,
         title: data.title,
         type: data.type,
         content: data.content,
-        notionId: data.notion_id,
-        createdAt: data.created_at ? new Date(data.created_at) : null,
-        lastModified: data.last_modified ? new Date(data.last_modified) : null
+        notionId: data.notionId || data.notion_id,
+        createdAt: (data.createdAt || data.created_at) ? new Date(data.createdAt || data.created_at) : null,
+        lastModified: (data.lastModified || data.last_modified) ? new Date(data.lastModified || data.last_modified) : null
     };
 };
 
@@ -23,13 +24,15 @@ const mapDocumentFromDB = (data: any): ContextDocument | null => {
  */
 export const getUserContextDocuments = async (userId: string): Promise<ContextDocument[]> => {
   if (!userId) return [];
-  const { data, error } = await supabase
-    .from(TABLE_NAME)
-    .select('*')
-    .eq('user_id', userId);
-
-  if (error) throw error;
-  return data.map(mapDocumentFromDB) as ContextDocument[];
+  try {
+    const q = query(collection(db, TABLE_NAME), where('userId', '==', userId));
+    const querySnapshot = await getDocs(q);
+    
+    return querySnapshot.docs.map(doc => mapDocumentFromDB(doc.data(), doc.id) as ContextDocument);
+  } catch (error) {
+      console.error("Error fetching documents:", error);
+      throw error;
+  }
 };
 
 /**
@@ -39,38 +42,41 @@ export const createContextDocument = async (userId: string, title: string = "New
   if (!userId) return null;
 
   const newDoc = {
-    user_id: userId,
+    userId: userId,
     title,
     type,
     content: "", 
-    notion_id: "",
-    last_modified: new Date().toISOString()
+    notionId: "",
+    createdAt: new Date().toISOString(),
+    lastModified: new Date().toISOString()
   };
 
-  const { data, error } = await supabase
-    .from(TABLE_NAME)
-    .insert(newDoc)
-    .select()
-    .single();
-  
-  if (error) throw error;
-  return data.id;
+  try {
+      const docRef = await addDoc(collection(db, TABLE_NAME), newDoc);
+      return docRef.id;
+  } catch (error) {
+      console.error("Error creating document:", error);
+      throw error;
+  }
 };
 
 /**
  * Get a single context document
  */
 export const getContextDocument = async (id: string): Promise<ContextDocument> => {
-  const { data, error } = await supabase
-    .from(TABLE_NAME)
-    .select('*')
-    .eq('id', id)
-    .single();
+  try {
+      const docRef = doc(db, TABLE_NAME, id);
+      const docSnap = await getDoc(docRef);
 
-  if (error) throw error;
-  if (!data) throw new Error("Document not found");
+      if (!docSnap.exists()) {
+          throw new Error("Document not found");
+      }
 
-  return mapDocumentFromDB(data) as ContextDocument;
+      return mapDocumentFromDB(docSnap.data(), docSnap.id) as ContextDocument;
+  } catch (error) {
+      console.error("Error fetching document:", error);
+      throw error;
+  }
 };
 
 /**
@@ -82,26 +88,26 @@ export const updateContextDocument = async (id: string, data: Partial<ContextDoc
   if (data.title !== undefined) updateData.title = data.title;
   if (data.content !== undefined) updateData.content = data.content;
   if (data.type !== undefined) updateData.type = data.type;
-  if (data.notionId !== undefined) updateData.notion_id = data.notionId;
+  if (data.notionId !== undefined) updateData.notionId = data.notionId;
   
-  updateData.last_modified = new Date().toISOString();
+  updateData.lastModified = new Date().toISOString();
 
-  const { error } = await supabase
-    .from(TABLE_NAME)
-    .update(updateData)
-    .eq('id', id);
-  
-  if (error) throw error;
+  try {
+      await updateDoc(doc(db, TABLE_NAME, id), updateData);
+  } catch (error) {
+      console.error("Error updating document:", error);
+      throw error;
+  }
 };
 
 /**
  * Delete a context document
  */
 export const deleteContextDocument = async (id: string): Promise<void> => {
-  const { error } = await supabase
-    .from(TABLE_NAME)
-    .delete()
-    .eq('id', id);
-    
-  if (error) throw error;
+  try {
+      await deleteDoc(doc(db, TABLE_NAME, id));
+  } catch (error) {
+      console.error("Error deleting document:", error);
+      throw error;
+  }
 };

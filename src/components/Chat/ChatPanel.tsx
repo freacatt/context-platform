@@ -48,7 +48,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   // Subscribe to conversations list
   useEffect(() => {
     if (!user) return;
-    const unsubscribe = subscribeToConversations(user.id, (convs) => {
+    const unsubscribe = subscribeToConversations(user.uid, (convs) => {
       setConversations(convs);
       // Select first conversation if none selected and not explicitly creating new
       if (!activeConversationId && convs.length > 0) {
@@ -64,7 +64,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         setMessages([]);
         return;
     }
-    const unsubscribe = subscribeToChat(user.id, activeConversationId, (msgs) => {
+    const unsubscribe = subscribeToChat(user.uid, activeConversationId, (msgs) => {
       setMessages(msgs);
     }, 'conversations');
     return () => unsubscribe();
@@ -104,7 +104,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
       // Create new conversation if none active
       if (!currentConversationId) {
-          const newConv = await createConversation(user.id, userMsg.substring(0, 30) + (userMsg.length > 30 ? '...' : ''));
+          const newConv = await createConversation(user.uid, userMsg.substring(0, 30) + (userMsg.length > 30 ? '...' : ''));
           if (newConv) {
             currentConversationId = newConv.id;
             setActiveConversationId(currentConversationId);
@@ -118,7 +118,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       // 1. Optimistic Update
       const optimisticMessage: StoredMessage = {
           id: `temp-${Date.now()}`,
-          userId: user.id,
+          userId: user.uid,
           role: 'user',
           content: userMsg,
           timestamp: new Date(),
@@ -129,7 +129,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       setMessages(prev => [...prev, optimisticMessage]);
 
       // 2. Save user message
-      await sendMessage(user.id, currentConversationId, 'user', userMsg, {}, 'conversations');
+      await sendMessage(user.uid, currentConversationId, 'user', userMsg, {}, 'conversations');
 
       // 3. Get AI Response
       let response: string = "";
@@ -159,7 +159,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       }
 
       // 4. Save AI message
-      await sendMessage(user.id, currentConversationId, 'assistant', response, {}, 'conversations');
+      await sendMessage(user.uid, currentConversationId, 'assistant', response, {}, 'conversations');
 
     } catch (error) {
       console.error("Chat Error:", error);
@@ -175,8 +175,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Content style={{ maxWidth: 1100, height: '85vh', padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRadius: '16px', border: '1px solid #e5e7eb', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)' }}>
-          <Dialog.Title style={{ display: 'none' }}>AI Chat Assistant</Dialog.Title>
-          <Dialog.Description style={{ display: 'none' }}>
+          <Dialog.Title className="sr-only">AI Chat Assistant</Dialog.Title>
+          <Dialog.Description className="sr-only">
             Chat interface for interacting with the AI assistant about your pyramids and product definitions.
           </Dialog.Description>
           <Flex className="h-full bg-white">
