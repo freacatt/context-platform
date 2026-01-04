@@ -92,7 +92,22 @@ export const ThemeModal: React.FC<ThemeModalProps> = ({ open, onOpenChange, them
                 </Box>
                 
                 <Box>
-                  <Text size="2" mb="1">Theme Description</Text>
+                  <Flex justify="between" align="center" mb="1">
+                    <Text size="2">Theme Description</Text>
+                    <AiRecommendationButton
+                      onGenerate={(apiKey, globalContext) => generateUiUxSuggestion(
+                        apiKey,
+                        "UI/UX Architecture",
+                        'theme',
+                        "Global Theme",
+                        `Font Family: ${localTheme.main.typography.font_family}\nBase Size: ${localTheme.main.typography.font_size_base}`,
+                        globalContext,
+                        'description'
+                      )}
+                      onSuccess={(result) => handleChange(['main', 'description'], result)}
+                      label="AI Suggest"
+                    />
+                  </Flex>
                   <TextArea 
                     value={localTheme.main.description || ''} 
                     onChange={e => handleChange(['main', 'description'], e.target.value)}

@@ -27,8 +27,6 @@ interface RenderFieldProps {
 }
 
 const RenderField: React.FC<RenderFieldProps> = ({ task, onUpdate, label, description, path, multiline = false, placeholder = "AI Recommendation...", apiKey, globalContext }) => {
-    const [isGenerating, setIsGenerating] = useState(false);
-    
     // Resolve value
     let value: any = task.data;
     for (const p of path) {
@@ -36,39 +34,26 @@ const RenderField: React.FC<RenderFieldProps> = ({ task, onUpdate, label, descri
     }
     value = value || "";
 
-    const handleAiSuggest = async () => {
-        if (!apiKey) {
-            alert("Please set your API Key in Settings first.");
-            return;
-        }
-        
-        setIsGenerating(true);
-        try {
-            const suggestion = await generateTechnicalTaskSuggestion(
-                apiKey,
-                task.title,
-                task.type,
-                label,
-                description || label,
-                JSON.stringify(task.data, null, 2),
-                globalContext
-            );
-            onUpdate(path, suggestion);
-        } catch (error) {
-            console.error("AI Suggestion Error:", error);
-            alert("Failed to generate suggestion.");
-        } finally {
-            setIsGenerating(false);
-        }
-    };
-
     return (
         <Box mb="4">
             <Flex justify="between" align="center" mb="1">
                 <Text size="2" weight="bold" as="div">{label}</Text>
-                <Button size="1" variant="soft" onClick={handleAiSuggest} disabled={isGenerating}>
-                   <Sparkles size={12} /> {isGenerating ? 'Generating...' : 'AI Suggest'}
-                </Button>
+                <AiRecommendationButton
+                    onGenerate={(apiKey, globalContext) => generateTechnicalTaskSuggestion(
+                        apiKey,
+                        task.title,
+                        task.type,
+                        label,
+                        description || label,
+                        JSON.stringify(task.data, null, 2),
+                        globalContext
+                    )}
+                    onSuccess={(suggestion) => onUpdate(path, suggestion)}
+                    label="AI Suggest"
+                    size="1"
+                    variant="soft"
+                    icon={<Sparkles size={12} style={{marginRight: 4}} />}
+                />
             </Flex>
             {description && (
                 <Text size="1" color="gray" mb="2" as="div">{description}</Text>
@@ -96,8 +81,6 @@ interface RenderFlexibleFieldProps {
 }
 
 const RenderFlexibleField: React.FC<RenderFlexibleFieldProps> = ({ task, onUpdate, label, description, path, rows = 6, apiKey, globalContext }) => {
-    const [isGenerating, setIsGenerating] = useState(false);
-    
     let value: any = task.data;
     for (const p of path) {
         value = value?.[p];
@@ -106,48 +89,26 @@ const RenderFlexibleField: React.FC<RenderFlexibleFieldProps> = ({ task, onUpdat
     // Display string if string, else JSON
     const displayValue = typeof value === 'string' ? value : JSON.stringify(value || [], null, 2);
 
-    const handleAiSuggest = async () => {
-        if (!apiKey) {
-            alert("Please set your API Key in Settings first.");
-            return;
-        }
-        
-        setIsGenerating(true);
-        try {
-            const suggestion = await generateTechnicalTaskSuggestion(
-                apiKey,
-                task.title,
-                task.type,
-                label,
-                description || label,
-                JSON.stringify(task.data, null, 2),
-                globalContext
-            );
-            
-            // Try to parse JSON if the field expects it (array/object)
-            // But for now, we just update the text value and let the user handle format or basic validation
-            // If the original value was not a string, we might want to try to parse it back?
-            // The RenderFlexibleField displays JSON.stringify, so if we return a string, it will be displayed as is.
-            // If the user saves, it might be saved as string unless we parse it back.
-            // However, RenderFlexibleField onChange just updates with e.target.value (string).
-            // So for now, treating everything as string is consistent with current behavior.
-            
-            onUpdate(path, suggestion);
-        } catch (error) {
-            console.error("AI Suggestion Error:", error);
-            alert("Failed to generate suggestion.");
-        } finally {
-            setIsGenerating(false);
-        }
-    };
-
     return (
             <Box mb="4">
             <Flex justify="between" align="center" mb="1">
                 <Text size="2" weight="bold" as="div">{label}</Text>
-                <Button size="1" variant="soft" onClick={handleAiSuggest} disabled={isGenerating}>
-                   <Sparkles size={12} /> {isGenerating ? 'Generating...' : 'AI Suggest'}
-                </Button>
+                <AiRecommendationButton
+                    onGenerate={(apiKey, globalContext) => generateTechnicalTaskSuggestion(
+                        apiKey,
+                        task.title,
+                        task.type,
+                        label,
+                        description || label,
+                        JSON.stringify(task.data, null, 2),
+                        globalContext
+                    )}
+                    onSuccess={(suggestion) => onUpdate(path, suggestion)}
+                    label="AI Suggest"
+                    size="1"
+                    variant="soft"
+                    icon={<Sparkles size={12} style={{marginRight: 4}} />}
+                />
             </Flex>
             {description && (
                 <Text size="1" color="gray" mb="2" as="div">{description}</Text>
@@ -227,6 +188,24 @@ export const TechnicalTaskEditor: React.FC<EditorProps> = ({ task, onSave }) => 
             <Flex justify="between" align="center" className="p-4 border-b bg-white sticky top-0 z-10">
                 <Flex align="center" gap="3" className="flex-1 mr-4">
                     <Box className="flex-1">
+                        <Flex justify="between" align="center" mb="1">
+                            <Text size="1" color="gray" weight="bold">Task Title</Text>
+                            <AiRecommendationButton
+                                onGenerate={(apiKey, globalContext) => generateTechnicalTaskSuggestion(
+                                    apiKey,
+                                    currentTask.title,
+                                    currentTask.type,
+                                    "Task Title",
+                                    "A concise and descriptive title for this technical task",
+                                    JSON.stringify(currentTask.data, null, 2),
+                                    globalContext
+                                )}
+                                onSuccess={(suggestion) => setCurrentTask({ ...currentTask, title: suggestion })}
+                                label="AI Suggest"
+                                size="1"
+                                variant="ghost"
+                            />
+                        </Flex>
                         <TextArea 
                             value={currentTask.title} 
                             onChange={e => setCurrentTask({ ...currentTask, title: e.target.value })}

@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, Flex, Text, TextArea, Button, Box } from '@radix-ui/themes';
-import { Wand2 } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { useGlobalContext } from '../../contexts/GlobalContext';
+import { AiRecommendationButton } from '../Common/AiRecommendationButton';
 import { generateTechnicalArchitectureSuggestion } from '../../services/anthropic';
 import { TechnicalArchitecture } from '../../types';
 
@@ -30,9 +28,6 @@ const FieldEditModal: React.FC<FieldEditModalProps> = ({
   fieldPath
 }) => {
   const [textValue, setTextValue] = useState<string>('');
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  const { apiKey } = useAuth();
-  const { aggregatedContext: globalContext } = useGlobalContext();
 
   useEffect(() => {
     if (isOpen) {
@@ -90,17 +85,24 @@ const FieldEditModal: React.FC<FieldEditModalProps> = ({
                 {fieldType === 'list' ? 'Items (one per line)' : 
                  fieldType === 'map' ? 'Key: Value pairs (one per line)' : 'Content'}
               </Text>
-              <Button 
-                variant="ghost" 
-                size="1" 
-                onClick={handleAiSuggest} 
-                disabled={isGenerating}
-                style={{ cursor: 'pointer' }}
+              <AiRecommendationButton
+                onGenerate={(apiKey, globalContext) => generateTechnicalArchitectureSuggestion(
+                  apiKey,
+                  architectureTitle,
+                  title,
+                  description || "",
+                  fieldPath.join(' > '),
+                  globalContext
+                )}
+                onSuccess={(suggestion) => {
+                  setTextValue(prev => {
+                      if (!prev.trim()) return suggestion;
+                      return `${prev}\n\n${suggestion}`;
+                  });
+                }}
+                label="AI Recommendation"
                 color="purple"
-              >
-                <Wand2 size={14} style={{ marginRight: 4 }} />
-                {isGenerating ? "Generating..." : "AI Recommendation"}
-              </Button>
+              />
             </Flex>
             <TextArea 
               value={textValue} 

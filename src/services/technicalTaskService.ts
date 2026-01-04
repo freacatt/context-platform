@@ -112,26 +112,35 @@ export const getTechnicalTask = async (taskId: string): Promise<TechnicalTask | 
             } as TechnicalTask;
         }
         return null;
-    } catch (e) {
-        console.error("Error getting technical task: ", e);
+    } catch (e: any) {
+        if (e?.code !== 'permission-denied') {
+            console.error("Error fetching technical task: ", e);
+        }
         return null;
     }
 };
 
 export const getTechnicalTasks = async (userId: string): Promise<TechnicalTask[]> => {
     if (!userId) return [];
-    const q = query(collection(db, TASKS_COLLECTION), where('userId', '==', userId));
-    const snapshot = await getDocs(q);
-    
-    return snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-            id: doc.id,
-            ...data,
-            createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
-            updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt)
-        } as TechnicalTask;
-    });
+    try {
+        const q = query(collection(db, TASKS_COLLECTION), where('userId', '==', userId));
+        const snapshot = await getDocs(q);
+        
+        return snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
+                updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt)
+            } as TechnicalTask;
+        });
+    } catch (e: any) {
+        if (e?.code !== 'permission-denied') {
+            console.error("Error fetching technical tasks: ", e);
+        }
+        return [];
+    }
 };
 
 export const createTechnicalTask = async (

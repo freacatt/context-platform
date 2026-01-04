@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, Button, Flex, Text, TextField, Box, TextArea, Badge, IconButton, Heading } from '@radix-ui/themes';
 import { Plus, X } from 'lucide-react';
+import { AiRecommendationButton } from '../../Common/AiRecommendationButton';
+import { generateUiUxSuggestion } from '../../../services/anthropic';
 import { BaseComponent } from '../../../types/uiUxArchitecture';
 
 interface ComponentModalProps {
@@ -101,7 +103,8 @@ export const ComponentModal: React.FC<ComponentModalProps> = ({ open, onOpenChan
                   'component',
                   localComponent.main.name || "Unnamed Component",
                   `Category: ${localComponent.main.category}\nType: ${localComponent.type}`,
-                  globalContext
+                  globalContext,
+                  'description'
                 )}
                 onSuccess={(result) => handleChange(['main', 'description'], result)}
                 label="AI Suggest"

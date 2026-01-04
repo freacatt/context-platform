@@ -15,6 +15,8 @@ interface AiRecommendationButtonProps<T = string> {
   variant?: "classic" | "solid" | "soft" | "surface" | "outline" | "ghost";
   size?: "1" | "2" | "3" | "4";
   color?: "gray" | "gold" | "bronze" | "brown" | "yellow" | "amber" | "orange" | "tomato" | "red" | "ruby" | "crimson" | "pink" | "plum" | "purple" | "violet" | "iris" | "indigo" | "blue" | "cyan" | "teal" | "jade" | "green" | "grass" | "lime" | "mint" | "sky";
+  style?: React.CSSProperties;
+  className?: string;
 }
 
 export const AiRecommendationButton = <T,>({
@@ -27,7 +29,9 @@ export const AiRecommendationButton = <T,>({
   disabled = false,
   variant = "ghost",
   size = "1",
-  color = "indigo"
+  color = "indigo",
+  style,
+  className
 }: AiRecommendationButtonProps<T>) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const { apiKey } = useAuth();

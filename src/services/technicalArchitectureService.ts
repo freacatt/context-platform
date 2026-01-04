@@ -279,8 +279,10 @@ export const getTechnicalArchitecture = async (id: string): Promise<TechnicalArc
         } else {
             return null;
         }
-    } catch (e) {
-        console.error("Error fetching technical architecture: ", e);
+    } catch (e: any) {
+        if (e?.code !== 'permission-denied') {
+            console.error("Error fetching technical architecture: ", e);
+        }
         return null;
     }
 };

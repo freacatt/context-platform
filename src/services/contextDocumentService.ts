@@ -73,8 +73,10 @@ export const getContextDocument = async (id: string): Promise<ContextDocument> =
       }
 
       return mapDocumentFromDB(docSnap.data(), docSnap.id) as ContextDocument;
-  } catch (error) {
-      console.error("Error fetching document:", error);
+  } catch (error: any) {
+      if (error?.code !== 'permission-denied') {
+          console.error("Error fetching document:", error);
+      }
       throw error;
   }
 };

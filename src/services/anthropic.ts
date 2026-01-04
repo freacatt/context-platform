@@ -487,10 +487,11 @@ ASSISTANT:
 export const generateUiUxSuggestion = async (
   apiKey: string,
   architectureTitle: string,
-  elementType: 'page' | 'component' | 'flow',
+  elementType: 'page' | 'component' | 'flow' | 'theme',
   elementName: string,
   currentContext: string,
-  globalContext: string = ""
+  globalContext: string = "",
+  targetField: string = "recommendation"
 ): Promise<string> => {
   if (!apiKey) throw new Error("API Key is missing");
 
@@ -508,6 +509,30 @@ GLOBAL CONTEXT INSTRUCTIONS:
 2. Read and understand the JSON structure and content to answer questions.
 ` : "";
 
+  let taskPrompt = "";
+  
+  if (targetField === 'description') {
+    taskPrompt = `
+TASK:
+Draft a concise, professional description for this ${elementType}.
+- Focus on the purpose, functionality, and role of the ${elementType}.
+- Do NOT list props, code, or style details unless they are essential to the high-level description.
+- Write in a clear, documentation-style voice.
+- Return ONLY the description text, without "Here is a description" or other filler.
+    `;
+  } else {
+    taskPrompt = `
+TASK:
+Suggest improvements, content, or specifications for this ${elementType}.
+- If it's a Page, suggest layout structure or key components.
+- If it's a Component, suggest props, state, or visual style.
+- If it's a User Flow, suggest steps or edge cases.
+- If it's a Theme, suggest design principles or token values.
+
+Provide a concise, professional recommendation.
+    `;
+  }
+
   const prompt = `
 You are an expert UI/UX Designer and Frontend Architect.
 
@@ -521,13 +546,7 @@ ${currentContext}
 
 ${globalContextSection}
 
-TASK:
-Suggest improvements, content, or specifications for this ${elementType}.
-- If it's a Page, suggest layout structure or key components.
-- If it's a Component, suggest props, state, or visual style.
-- If it's a User Flow, suggest steps or edge cases.
-
-Provide a concise, professional recommendation.
+${taskPrompt}
 `;
 
   try {

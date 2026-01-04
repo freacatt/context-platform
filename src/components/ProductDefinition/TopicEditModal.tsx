@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useGlobalContext } from '../../contexts/GlobalContext';
 import { generateProductDefinitionSuggestion } from '../../services/anthropic';
 import { ProductDefinitionNode } from '../../types';
+import { AiRecommendationButton } from '../Common/AiRecommendationButton';
 
 interface TopicEditModalProps {
   isOpen: boolean;
@@ -24,9 +25,6 @@ const TopicEditModal: React.FC<TopicEditModalProps> = ({
   productTitle 
 }) => {
   const [description, setDescription] = useState<string>('');
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  const { apiKey } = useAuth();
-  const { aggregatedContext: globalContext } = useGlobalContext();
 
   useEffect(() => {
     if (node) {
@@ -57,16 +55,23 @@ const TopicEditModal: React.FC<TopicEditModalProps> = ({
           <Box>
             <Flex justify="between" align="center" mb="1">
               <Text as="label" size="2" weight="bold">Answer</Text>
-              <Button 
-                variant="ghost" 
-                size="1" 
-                onClick={handleAiSuggest} 
-                disabled={isGenerating}
+              <AiRecommendationButton
+                onGenerate={(apiKey, globalContext) => {
+                  if (!node) throw new Error("No topic selected");
+                  return generateProductDefinitionSuggestion(
+                    apiKey,
+                    node,
+                    productTitle,
+                    contextData || "",
+                    globalContext
+                  );
+                }}
+                onSuccess={(suggestion) => setDescription(suggestion)}
+                label="AI Recommendation"
+                variant="ghost"
+                size="1"
                 style={{ cursor: 'pointer' }}
-              >
-                <Wand2 size={14} style={{ marginRight: 4 }} />
-                {isGenerating ? "Thinking..." : "AI Recommendation"}
-              </Button>
+              />
             </Flex>
             <TextArea 
               value={description} 

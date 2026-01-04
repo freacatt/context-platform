@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, Button, Flex, Text, TextField, Box, Select, Checkbox, Card, Heading, Grid, IconButton, TextArea, Tabs } from '@radix-ui/themes';
 import { Plus, X, Trash2 } from 'lucide-react';
 import { Page, BaseComponent, PageComponent } from '../../../types/uiUxArchitecture';
+import { AiRecommendationButton } from '../../Common/AiRecommendationButton';
+import { generateUiUxSuggestion } from '../../../services/anthropic';
 
 interface PageModalProps {
   open: boolean;
@@ -123,7 +125,22 @@ export const PageModal: React.FC<PageModalProps> = ({ open, onOpenChange, page, 
             </Box>
 
             <Box>
-              <Text size="2" mb="1">Description</Text>
+              <Flex justify="between" align="center" mb="1">
+                <Text size="2">Description</Text>
+                <AiRecommendationButton
+                  onGenerate={(apiKey, globalContext) => generateUiUxSuggestion(
+                    apiKey,
+                    "UI/UX Architecture",
+                    'page',
+                    localPage.main.title || "Unnamed Page",
+                    `Route: ${localPage.main.route}\nRequires Auth: ${localPage.main.requires_auth}`,
+                    globalContext,
+                    'description'
+                  )}
+                  onSuccess={(result) => handleChange(['main', 'description'], result)}
+                  label="AI Suggest"
+                />
+              </Flex>
               <TextArea 
                 value={localPage.main.description || ''} 
                 onChange={e => handleChange(['main', 'description'], e.target.value)}

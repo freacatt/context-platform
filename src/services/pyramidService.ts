@@ -62,8 +62,10 @@ export const getPyramid = async (pyramidId: string): Promise<Pyramid | null> => 
     }
 
     return mapPyramidFromDB(docSnap.data(), docSnap.id);
-  } catch (error) {
-    console.error("Error fetching pyramid: ", error);
+  } catch (error: any) {
+    if (error?.code !== 'permission-denied') {
+        console.error("Error fetching pyramid: ", error);
+    }
     throw error;
   }
 };

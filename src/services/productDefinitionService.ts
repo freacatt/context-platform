@@ -180,8 +180,11 @@ export const getProductDefinition = async (id: string): Promise<ProductDefinitio
       }
 
       return mapDefinitionFromDB(docSnap.data(), docSnap.id) as ProductDefinition;
-  } catch (error) {
-      console.error("Error fetching product definition:", error);
+  } catch (error: any) {
+      // Filter out permission denied errors to avoid console noise
+      if (error?.code !== 'permission-denied' && !error?.message?.includes('Missing or insufficient permissions')) {
+          console.error("Error fetching product definition:", error);
+      }
       throw error;
   }
 };
@@ -202,8 +205,10 @@ export const getUserProductDefinitions = async (userId: string): Promise<Product
             const dateB = b.lastModified ? new Date(b.lastModified).getTime() : 0;
             return dateB - dateA;
         });
-    } catch (error) {
-        console.error("Error fetching product definitions:", error);
+    } catch (error: any) {
+        if (error?.code !== 'permission-denied' && !error?.message?.includes('Missing or insufficient permissions')) {
+            console.error("Error fetching product definitions:", error);
+        }
         throw error;
     }
 };

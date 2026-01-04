@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, Button, Flex, Text, TextArea, Box, Badge, Callout } from '@radix-ui/themes';
 import { Sparkles, Save, Merge, AlertTriangle } from 'lucide-react';
+import { AiRecommendationButton } from '../Common/AiRecommendationButton';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGlobalContext } from '../../contexts/GlobalContext';
 import { generateQuestions, generateAnswers } from '../../services/anthropic';
@@ -22,7 +23,7 @@ const BlockModal: React.FC<BlockModalProps> = ({ isOpen, onClose, block, parents
   const [answer, setAnswer] = useState<string>('');
   const [question, setQuestion] = useState<string>('');
   const [combinedQuestion, setCombinedQuestion] = useState<string>('');
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  // const [isGenerating, setIsGenerating] = useState<boolean>(false); // Removed as it is handled by AiRecommendationButton
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [suggestionTarget, setSuggestionTarget] = useState<'question' | 'combined' | 'answer' | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -115,115 +116,6 @@ Answer: ${h.answer || "N/A"}
     onClose();
   };
 
-  const handleAiGenerate = async () => {
-    if (!apiKey) {
-        setAiError("Please set your API Key in the Navbar first.");
-        return;
-    }
-    setIsGenerating(true);
-    setAiError(null);
-    setSuggestions([]);
-    setSuggestionTarget('question');
-
-    try {
-        const effectiveParentQuestion = parents && parents.length > 1 
-            ? combinedQuestion 
-            : (parents?.[0]?.question || parents?.[0]?.content || "Start of the pyramid");
-
-        const historyContext = buildHistoryContext();
-        
-        const result = await generateQuestions(
-            apiKey, 
-            pyramidContext || "General Problem Solving", 
-            'regular', 
-            {
-                parentQuestion: effectiveParentQuestion,
-                currentAnswer: answer || "No answer provided yet",
-                historyContext
-            },
-            globalContext
-        );
-        setSuggestions(result);
-    } catch (error: any) {
-        console.error(error);
-        setAiError(error.message || "Failed to generate suggestions.");
-    } finally {
-        setIsGenerating(false);
-    }
-  };
-
-  const handleAiCombine = async () => {
-    if (!apiKey) {
-        setAiError("Please set your API Key in the Navbar first.");
-        return;
-    }
-    if (!parents) return;
-    
-    setIsGenerating(true);
-    setAiError(null);
-    setSuggestions([]);
-    setSuggestionTarget('combined');
-
-    try {
-        const parentQuestions = parents.map(p => p.question || p.content || "");
-        const historyContext = buildHistoryContext();
-        
-        const result = await generateQuestions(
-            apiKey, 
-            pyramidContext || "General Problem Solving", 
-            'combined', 
-            {
-                parentQuestions,
-                historyContext
-            },
-            globalContext
-        );
-        setSuggestions(result);
-    } catch (error: any) {
-        console.error(error);
-        setAiError(error.message || "Failed to combine questions.");
-    } finally {
-        setIsGenerating(false);
-    }
-  };
-
-  const handleAiAnswer = async () => {
-    if (!apiKey) {
-        setAiError("Please set your API Key in the Navbar first.");
-        return;
-    }
-    setIsGenerating(true);
-    setAiError(null);
-    setSuggestions([]);
-    setSuggestionTarget('answer');
-
-    try {
-        // Determine the prompt question: Combined Question > Parent Question > Default
-        const promptQuestion = (parents && parents.length > 1 && combinedQuestion) 
-            ? combinedQuestion 
-            : (parents?.[0]?.question || parents?.[0]?.content || "What is the key insight?");
-
-        if (!promptQuestion) {
-             throw new Error("No question available to generate an answer from.");
-        }
-
-        const historyContext = buildHistoryContext();
-
-        const result = await generateAnswers(
-            apiKey, 
-            pyramidContext || "General Problem Solving", 
-            promptQuestion, 
-            { historyContext },
-            globalContext
-        );
-        setSuggestions(result);
-    } catch (error: any) {
-        console.error(error);
-        setAiError(error.message || "Failed to generate answer.");
-    } finally {
-        setIsGenerating(false);
-    }
-  };
 
   const applySuggestion = (text: string) => {
       if (suggestionTarget === 'combined') {
@@ -302,17 +194,35 @@ Answer: ${h.answer || "N/A"}
                     <Text as="label" size="2" weight="bold">
                         Combined Question
                     </Text>
-                    <Button 
+                    <AiRecommendationButton
                         size="1" 
                         variant="soft" 
                         color="orange" 
-                        onClick={handleAiCombine}
-                        disabled={isGenerating}
-                        title="Combine parent questions into a new one"
-                    >
-                        <Merge size={14} className="mr-1" />
-                        {isGenerating ? 'Combining...' : 'Combine Questions'}
-                    </Button>
+                        label="Combine Questions"
+                        loadingLabel="Combining..."
+                        icon={<Merge size={14} className="mr-1" />}
+                        onGenerate={async (apiKey, globalContext) => {
+                            setSuggestionTarget('combined');
+                            setSuggestions([]);
+                            setAiError(null);
+                            
+                            const parentQuestions = parents.map(p => p.question || p.content || "").join("\n");
+
+                            return await generateQuestions(
+                                apiKey, 
+                                pyramidContext || "General Problem Solving", 
+                                'combine', 
+                                {
+                                    parentQuestion: parentQuestions,
+                                    currentAnswer: "",
+                                    historyContext: ""
+                                },
+                                globalContext
+                            );
+                        }}
+                        onSuccess={setSuggestions}
+                        onError={(err) => setAiError(err.message || "Failed to combine questions.")}
+                    />
                 </Flex>
                 <TextArea 
                     placeholder="Formulate a question that combines the insights from the parents..." 
@@ -332,16 +242,37 @@ Answer: ${h.answer || "N/A"}
                     <Text as="label" size="2" weight="bold">
                         {parents && parents.length > 1 ? "Answer to Combined Question" : "Answer to Previous Question"}
                     </Text>
-                    <Button 
+                    <AiRecommendationButton
                         size="1" 
                         variant="ghost" 
                         color="purple" 
-                        onClick={handleAiAnswer}
-                        disabled={isGenerating}
-                    >
-                        <Sparkles size={14} className="mr-1" />
-                        {isGenerating ? 'Generating...' : 'AI Answer'}
-                    </Button>
+                        label="AI Answer"
+                        loadingLabel="Generating..."
+                        icon={<Sparkles size={14} className="mr-1" />}
+                        onGenerate={async (apiKey, globalContext) => {
+                            setSuggestionTarget('answer');
+                            setSuggestions([]);
+                            setAiError(null);
+
+                            const questionToAnswer = parents && parents.length > 1 
+                                ? combinedQuestion 
+                                : (parents?.[0]?.question || parents?.[0]?.content || "Start of the pyramid");
+                            
+                            const historyContext = buildHistoryContext();
+
+                            return await generateAnswers(
+                                apiKey, 
+                                pyramidContext || "General Problem Solving", 
+                                questionToAnswer, 
+                                {
+                                    historyContext
+                                },
+                                globalContext
+                            );
+                        }}
+                        onSuccess={setSuggestions}
+                        onError={(err) => setAiError(err.message || "Failed to generate answer.")}
+                    />
                 </Flex>
                 <TextArea 
                 placeholder="Write your answer/insight..." 
@@ -362,16 +293,39 @@ Answer: ${h.answer || "N/A"}
                     New Question / Insight
                 </Text>
                 <Flex gap="2">
-                    <Button 
+                    <AiRecommendationButton
                         size="1" 
                         variant="ghost" 
                         color="purple" 
-                        onClick={handleAiGenerate}
-                        disabled={isGenerating}
-                    >
-                        <Sparkles size={14} className="mr-1" />
-                        {isGenerating ? 'Generating...' : 'AI Suggestion'}
-                    </Button>
+                        label="AI Suggestion"
+                        loadingLabel="Generating..."
+                        icon={<Sparkles size={14} className="mr-1" />}
+                        onGenerate={async (apiKey, globalContext) => {
+                            setSuggestionTarget('question');
+                            setSuggestions([]);
+                            setAiError(null);
+
+                            const effectiveParentQuestion = parents && parents.length > 1 
+                                ? combinedQuestion 
+                                : (parents?.[0]?.question || parents?.[0]?.content || "Start of the pyramid");
+
+                            const historyContext = buildHistoryContext();
+                            
+                            return await generateQuestions(
+                                apiKey, 
+                                pyramidContext || "General Problem Solving", 
+                                'regular', 
+                                {
+                                    parentQuestion: effectiveParentQuestion,
+                                    currentAnswer: answer || "No answer provided yet",
+                                    historyContext
+                                },
+                                globalContext
+                            );
+                        }}
+                        onSuccess={setSuggestions}
+                        onError={(err) => setAiError(err.message || "Failed to generate suggestions.")}
+                    />
                 </Flex>
                 </Flex>
 

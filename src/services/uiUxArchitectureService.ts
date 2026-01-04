@@ -90,8 +90,10 @@ export const getUiUxArchitecture = async (id: string): Promise<UiUxArchitecture 
             return mapArchitectureFromDB(docSnap.data(), docSnap.id);
         }
         return null;
-    } catch (e) {
-        console.error("Error fetching UI/UX architecture: ", e);
+    } catch (e: any) {
+        if (e?.code !== 'permission-denied') {
+            console.error("Error fetching UI/UX architecture: ", e);
+        }
         return null;
     }
 };
