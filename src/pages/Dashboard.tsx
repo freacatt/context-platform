@@ -1,6 +1,6 @@
 import React from 'react';
 import { Container, Box, Flex, Heading, Card, Text, Button } from '@radix-ui/themes';
-import { GitMerge, ArrowRight, BookOpen, Pyramid, LucideIcon, Server, CheckSquare } from 'lucide-react';
+import { GitMerge, ArrowRight, BookOpen, Pyramid, LucideIcon, Server, CheckSquare, Layout } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 
@@ -81,6 +81,14 @@ const Dashboard: React.FC = () => {
                 icon={CheckSquare}
                 to="/technical-tasks"
                 color="bg-blue-600"
+            />
+
+            <ToolCard 
+                title="UI/UX Architecture" 
+                description="Design your application's visual structure, theme, and navigation flow using a visual node editor."
+                icon={Layout}
+                to="/ui-ux-architectures"
+                color="bg-pink-600"
             />
         </div>
       </Container>

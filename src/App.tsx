@@ -12,6 +12,8 @@ import ContextDocumentsPage from './pages/ContextDocumentsPage';
 import ContextDocumentEditor from './pages/ContextDocumentEditor';
 import { TechnicalArchitecturesPage } from './pages/TechnicalArchitecturesPage';
 import { TechnicalArchitectureEditorPage } from './pages/TechnicalArchitectureEditorPage';
+import { UiUxArchitecturesPage } from './pages/UiUxArchitecturesPage';
+import { UiUxArchitectureEditorPage } from './pages/UiUxArchitectureEditorPage';
 import { TechnicalTaskBoard } from './pages/TechnicalTaskBoard';
 import { TechnicalTaskDetail } from './pages/TechnicalTaskDetail';
 
@@ -135,6 +137,24 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <TechnicalArchitectureEditorPage />
+                  </ProtectedRoute>
+                } 
+              />
+
+              {/* UI/UX Architecture Tool Routes */}
+              <Route 
+                path="/ui-ux-architectures" 
+                element={
+                  <ProtectedRoute>
+                    <UiUxArchitecturesPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/ui-ux-architecture/:id" 
+                element={
+                  <ProtectedRoute>
+                    <UiUxArchitectureEditorPage />
                   </ProtectedRoute>
                 } 
               />

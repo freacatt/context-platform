@@ -83,5 +83,11 @@ rules_version = '2';
       allow create: if isOwner(request.resource.data.userId);
       allow read, update, delete: if isOwner(resource.data.userId);
     }
+
+    // UI/UX Architectures collection
+    match /uiUxArchitectures/{architectureId} {
+      allow create: if isOwner(request.resource.data.userId);
+      allow read, update, delete: if isOwner(resource.data.userId);
+    }
   } 
 }
