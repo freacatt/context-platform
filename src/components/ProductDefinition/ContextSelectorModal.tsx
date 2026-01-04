@@ -80,7 +80,7 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
       if (exists) {
         return prev.filter(s => !(s.type === type && s.id === item.id));
       } else {
-        return [...prev, { type, id: item.id }];
+        return [...prev, { type, id: item.id, title: item.title }];
       }
     });
   };

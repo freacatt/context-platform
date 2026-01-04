@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getTechnicalArchitecture, updateTechnicalArchitecture } from '../services/technicalArchitectureService';
 import { TechnicalArchitecture } from '../types';
-import AuthenticatedLayout from '../components/Layout/AuthenticatedLayout';
 import { TechnicalArchitectureEditor } from '../components/TechnicalArchitecture/TechnicalArchitectureEditor';
 
 export const TechnicalArchitectureEditorPage: React.FC = () => {
@@ -33,24 +32,20 @@ export const TechnicalArchitectureEditorPage: React.FC = () => {
 
     if (loading) {
         return (
-            <AuthenticatedLayout>
-                <div className="flex justify-center items-center h-screen">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-                </div>
-            </AuthenticatedLayout>
+            <div className="flex justify-center items-center h-screen">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            </div>
         );
     }
 
     if (!architecture) return null;
 
     return (
-        <AuthenticatedLayout>
-            <TechnicalArchitectureEditor 
-                architecture={architecture}
-                onSave={() => {
-                    // Optional: show toast notification
-                }}
-            />
-        </AuthenticatedLayout>
+        <TechnicalArchitectureEditor 
+            architecture={architecture}
+            onSave={() => {
+                // Optional: show toast notification
+            }}
+        />
     );
 };

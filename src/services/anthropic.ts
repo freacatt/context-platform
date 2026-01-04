@@ -434,15 +434,29 @@ export const sendGlobalChatMessage = async (apiKey: string, globalContext: any, 
   const systemPrompt = `
 You are an intelligent assistant for the "Pyramid Solver" platform.
 You have access to a global context of documents, product definitions, and problem-solving pyramids.
+
+GLOBAL CONTEXT:
+${globalContext}
+
+Your goal is to answer the user's questions based on this context. 
+If the user asks about specific tasks, architectures, or documents, verify if they exist in the GLOBAL CONTEXT above.
 `;
-  // Assuming simplified implementation as the original was cut off
-  
-    try {
+
+  // Format chat history for Anthropic
+  const formattedMessages = [
+      ...chatHistory.map(msg => ({
+          role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
+          content: msg.content
+      })),
+      { role: "user" as const, content: userMessage }
+  ];
+
+  try {
     const msg = await anthropic.messages.create({
       model: "claude-3-haiku-20240307",
       max_tokens: 1024,
       system: systemPrompt,
-      messages: [{ role: "user", content: userMessage }],
+      messages: formattedMessages,
     });
 
     return (msg.content[0] as any).text;

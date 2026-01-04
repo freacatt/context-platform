@@ -125,13 +125,17 @@ function App() {
               <Route 
                 path="/technical-architectures" 
                 element={
+                  <ProtectedRoute>
                     <TechnicalArchitecturesPage />
+                  </ProtectedRoute>
                 } 
               />
               <Route 
                 path="/technical-architecture/:id" 
                 element={
+                  <ProtectedRoute>
                     <TechnicalArchitectureEditorPage />
+                  </ProtectedRoute>
                 } 
               />
 

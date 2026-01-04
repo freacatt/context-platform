@@ -5,7 +5,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { getUserTechnicalArchitectures, createTechnicalArchitecture, deleteTechnicalArchitecture, renameTechnicalArchitecture } from '../services/technicalArchitectureService';
 import { useNavigate } from 'react-router-dom';
 import { TechnicalArchitecture } from '../types';
-import AuthenticatedLayout from '../components/Layout/AuthenticatedLayout';
 
 export const TechnicalArchitecturesPage: React.FC = () => {
   const { user } = useAuth();
@@ -94,7 +93,6 @@ export const TechnicalArchitecturesPage: React.FC = () => {
   );
 
   return (
-    <AuthenticatedLayout>
     <Box className="h-full bg-white">
       <Container size="4" className="p-4">
         {/* Header Section */}
@@ -230,6 +228,5 @@ export const TechnicalArchitecturesPage: React.FC = () => {
         </Dialog.Root>
       </Container>
     </Box>
-    </AuthenticatedLayout>
   );
 };
