@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Container, Box, Flex, Heading, TextField, Select, Text, Dialog, Button } from '@radix-ui/themes';
 import { Search } from 'lucide-react';
+import Navbar from '../components/Navbar/Navbar';
 import PyramidList from '../components/Dashboard/PyramidList';
 import CreatePyramidModal from '../components/Dashboard/CreatePyramidModal';
 import { getUserPyramids, deletePyramid, duplicatePyramid, renamePyramid } from '../services/pyramidService';
