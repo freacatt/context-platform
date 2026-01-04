@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, Flex, Text, Button, Checkbox, Tabs, ScrollArea, Box, Card } from '@radix-ui/themes';
-import { BookOpen, FileText, Server } from 'lucide-react';
+import { BookOpen, FileText, Server, CheckSquare } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getUserPyramids } from '../../services/pyramidService';
 import { getUserProductDefinitions } from '../../services/productDefinitionService';
 import { getUserContextDocuments } from '../../services/contextDocumentService';
 import { getUserTechnicalArchitectures } from '../../services/technicalArchitectureService';
+import { getTechnicalTasks } from '../../services/technicalTaskService';
 import { Pyramid, ProductDefinition, ContextDocument, TechnicalArchitecture, ContextSource } from '../../types';
+import { TechnicalTask } from '../../types/technicalTask';
 
 interface ContextSelectorModalProps {
   isOpen: boolean;
@@ -32,6 +34,7 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
   const [definitions, setDefinitions] = useState<ProductDefinition[]>([]);
   const [documents, setDocuments] = useState<ContextDocument[]>([]);
   const [architectures, setArchitectures] = useState<TechnicalArchitecture[]>([]);
+  const [tasks, setTasks] = useState<TechnicalTask[]>([]);
 
   // Selection state: array of { type, id }
   const [selected, setSelected] = useState<ContextSource[]>([]);
@@ -55,12 +58,14 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
         getUserPyramids(user.uid),
         getUserProductDefinitions(user.uid),
         getUserContextDocuments(user.uid),
-        getUserTechnicalArchitectures(user.uid)
-      ]).then(([pyramidsData, definitionsData, documentsData, architecturesData]) => {
+        getUserTechnicalArchitectures(user.uid),
+        getTechnicalTasks(user.uid)
+      ]).then(([pyramidsData, definitionsData, documentsData, architecturesData, tasksData]) => {
         setPyramids(pyramidsData);
         setDefinitions(definitionsData.filter(d => d.id !== currentDefinitionId)); // Exclude self
         setDocuments(documentsData);
         setArchitectures(architecturesData);
+        setTasks(tasksData);
       }).catch(err => {
         console.error("Failed to load context sources", err);
       }).finally(() => {
@@ -69,7 +74,7 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
     }
   }, [isOpen, user, currentDefinitionId]);
 
-  const handleToggle = (type: 'contextDocument' | 'productDefinition' | 'pyramid' | 'technicalArchitecture', item: { id: string, title: string }) => {
+  const handleToggle = (type: 'contextDocument' | 'productDefinition' | 'pyramid' | 'technicalArchitecture' | 'technicalTask', item: { id: string, title: string }) => {
     setSelected(prev => {
       const exists = prev.find(s => s.type === type && s.id === item.id);
       if (exists) {
@@ -80,7 +85,7 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
     });
   };
 
-  const isSelected = (type: 'contextDocument' | 'productDefinition' | 'pyramid' | 'technicalArchitecture', id: string) => {
+  const isSelected = (type: 'contextDocument' | 'productDefinition' | 'pyramid' | 'technicalArchitecture' | 'technicalTask', id: string) => {
     return selected.some(s => s.type === type && s.id === id);
   };
 
@@ -89,7 +94,7 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
     onClose();
   };
 
-  const renderList = (items: Array<{ id: string, title: string, type?: string }>, sourceType: 'contextDocument' | 'productDefinition' | 'pyramid' | 'technicalArchitecture') => (
+  const renderList = (items: Array<{ id: string, title: string, type?: string }>, sourceType: 'contextDocument' | 'productDefinition' | 'pyramid' | 'technicalArchitecture' | 'technicalTask') => (
     <ScrollArea type="auto" style={{ height: 300 }}>
       <Flex direction="column" gap="2" p="2">
         {items.length === 0 ? (
@@ -110,6 +115,9 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
                 {sourceType === 'technicalArchitecture' && (
                     <Server size={16} className="text-purple-500" />
                 )}
+                {sourceType === 'technicalTask' && (
+                    <CheckSquare size={16} className="text-green-500" />
+                )}
                 <Text size="2">{item.title}</Text>
               </Flex>
             </Card>
@@ -124,7 +132,7 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
       <Dialog.Content style={{ maxWidth: 600 }}>
         <Dialog.Title>Select Context Sources</Dialog.Title>
         <Dialog.Description size="2" mb="4">
-          Select Pyramids, Product Definitions, Documents, or Architectures to use as context for AI recommendations.
+          Select Pyramids, Product Definitions, Documents, Architectures, or Tasks to use as context for AI recommendations.
         </Dialog.Description>
 
         {loading ? (
@@ -136,6 +144,7 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
               <Tabs.Trigger value="definitions">Product Defs ({definitions.length})</Tabs.Trigger>
               <Tabs.Trigger value="documents">Documents ({documents.length})</Tabs.Trigger>
               <Tabs.Trigger value="architectures">Architectures ({architectures.length})</Tabs.Trigger>
+              <Tabs.Trigger value="tasks">Tasks ({tasks.length})</Tabs.Trigger>
             </Tabs.List>
 
             <Box pt="3">
@@ -153,6 +162,10 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
 
               <Tabs.Content value="architectures">
                 {renderList(architectures, 'technicalArchitecture')}
+              </Tabs.Content>
+
+              <Tabs.Content value="tasks">
+                {renderList(tasks, 'technicalTask')}
               </Tabs.Content>
             </Box>
           </Tabs.Root>
