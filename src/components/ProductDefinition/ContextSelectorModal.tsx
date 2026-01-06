@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { getUserPyramids } from '../../services/pyramidService';
 import { getUserProductDefinitions } from '../../services/productDefinitionService';
 import { getUserContextDocuments } from '../../services/contextDocumentService';
+import { getUserDirectories } from '../../services/directoryService';
 import { getUserTechnicalArchitectures } from '../../services/technicalArchitectureService';
 import { getTechnicalTasks } from '../../services/technicalTaskService';
 import { getUserUiUxArchitectures } from '../../services/uiUxArchitectureService';
@@ -38,6 +39,8 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
   const [architectures, setArchitectures] = useState<TechnicalArchitecture[]>([]);
   const [tasks, setTasks] = useState<TechnicalTask[]>([]);
   const [uiUxArchitectures, setUiUxArchitectures] = useState<UiUxArchitecture[]>([]);
+  const [directories, setDirectories] = useState<Array<{ id: string; title: string }>>([]);
+  const [expandedDirs, setExpandedDirs] = useState<Record<string, boolean>>({});
 
   // Selection state: array of { type, id }
   const [selected, setSelected] = useState<ContextSource[]>([]);
@@ -63,14 +66,16 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
         getUserContextDocuments(user.uid),
         getUserTechnicalArchitectures(user.uid),
         getTechnicalTasks(user.uid),
-        getUserUiUxArchitectures(user.uid)
-      ]).then(([pyramidsData, definitionsData, documentsData, architecturesData, tasksData, uiUxArchitecturesData]) => {
+        getUserUiUxArchitectures(user.uid),
+        getUserDirectories(user.uid)
+      ]).then(([pyramidsData, definitionsData, documentsData, architecturesData, tasksData, uiUxArchitecturesData, directoriesData]) => {
         setPyramids(pyramidsData);
         setDefinitions(definitionsData.filter(d => d.id !== currentDefinitionId)); // Exclude self
         setDocuments(documentsData);
         setArchitectures(architecturesData);
         setTasks(tasksData);
         setUiUxArchitectures(uiUxArchitecturesData);
+        setDirectories(directoriesData.map(d => ({ id: d.id, title: d.title })));
       }).catch(err => {
         console.error("Failed to load context sources", err);
       }).finally(() => {
@@ -79,7 +84,7 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
     }
   }, [isOpen, user, currentDefinitionId]);
 
-  const handleToggle = (type: 'contextDocument' | 'productDefinition' | 'pyramid' | 'technicalArchitecture' | 'technicalTask' | 'uiUxArchitecture', item: { id: string, title: string }) => {
+  const handleToggle = (type: 'contextDocument' | 'productDefinition' | 'pyramid' | 'technicalArchitecture' | 'technicalTask' | 'uiUxArchitecture' | 'directory', item: { id: string, title: string }) => {
     setSelected(prev => {
       const exists = prev.find(s => s.type === type && s.id === item.id);
       if (exists) {
@@ -90,7 +95,7 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
     });
   };
 
-  const isSelected = (type: 'contextDocument' | 'productDefinition' | 'pyramid' | 'technicalArchitecture' | 'technicalTask' | 'uiUxArchitecture', id: string) => {
+  const isSelected = (type: 'contextDocument' | 'productDefinition' | 'pyramid' | 'technicalArchitecture' | 'technicalTask' | 'uiUxArchitecture' | 'directory', id: string) => {
     return selected.some(s => s.type === type && s.id === id);
   };
 
@@ -135,6 +140,107 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
     </ScrollArea>
   );
 
+  const renderDocumentsAccordion = () => {
+    const grouped: Record<string, ContextDocument[]> = {};
+    const noDirDocs: ContextDocument[] = [];
+    documents.forEach(doc => {
+      const dirId = doc.directoryId || 'none';
+      if (!doc.directoryId) {
+        noDirDocs.push(doc);
+      } else {
+        if (!grouped[dirId]) grouped[dirId] = [];
+        grouped[dirId].push(doc);
+      }
+    });
+
+    const areAllDocsSelected = (docs: ContextDocument[]) =>
+      docs.length > 0 && docs.every(d => isSelected('contextDocument', d.id));
+
+    const toggleSelectDocs = (docs: ContextDocument[], select: boolean) => {
+      setSelected(prev => {
+        const withoutGroup = prev.filter(s => !(s.type === 'contextDocument' && docs.some(d => d.id === s.id)));
+        if (!select) return withoutGroup;
+        const additions = docs.map(d => ({ type: 'contextDocument', id: d.id, title: d.title }));
+        return [...withoutGroup, ...additions];
+      });
+    };
+
+    return (
+      <ScrollArea type="auto" style={{ height: 300 }}>
+        <Flex direction="column" gap="3">
+          <Card variant="surface" style={{ padding: '8px' }}>
+            <Flex align="center" gap="2" className="cursor-pointer" onClick={() => setExpandedDirs(prev => ({ ...prev, none: !prev.none }))}>
+              <Checkbox 
+                checked={areAllDocsSelected(noDirDocs)}
+                onCheckedChange={(checked) => toggleSelectDocs(noDirDocs, !!checked)}
+              />
+              <Text size="2">No Directory</Text>
+            </Flex>
+            {expandedDirs.none && (
+              <Box pt="2">
+                <Flex direction="column" gap="2">
+                  {noDirDocs.length === 0 ? (
+                    <Text color="gray" size="2">No documents</Text>
+                  ) : (
+                    noDirDocs.map(item => (
+                      <Card key={item.id} variant="surface" style={{ padding: '8px' }}>
+                        <Flex align="center" gap="2">
+                          <Checkbox 
+                            checked={isSelected('contextDocument', item.id)}
+                            onCheckedChange={() => handleToggle('contextDocument', { id: item.id, title: item.title })}
+                          />
+                          <FileText size={16} className="text-amber-500" />
+                          <Text size="2">{item.title}</Text>
+                        </Flex>
+                      </Card>
+                    ))
+                  )}
+                </Flex>
+              </Box>
+            )}
+          </Card>
+
+          {directories.map(dir => {
+            const expanded = expandedDirs[dir.id] || false;
+            return (
+              <Card key={dir.id} variant="surface" style={{ padding: '8px' }}>
+                <Flex align="center" gap="2" className="cursor-pointer" onClick={() => setExpandedDirs(prev => ({ ...prev, [dir.id]: !expanded }))}>
+                  <Checkbox 
+                    checked={areAllDocsSelected(grouped[dir.id] || [])}
+                    onCheckedChange={(checked) => toggleSelectDocs(grouped[dir.id] || [], !!checked)}
+                  />
+                  <Text size="2">{dir.title}</Text>
+                </Flex>
+                {expanded && (
+                  <Box pt="2">
+                    <Flex direction="column" gap="2">
+                      {(grouped[dir.id] || []).length === 0 ? (
+                        <Text color="gray" size="2">No documents</Text>
+                      ) : (
+                        (grouped[dir.id] || []).map(item => (
+                          <Card key={item.id} variant="surface" style={{ padding: '8px' }}>
+                            <Flex align="center" gap="2">
+                              <Checkbox 
+                                checked={isSelected('contextDocument', item.id)}
+                                onCheckedChange={() => handleToggle('contextDocument', { id: item.id, title: item.title })}
+                              />
+                              <FileText size={16} className="text-amber-500" />
+                              <Text size="2">{item.title}</Text>
+                            </Flex>
+                          </Card>
+                        ))
+                      )}
+                    </Flex>
+                  </Box>
+                )}
+              </Card>
+            );
+          })}
+        </Flex>
+      </ScrollArea>
+    );
+  };
+
   return (
     <Dialog.Root open={isOpen} onOpenChange={onClose}>
       <Dialog.Content style={{ maxWidth: 600 }}>
@@ -166,7 +272,7 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
               </Tabs.Content>
 
               <Tabs.Content value="documents">
-                {renderList(documents, 'contextDocument')}
+                {renderDocumentsAccordion()}
               </Tabs.Content>
 
               <Tabs.Content value="architectures">

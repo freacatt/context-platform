@@ -5,7 +5,7 @@ import { ContextDocument } from '../types';
 const TABLE_NAME = 'contextDocuments';
 
 // Helper to map DB snake_case to JS camelCase
-const mapDocumentFromDB = (data: any, id: string): ContextDocument | null => {
+export const mapDocumentFromDB = (data: any, id: string): ContextDocument | null => {
     if (!data) return null;
     return {
         id: id,
@@ -15,7 +15,8 @@ const mapDocumentFromDB = (data: any, id: string): ContextDocument | null => {
         content: data.content,
         notionId: data.notionId || data.notion_id,
         createdAt: (data.createdAt || data.created_at) ? new Date(data.createdAt || data.created_at) : null,
-        lastModified: (data.lastModified || data.last_modified) ? new Date(data.lastModified || data.last_modified) : null
+        lastModified: (data.lastModified || data.last_modified) ? new Date(data.lastModified || data.last_modified) : null,
+        directoryId: data.directoryId || data.directory_id || null
     };
 };
 
@@ -48,7 +49,8 @@ export const createContextDocument = async (userId: string, title: string = "New
     content: "", 
     notionId: "",
     createdAt: new Date().toISOString(),
-    lastModified: new Date().toISOString()
+    lastModified: new Date().toISOString(),
+    directoryId: null
   };
 
   try {
@@ -91,6 +93,7 @@ export const updateContextDocument = async (id: string, data: Partial<ContextDoc
   if (data.content !== undefined) updateData.content = data.content;
   if (data.type !== undefined) updateData.type = data.type;
   if (data.notionId !== undefined) updateData.notionId = data.notionId;
+  if (data.directoryId !== undefined) updateData.directoryId = data.directoryId;
   
   updateData.lastModified = new Date().toISOString();
 
@@ -127,4 +130,16 @@ export const renameContextDocument = async (id: string, newTitle: string): Promi
         console.error("Error renaming document:", error);
         throw error;
     }
+};
+
+export const assignContextDocumentToDirectory = async (id: string, directoryId: string | null): Promise<void> => {
+  try {
+    await updateDoc(doc(db, TABLE_NAME, id), {
+      directoryId: directoryId || null,
+      lastModified: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error("Error assigning document to directory:", error);
+    throw error;
+  }
 };

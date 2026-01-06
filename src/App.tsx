@@ -10,6 +10,7 @@ import PyramidEditor from './pages/PyramidEditor';
 import ProductDefinitionEditor from './pages/ProductDefinitionEditor';
 import ContextDocumentsPage from './pages/ContextDocumentsPage';
 import ContextDocumentEditor from './pages/ContextDocumentEditor';
+import DirectoryDocumentsPage from './pages/DirectoryDocumentsPage';
 import { TechnicalArchitecturesPage } from './pages/TechnicalArchitecturesPage';
 import { TechnicalArchitectureEditorPage } from './pages/TechnicalArchitectureEditorPage';
 import { UiUxArchitecturesPage } from './pages/UiUxArchitecturesPage';
@@ -95,6 +96,14 @@ function App() {
                     <ContextDocumentsPage />
                   </ProtectedRoute>
                 } 
+              />
+              <Route
+                path="/directory/:directoryId"
+                element={
+                  <ProtectedRoute>
+                    <DirectoryDocumentsPage />
+                  </ProtectedRoute>
+                }
               />
               <Route 
                 path="/context-document/:documentId" 

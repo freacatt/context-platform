@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Box, Flex, Heading, TextField, Text, Button, Card, IconButton, Dialog } from '@radix-ui/themes';
-import { Plus, Trash2, FileText, Edit2 } from 'lucide-react';
+import { Container, Box, Flex, Heading, TextField, Text, Button, Card, IconButton, Dialog, DropdownMenu } from '@radix-ui/themes';
+import { Plus, Trash2, FileText, Edit2, Folder, ChevronDown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { getUserContextDocuments, createContextDocument, deleteContextDocument, renameContextDocument } from '../services/contextDocumentService';
+import { getUserContextDocuments, createContextDocument, deleteContextDocument, renameContextDocument, assignContextDocumentToDirectory } from '../services/contextDocumentService';
+import { getUserDirectories, createDirectory } from '../services/directoryService';
 import { Link, useNavigate } from 'react-router-dom';
 import { ContextDocument } from '../types';
 
@@ -12,11 +13,15 @@ const ContextDocumentsPage: React.FC = () => {
   const [documents, setDocuments] = useState<ContextDocument[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [directories, setDirectories] = useState<{ id: string; title: string }[]>([]);
   
   // Create Modal State
   const [isCreateOpen, setIsCreateOpen] = useState<boolean>(false);
   const [newTitle, setNewTitle] = useState<string>('');
   const [isCreating, setIsCreating] = useState<boolean>(false);
+  const [isCreateDirOpen, setIsCreateDirOpen] = useState<boolean>(false);
+  const [newDirTitle, setNewDirTitle] = useState<string>('');
+  const [isCreatingDir, setIsCreatingDir] = useState<boolean>(false);
 
   // Rename State
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
@@ -35,8 +40,22 @@ const ContextDocumentsPage: React.FC = () => {
     }
   };
 
+  const fetchDirectories = async () => {
+    if (!user) return;
+    try {
+      const data = await getUserDirectories(user.uid);
+      setDirectories(data.map(d => ({ id: d.id, title: d.title })));
+    } catch (error) {
+      console.error("Failed to load directories", error);
+    }
+  };
+
   useEffect(() => {
     fetchDocuments();
+  }, [user]);
+
+  useEffect(() => {
+    fetchDirectories();
   }, [user]);
 
   const handleCreate = async () => {
@@ -55,6 +74,22 @@ const ContextDocumentsPage: React.FC = () => {
       } finally {
           setIsCreating(false);
       }
+  };
+
+  const handleCreateDirectory = async () => {
+    if (!user || !newDirTitle.trim()) return;
+    setIsCreatingDir(true);
+    try {
+      const id = await createDirectory(user.uid, newDirTitle.trim());
+      setIsCreateDirOpen(false);
+      setNewDirTitle('');
+      await fetchDirectories();
+    } catch (error) {
+      console.error(error);
+      alert('Failed to create directory');
+    } finally {
+      setIsCreatingDir(false);
+    }
   };
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
@@ -87,6 +122,15 @@ const ContextDocumentsPage: React.FC = () => {
     }
   };
 
+  const assignDirectory = async (docId: string, dirId: string | null) => {
+    try {
+      await assignContextDocumentToDirectory(docId, dirId);
+      setDocuments(prev => prev.map(d => d.id === docId ? { ...d, directoryId: dirId } : d));
+    } catch (error) {
+      alert('Failed to assign directory');
+    }
+  };
+
   const filteredDocuments = documents.filter(d => 
     d.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -101,41 +145,79 @@ const ContextDocumentsPage: React.FC = () => {
             <Text color="gray" size="2">Create knowledge base documents to use as context for your products.</Text>
           </Box>
           
-          <Dialog.Root open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <Dialog.Trigger>
-              <Button size="2" variant="solid" color="amber" className="cursor-pointer">
-                  <Plus size={16} /> New Document
-              </Button>
-            </Dialog.Trigger>
-            <Dialog.Content style={{ maxWidth: 450 }}>
-              <Dialog.Title>Create New Context Document</Dialog.Title>
-              <Dialog.Description size="2" mb="4">
-                  Enter a title for your new document.
-              </Dialog.Description>
+          <Flex align="center" gap="2">
+            <Dialog.Root open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+              <Dialog.Trigger>
+                <Button size="2" variant="solid" color="amber" className="cursor-pointer">
+                    <Plus size={16} /> New Document
+                </Button>
+              </Dialog.Trigger>
+              <Dialog.Content style={{ maxWidth: 450 }}>
+                <Dialog.Title>Create New Context Document</Dialog.Title>
+                <Dialog.Description size="2" mb="4">
+                    Enter a title for your new document.
+                </Dialog.Description>
 
-              <Flex direction="column" gap="3">
+                <Flex direction="column" gap="3">
+                    <label>
+                        <Text as="div" size="2" mb="1" weight="bold">
+                            Title
+                        </Text>
+                        <TextField.Root
+                            placeholder="e.g. Market Research 2024"
+                            value={newTitle}
+                            onChange={(e) => setNewTitle(e.target.value)}
+                        />
+                    </label>
+
+                    <Flex gap="3" mt="4" justify="end">
+                        <Dialog.Close>
+                            <Button variant="soft" color="gray">Cancel</Button>
+                        </Dialog.Close>
+                        <Button onClick={handleCreate} disabled={isCreating}>
+                            {isCreating ? 'Creating...' : 'Create Document'}
+                        </Button>
+                    </Flex>
+                </Flex>
+              </Dialog.Content>
+            </Dialog.Root>
+
+            <Dialog.Root open={isCreateDirOpen} onOpenChange={setIsCreateDirOpen}>
+              <Dialog.Trigger>
+                <Button 
+                  size="2" 
+                  variant="solid" 
+                  className="cursor-pointer bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-600 hover:to-violet-600 shadow-sm hover:shadow-md transition-all duration-200 rounded-md"
+                >
+                  <Folder size={16} className="mr-2 text-white" /> New Directory
+                </Button>
+              </Dialog.Trigger>
+              <Dialog.Content style={{ maxWidth: 450 }}>
+                <Dialog.Title>Create Directory</Dialog.Title>
+                <Dialog.Description size="2" mb="4">
+                  Enter a name for the directory.
+                </Dialog.Description>
+                <Flex direction="column" gap="3">
                   <label>
-                      <Text as="div" size="2" mb="1" weight="bold">
-                          Title
-                      </Text>
-                      <TextField.Root
-                          placeholder="e.g. Market Research 2024"
-                          value={newTitle}
-                          onChange={(e) => setNewTitle(e.target.value)}
-                      />
+                    <Text as="div" size="2" mb="1" weight="bold">Name</Text>
+                    <TextField.Root
+                      placeholder="e.g. Research"
+                      value={newDirTitle}
+                      onChange={(e) => setNewDirTitle(e.target.value)}
+                    />
                   </label>
-
                   <Flex gap="3" mt="4" justify="end">
-                      <Dialog.Close>
-                          <Button variant="soft" color="gray">Cancel</Button>
-                      </Dialog.Close>
-                      <Button onClick={handleCreate} disabled={isCreating}>
-                          {isCreating ? 'Creating...' : 'Create Document'}
-                      </Button>
+                    <Dialog.Close>
+                      <Button variant="soft" color="gray">Cancel</Button>
+                    </Dialog.Close>
+                    <Button onClick={handleCreateDirectory} disabled={isCreatingDir}>
+                      {isCreatingDir ? 'Creating...' : 'Create Directory'}
+                    </Button>
                   </Flex>
-              </Flex>
-            </Dialog.Content>
-          </Dialog.Root>
+                </Flex>
+              </Dialog.Content>
+            </Dialog.Root>
+          </Flex>
         </Flex>
 
         {/* Search */}
@@ -149,6 +231,23 @@ const ContextDocumentsPage: React.FC = () => {
                     {/* Icon can go here */}
                 </TextField.Slot>
             </TextField.Root>
+        </Box>
+
+        {/* Directories */}
+        <Box className="mb-4">
+          <Flex gap="2" wrap="wrap">
+            {directories.map(dir => (
+              <Button 
+                key={dir.id} 
+                variant="soft" 
+                color="indigo" 
+                className="cursor-pointer"
+                onClick={() => navigate(`/directory/${dir.id}`)}
+              >
+                <Folder size={14} className="mr-2" /> {dir.title}
+              </Button>
+            ))}
+          </Flex>
         </Box>
 
         {/* Documents Grid */}
@@ -176,7 +275,26 @@ const ContextDocumentsPage: React.FC = () => {
                                 return date.toLocaleDateString();
                             })()}
                         </Text>
-                        <Flex gap="2">
+                        <Flex gap="2" align="center">
+                            <DropdownMenu.Root>
+                              <DropdownMenu.Trigger>
+                                <Button variant="soft" color="gray" className="cursor-pointer">
+                                  <Folder size={14} className="mr-2" />
+                                  {(doc.directoryId && directories.find(d => d.id === doc.directoryId)?.title) || 'No Directory'}
+                                  <ChevronDown size={14} className="ml-2" />
+                                </Button>
+                              </DropdownMenu.Trigger>
+                              <DropdownMenu.Content>
+                                <DropdownMenu.Item onClick={() => assignDirectory(doc.id, null)}>
+                                  No Directory
+                                </DropdownMenu.Item>
+                                {directories.map(dir => (
+                                  <DropdownMenu.Item key={dir.id} onClick={() => assignDirectory(doc.id, dir.id)}>
+                                    {dir.title}
+                                  </DropdownMenu.Item>
+                                ))}
+                              </DropdownMenu.Content>
+                            </DropdownMenu.Root>
                             <IconButton 
                                 variant="ghost" 
                                 color="gray" 

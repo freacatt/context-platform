@@ -4,7 +4,7 @@ export type { Block };
 
 export interface ContextSource {
   id: string;
-  type: 'contextDocument' | 'productDefinition' | 'pyramid' | 'technicalArchitecture' | 'technicalTask' | 'uiUxArchitecture';
+  type: 'contextDocument' | 'productDefinition' | 'pyramid' | 'technicalArchitecture' | 'technicalTask' | 'uiUxArchitecture' | 'directory';
   title?: string;
 }
 
@@ -85,8 +85,16 @@ export interface ContextDocument {
   notionId: string;
   createdAt: Date | null;
   lastModified: Date | null;
+  directoryId?: string | null;
 }
 
+export interface Directory {
+  id: string;
+  userId: string;
+  title: string;
+  createdAt: Date | null;
+  lastModified: Date | null;
+}
 export interface TechnicalArchitecture {
   id: string;
   userId: string;

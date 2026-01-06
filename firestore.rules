@@ -60,10 +60,16 @@ rules_version = '2';
        } 
      } 
  
-     // Context Documents collection 
+    // Context Documents collection 
     match /contextDocuments/{documentId} { 
       allow create: if isOwner(request.resource.data.userId); 
       allow read, update, delete: if isOwner(resource.data.userId); 
+    }
+
+    // Directories collection
+    match /directories/{directoryId} {
+      allow create: if isOwner(request.resource.data.userId);
+      allow read, update, delete: if isOwner(resource.data.userId);
     }
 
     // Technical Architectures collection

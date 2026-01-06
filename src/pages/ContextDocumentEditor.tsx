@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Flex, Text, Button, IconButton, TextField, DropdownMenu } from '@radix-ui/themes';
-import { ArrowLeft, Save, Download, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Save, Download, ChevronDown, Folder } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { getContextDocument, updateContextDocument } from '../services/contextDocumentService';
+import { getContextDocument, updateContextDocument, assignContextDocumentToDirectory } from '../services/contextDocumentService';
 import { exportContextToExcel, exportContextToMarkdown } from '../services/exportService';
 import { ContextDocument } from '../types';
+import { getUserDirectories } from '../services/directoryService';
 
 const ContextDocumentEditor: React.FC = () => {
   const { documentId } = useParams<{ documentId: string }>();
@@ -16,6 +17,7 @@ const ContextDocumentEditor: React.FC = () => {
   const [title, setTitle] = useState<string>('');
   const [content, setContent] = useState<string>('');
   const [saving, setSaving] = useState<boolean>(false);
+  const [directories, setDirectories] = useState<{ id: string; title: string }[]>([]);
 
   useEffect(() => {
     if (!user || !documentId) return;
@@ -33,6 +35,15 @@ const ContextDocumentEditor: React.FC = () => {
 
     loadData();
   }, [user, documentId]);
+
+  useEffect(() => {
+    const loadDirs = async () => {
+      if (!user) return;
+      const data = await getUserDirectories(user.uid);
+      setDirectories(data.map(d => ({ id: d.id, title: d.title })));
+    };
+    loadDirs();
+  }, [user]);
 
   const handleSave = async () => {
     if (!documentId) return;
@@ -53,6 +64,16 @@ const ContextDocumentEditor: React.FC = () => {
         alert("Failed to save changes");
     } finally {
         setSaving(false);
+    }
+  };
+
+  const assignDirectory = async (dirId: string | null) => {
+    if (!documentId) return;
+    try {
+      await assignContextDocumentToDirectory(documentId, dirId);
+      if (document) setDocument({ ...document, directoryId: dirId });
+    } catch (e) {
+      alert('Failed to assign directory');
     }
   };
 
@@ -82,7 +103,24 @@ const ContextDocumentEditor: React.FC = () => {
           </Box>
         </Flex>
 
-        <Flex gap="2">
+        <Flex gap="2" align="center">
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger>
+              <Button variant="soft" color="gray" className="cursor-pointer">
+                <Folder size={16} /> {(document.directoryId && directories.find(d => d.id === document.directoryId)?.title) || 'No Directory'} <ChevronDown size={14} />
+              </Button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content>
+              <DropdownMenu.Item onClick={() => assignDirectory(null)}>
+                No Directory
+              </DropdownMenu.Item>
+              {directories.map(dir => (
+                <DropdownMenu.Item key={dir.id} onClick={() => assignDirectory(dir.id)}>
+                  {dir.title}
+                </DropdownMenu.Item>
+              ))}
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
           <DropdownMenu.Root>
             <DropdownMenu.Trigger>
               <Button variant="soft" color="gray" className="cursor-pointer">

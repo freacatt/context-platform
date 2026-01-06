@@ -4,6 +4,7 @@ import { getContextDocument } from './contextDocumentService';
 import { getTechnicalArchitecture } from './technicalArchitectureService';
 import { getTechnicalTask } from './technicalTaskService';
 import { getUiUxArchitecture } from './uiUxArchitectureService';
+import { getDirectory, getDirectoryDocuments } from './directoryService';
 import { ContextSource } from '../types';
 
 export interface ContextDataResult {
@@ -69,6 +70,15 @@ export const fetchContextData = async (source: ContextSource): Promise<ContextDa
         if (doc) {
           data = doc;
           title = doc.title;
+        }
+        break;
+
+      case 'directory':
+        const dir = await getDirectory(source.id);
+        if (dir) {
+          const docs = await getDirectoryDocuments(dir.userId, dir.id);
+          data = { directory: dir, documents: docs };
+          title = dir.title;
         }
         break;
 
