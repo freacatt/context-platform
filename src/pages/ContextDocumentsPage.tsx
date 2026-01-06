@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Container, Box, Flex, Heading, TextField, Text, Button, Card, IconButton, Dialog, DropdownMenu } from '@radix-ui/themes';
-import { Plus, Trash2, FileText, Edit2, Folder, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, FileText, Edit2, Folder, ChevronDown, MoreVertical } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserContextDocuments, createContextDocument, deleteContextDocument, renameContextDocument, assignContextDocumentToDirectory } from '../services/contextDocumentService';
-import { getUserDirectories, createDirectory } from '../services/directoryService';
+import { getUserDirectories, createDirectory, renameDirectory, deleteDirectory } from '../services/directoryService';
 import { Link, useNavigate } from 'react-router-dom';
 import { ContextDocument } from '../types';
 
@@ -131,6 +131,46 @@ const ContextDocumentsPage: React.FC = () => {
     }
   };
 
+  const [renameDirDialogOpen, setRenameDirDialogOpen] = useState(false);
+  const [renameDirTargetId, setRenameDirTargetId] = useState<string | null>(null);
+  const [renameDirNewTitle, setRenameDirNewTitle] = useState("");
+
+  const handleRenameDirectory = (id: string, currentTitle: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRenameDirTargetId(id);
+    setRenameDirNewTitle(currentTitle || "");
+    setRenameDirDialogOpen(true);
+  };
+
+  const confirmRenameDirectory = async () => {
+    if (!renameDirTargetId || !renameDirNewTitle.trim()) return;
+    try {
+      console.log('Attempting to rename directory:', renameDirTargetId, renameDirNewTitle);
+      await renameDirectory(renameDirTargetId, renameDirNewTitle);
+      setRenameDirDialogOpen(false);
+      fetchDirectories();
+    } catch (error: any) {
+      console.error('Failed to rename directory:', error);
+      alert(`Failed to rename directory: ${error.message || 'Unknown error'}`);
+    }
+  };
+
+  const handleDeleteDirectory = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) return;
+    if (window.confirm("Are you sure you want to delete this directory? All documents inside will be moved to 'No Directory'.")) {
+      try {
+        console.log('Attempting to delete directory:', id);
+        await deleteDirectory(id, user.uid);
+        await fetchDirectories();
+        await fetchDocuments(); // To update document statuses
+      } catch (error: any) {
+        console.error('Failed to delete directory:', error);
+        alert(`Failed to delete directory: ${error.message || 'Unknown error'}`);
+      }
+    }
+  };
+
   const filteredDocuments = documents.filter(d => 
     d.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -237,15 +277,33 @@ const ContextDocumentsPage: React.FC = () => {
         <Box className="mb-4">
           <Flex gap="2" wrap="wrap">
             {directories.map(dir => (
-              <Button 
-                key={dir.id} 
-                variant="soft" 
-                color="indigo" 
-                className="cursor-pointer"
-                onClick={() => navigate(`/directory/${dir.id}`)}
-              >
-                <Folder size={14} className="mr-2" /> {dir.title}
-              </Button>
+              <Box key={dir.id} className="relative group">
+                  <Flex align="center" className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-md transition-colors border border-indigo-200 pr-1">
+                    <Button 
+                      variant="ghost" 
+                      color="indigo" 
+                      className="cursor-pointer hover:bg-transparent px-3"
+                      onClick={() => navigate(`/directory/${dir.id}`)}
+                    >
+                      <Folder size={14} className="mr-2" /> {dir.title}
+                    </Button>
+                    <DropdownMenu.Root>
+                        <DropdownMenu.Trigger>
+                            <IconButton variant="ghost" color="indigo" size="1" className="rounded-full hover:bg-indigo-200 cursor-pointer">
+                                <MoreVertical size={12} />
+                            </IconButton>
+                        </DropdownMenu.Trigger>
+                        <DropdownMenu.Content>
+                            <DropdownMenu.Item onClick={(e) => handleRenameDirectory(dir.id, dir.title, e)}>
+                                <Edit2 size={14} className="mr-2" /> Rename
+                            </DropdownMenu.Item>
+                            <DropdownMenu.Item color="red" onClick={(e) => handleDeleteDirectory(dir.id, e)}>
+                                <Trash2 size={14} className="mr-2" /> Delete
+                            </DropdownMenu.Item>
+                        </DropdownMenu.Content>
+                    </DropdownMenu.Root>
+                  </Flex>
+              </Box>
             ))}
           </Flex>
         </Box>
@@ -350,6 +408,39 @@ const ContextDocumentsPage: React.FC = () => {
                 </Button>
               </Dialog.Close>
               <Button onClick={confirmRename}>
+                Save
+              </Button>
+            </Flex>
+          </Dialog.Content>
+        </Dialog.Root>
+
+        <Dialog.Root open={renameDirDialogOpen} onOpenChange={setRenameDirDialogOpen}>
+          <Dialog.Content style={{ maxWidth: 450 }}>
+            <Dialog.Title>Rename Directory</Dialog.Title>
+            <Dialog.Description size="2" mb="4">
+              Enter a new name for this directory.
+            </Dialog.Description>
+
+            <Flex direction="column" gap="3">
+              <label>
+                <Text as="div" size="2" mb="1" weight="bold">
+                  Name
+                </Text>
+                <TextField.Root
+                  value={renameDirNewTitle}
+                  onChange={(e) => setRenameDirNewTitle(e.target.value)}
+                  placeholder="Enter new name"
+                />
+              </label>
+            </Flex>
+
+            <Flex gap="3" mt="4" justify="end">
+              <Dialog.Close>
+                <Button variant="soft" color="gray">
+                  Cancel
+                </Button>
+              </Dialog.Close>
+              <Button onClick={confirmRenameDirectory}>
                 Save
               </Button>
             </Flex>

@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { collection, addDoc, getDoc, getDocs, doc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { collection, addDoc, getDoc, getDocs, doc, updateDoc, deleteDoc, query, where, writeBatch } from 'firebase/firestore';
 import { Directory, ContextDocument } from '../types';
 
 const TABLE_NAME = 'directories';
@@ -9,7 +9,7 @@ const mapDirectoryFromDB = (data: any, id: string): Directory | null => {
   return {
     id,
     userId: data.userId || data.user_id,
-    title: data.title,
+    title: data.title || '',
     createdAt: (data.createdAt || data.created_at) ? new Date(data.createdAt || data.created_at) : null,
     lastModified: (data.lastModified || data.last_modified) ? new Date(data.lastModified || data.last_modified) : null
   };
@@ -28,14 +28,50 @@ export const createDirectory = async (userId: string, title: string): Promise<st
 };
 
 export const renameDirectory = async (id: string, newTitle: string): Promise<void> => {
-  await updateDoc(doc(db, TABLE_NAME, id), {
-    title: newTitle,
-    lastModified: new Date().toISOString()
-  });
+  console.log(`Renaming directory ${id} to "${newTitle}"`);
+  try {
+    await updateDoc(doc(db, TABLE_NAME, id), {
+      title: newTitle,
+      lastModified: new Date().toISOString()
+    });
+    console.log(`Successfully renamed directory ${id}`);
+  } catch (error) {
+    console.error(`Error renaming directory ${id}:`, error);
+    throw error;
+  }
 };
 
-export const deleteDirectory = async (id: string): Promise<void> => {
-  await deleteDoc(doc(db, TABLE_NAME, id));
+export const deleteDirectory = async (id: string, userId: string): Promise<void> => {
+  console.log(`Deleting directory ${id} for user ${userId}`);
+  try {
+    const batch = writeBatch(db);
+
+    // 1. Find all documents in this directory belonging to the user
+    const q = query(
+      collection(db, 'contextDocuments'), 
+      where('directoryId', '==', id),
+      where('userId', '==', userId)
+    );
+    const snapshot = await getDocs(q);
+
+    // 2. Update them to have no directory
+    snapshot.docs.forEach(docSnap => {
+      batch.update(doc(db, 'contextDocuments', docSnap.id), { 
+        directoryId: null,
+        lastModified: new Date().toISOString()
+      });
+    });
+
+    // 3. Delete the directory
+    batch.delete(doc(db, TABLE_NAME, id));
+
+    // 4. Commit
+    await batch.commit();
+    console.log(`Successfully deleted directory ${id}`);
+  } catch (error) {
+    console.error(`Error deleting directory ${id}:`, error);
+    throw error;
+  }
 };
 
 export const getDirectory = async (id: string): Promise<Directory> => {
