@@ -6,7 +6,7 @@ import { LogOut, LayoutGrid, Globe, Bot, Download, Lock } from 'lucide-react';
 import APIKeyModal from './APIKeyModal';
 import SetPasswordModal from './SetPasswordModal';
 import ContextModal from './ContextModal';
-import ContextSelectorModal from '../ProductDefinition/ContextSelectorModal';
+import ContextSelectorModal from '../GlobalContext/ContextSelectorModal';
 import ChatPanel from '../Chat/ChatPanel';
 import { Link } from 'react-router-dom';
 import { exportWorkspaceToJson } from '../../services/exportService';

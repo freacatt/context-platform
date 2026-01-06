@@ -4,7 +4,7 @@ export type { Block };
 
 export interface ContextSource {
   id: string;
-  type: 'contextDocument' | 'productDefinition' | 'pyramid' | 'technicalArchitecture' | 'technicalTask' | 'uiUxArchitecture' | 'directory';
+  type: 'contextDocument' | 'productDefinition' | 'pyramid' | 'technicalArchitecture' | 'technicalTask' | 'uiUxArchitecture' | 'directory' | 'diagram';
   title?: string;
 }
 
@@ -94,6 +94,32 @@ export interface Directory {
   title: string;
   createdAt: Date | null;
   lastModified: Date | null;
+}
+
+export interface UiUxArchitecture {
+  id: string;
+  userId: string;
+  title: string;
+  createdAt: Date | null;
+  lastModified: Date | null;
+  nodes: any[];
+  edges: any[];
+}
+
+export interface DiagramNodeData {
+  title: string;
+  description: string;
+  contextSources?: ContextSource[];
+}
+
+export interface Diagram {
+  id: string;
+  userId: string;
+  title: string;
+  createdAt: Date | null;
+  lastModified: Date | null;
+  nodes: any[]; // Using any[] to avoid strict dependency on reactflow types in generic types file, or could import
+  edges: any[];
 }
 export interface TechnicalArchitecture {
   id: string;

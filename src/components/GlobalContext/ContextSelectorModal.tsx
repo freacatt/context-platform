@@ -9,7 +9,8 @@ import { getUserDirectories } from '../../services/directoryService';
 import { getUserTechnicalArchitectures } from '../../services/technicalArchitectureService';
 import { getTechnicalTasks } from '../../services/technicalTaskService';
 import { getUserUiUxArchitectures } from '../../services/uiUxArchitectureService';
-import { Pyramid, ProductDefinition, ContextDocument, TechnicalArchitecture, ContextSource } from '../../types';
+import { getUserDiagrams } from '../../services/diagramService';
+import { Pyramid, ProductDefinition, ContextDocument, TechnicalArchitecture, ContextSource, Diagram } from '../../types';
 import { TechnicalTask } from '../../types/technicalTask';
 import { UiUxArchitecture } from '../../types/uiUxArchitecture';
 
@@ -39,6 +40,7 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
   const [architectures, setArchitectures] = useState<TechnicalArchitecture[]>([]);
   const [tasks, setTasks] = useState<TechnicalTask[]>([]);
   const [uiUxArchitectures, setUiUxArchitectures] = useState<UiUxArchitecture[]>([]);
+  const [diagrams, setDiagrams] = useState<Diagram[]>([]);
   const [directories, setDirectories] = useState<Array<{ id: string; title: string }>>([]);
   const [expandedDirs, setExpandedDirs] = useState<Record<string, boolean>>({});
 
@@ -48,7 +50,6 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
   useEffect(() => {
     if (initialSelectedSources) {
       setSelected(prev => {
-        // Prevent infinite loop if the array content is the same
         if (JSON.stringify(prev) === JSON.stringify(initialSelectedSources)) {
           return prev;
         }
@@ -67,15 +68,17 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
         getUserTechnicalArchitectures(user.uid),
         getTechnicalTasks(user.uid),
         getUserUiUxArchitectures(user.uid),
-        getUserDirectories(user.uid)
-      ]).then(([pyramidsData, definitionsData, documentsData, architecturesData, tasksData, uiUxArchitecturesData, directoriesData]) => {
+        getUserDirectories(user.uid),
+        getUserDiagrams(user.uid)
+      ]).then(([pyramidsData, definitionsData, documentsData, architecturesData, tasksData, uiUxArchitecturesData, directoriesData, diagramsData]) => {
         setPyramids(pyramidsData);
-        setDefinitions(definitionsData.filter(d => d.id !== currentDefinitionId)); // Exclude self
+        setDefinitions(definitionsData.filter(d => d.id !== currentDefinitionId));
         setDocuments(documentsData);
         setArchitectures(architecturesData);
         setTasks(tasksData);
         setUiUxArchitectures(uiUxArchitecturesData);
         setDirectories(directoriesData.map(d => ({ id: d.id, title: d.title })));
+        setDiagrams(diagramsData);
       }).catch(err => {
         console.error("Failed to load context sources", err);
       }).finally(() => {
@@ -84,7 +87,7 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
     }
   }, [isOpen, user, currentDefinitionId]);
 
-  const handleToggle = (type: 'contextDocument' | 'productDefinition' | 'pyramid' | 'technicalArchitecture' | 'technicalTask' | 'uiUxArchitecture' | 'directory', item: { id: string, title: string }) => {
+  const handleToggle = (type: 'contextDocument' | 'productDefinition' | 'pyramid' | 'technicalArchitecture' | 'technicalTask' | 'uiUxArchitecture' | 'directory' | 'diagram', item: { id: string, title: string }) => {
     setSelected(prev => {
       const exists = prev.find(s => s.type === type && s.id === item.id);
       if (exists) {
@@ -95,7 +98,7 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
     });
   };
 
-  const isSelected = (type: 'contextDocument' | 'productDefinition' | 'pyramid' | 'technicalArchitecture' | 'technicalTask' | 'uiUxArchitecture' | 'directory', id: string) => {
+  const isSelected = (type: 'contextDocument' | 'productDefinition' | 'pyramid' | 'technicalArchitecture' | 'technicalTask' | 'uiUxArchitecture' | 'directory' | 'diagram', id: string) => {
     return selected.some(s => s.type === type && s.id === id);
   };
 
@@ -104,7 +107,7 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
     onClose();
   };
 
-  const renderList = (items: Array<{ id: string, title: string, type?: string }>, sourceType: 'contextDocument' | 'productDefinition' | 'pyramid' | 'technicalArchitecture' | 'technicalTask' | 'uiUxArchitecture') => (
+  const renderList = (items: Array<{ id: string, title: string, type?: string }>, sourceType: 'contextDocument' | 'productDefinition' | 'pyramid' | 'technicalArchitecture' | 'technicalTask' | 'uiUxArchitecture' | 'diagram') => (
     <ScrollArea type="auto" style={{ height: 300 }}>
       <Flex direction="column" gap="2" p="2">
         {items.length === 0 ? (
@@ -246,7 +249,7 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
       <Dialog.Content style={{ maxWidth: 600 }}>
         <Dialog.Title>Select Context Sources</Dialog.Title>
         <Dialog.Description size="2" mb="4">
-          Select Pyramids, Product Definitions, Documents, Architectures, or Tasks to use as context for AI recommendations.
+          Select Pyramids, Product Definitions, Documents, Architectures, Tasks, UI/UX, or Diagrams to use as context for AI recommendations.
         </Dialog.Description>
 
         {loading ? (
@@ -260,6 +263,7 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
               <Tabs.Trigger value="architectures">Architectures ({architectures.length})</Tabs.Trigger>
               <Tabs.Trigger value="tasks">Tasks ({tasks.length})</Tabs.Trigger>
               <Tabs.Trigger value="uiUx">UI/UX ({uiUxArchitectures.length})</Tabs.Trigger>
+              <Tabs.Trigger value="diagrams">Diagrams ({diagrams.length})</Tabs.Trigger>
             </Tabs.List>
 
             <Box pt="3">
@@ -285,6 +289,10 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
 
               <Tabs.Content value="uiUx">
                 {renderList(uiUxArchitectures, 'uiUxArchitecture')}
+              </Tabs.Content>
+              
+              <Tabs.Content value="diagrams">
+                {renderList(diagrams, 'diagram')}
               </Tabs.Content>
             </Box>
           </Tabs.Root>

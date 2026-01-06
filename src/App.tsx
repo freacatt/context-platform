@@ -5,6 +5,8 @@ import { GlobalProvider } from './contexts/GlobalContext';
 import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
 import PyramidsPage from './pages/PyramidsPage';
+import DiagramsPage from './pages/DiagramsPage';
+import DiagramEditorPage from './pages/DiagramEditor';
 import ProductDefinitionsPage from './pages/ProductDefinitionsPage';
 import PyramidEditor from './pages/PyramidEditor';
 import ProductDefinitionEditor from './pages/ProductDefinitionEditor';
@@ -58,6 +60,24 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <PyramidsPage />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Diagram Tool Routes */}
+              <Route 
+                path="/diagrams" 
+                element={
+                  <ProtectedRoute>
+                    <DiagramsPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/diagram/:id" 
+                element={
+                  <ProtectedRoute>
+                    <DiagramEditorPage />
                   </ProtectedRoute>
                 } 
               />
