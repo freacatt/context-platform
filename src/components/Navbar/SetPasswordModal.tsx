@@ -74,7 +74,7 @@ const SetPasswordModal: React.FC<SetPasswordModalProps> = ({ isOpen, onClose }) 
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <Dialog.Content style={{ maxWidth: 450 }}>
+      <Dialog.Content style={{ maxWidth: 450 }} className="border-2 border-black shadow-none">
         <Dialog.Title>Set/Change Password</Dialog.Title>
         <Dialog.Description size="2" mb="4">
           Set a password to login with your email address.

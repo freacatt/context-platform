@@ -1,15 +1,25 @@
 import React, { useState } from 'react';
-import { Flex, Text, Button, Avatar, DropdownMenu, Badge } from '@radix-ui/themes';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGlobalContext } from '../../contexts/GlobalContext';
-import { LogOut, LayoutGrid, Globe, Bot, Download, Lock } from 'lucide-react';
+import { LogOut, LayoutGrid, Globe, Bot, Download, Lock, User } from 'lucide-react';
 import APIKeyModal from './APIKeyModal';
 import SetPasswordModal from './SetPasswordModal';
 import ContextModal from './ContextModal';
 import ContextSelectorModal from '../GlobalContext/ContextSelectorModal';
-import ChatPanel from '../Chat/ChatPanel';
 import { Link } from 'react-router-dom';
 import { exportWorkspaceToJson } from '../../services/exportService';
+
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -17,52 +27,43 @@ const Navbar: React.FC = () => {
     setIsContextModalOpen, 
     selectedSources,
     setSelectedSources,
-    isContextModalOpen // Add this line
+    isContextModalOpen 
   } = useGlobalContext();
   
-  const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState<boolean>(false);
 
   return (
-    <div className="sticky top-0 z-50 px-6 py-3 bg-white/80 backdrop-blur-md shadow-md">
-      <Flex justify="between" align="center">
-        <Flex gap="4" align="center">
-            <Link to="/dashboard" className="no-underline text-black cursor-pointer">
-                <Text size="5" weight="bold" className="text-gray-900 hover:text-indigo-600 transition-colors cursor-pointer">
-                Context Platform
-                </Text>
+    <div className="sticky top-0 z-50 px-6 py-3 bg-white/80 backdrop-blur-md shadow-md border-b">
+      <div className="flex justify-between items-center max-w-[1920px] mx-auto">
+        <div className="flex gap-4 items-center">
+            <Link to="/dashboard" className="no-underline text-black cursor-pointer flex items-center gap-2">
+                <span className="text-xl font-bold text-gray-900 hover:text-indigo-600 transition-colors cursor-pointer">
+                    Context Platform
+                </span>
             </Link>
-        </Flex>
+        </div>
 
-        <Flex gap="3" align="center">
-          <Link to="/dashboard" className="cursor-pointer">
-            <Button variant="ghost" color="gray" className="cursor-pointer hover:bg-gray-100 transition-colors">
-                <LayoutGrid size={16} className="mr-2" /> Dashboard
-            </Button>
-          </Link>
+        <div className="flex gap-3 items-center">
 
           {/* Global Context Button */}
-          <Button variant="ghost" color="gray" onClick={() => setIsContextModalOpen(true)} className="cursor-pointer hover:bg-gray-100 transition-colors">
+          <Button 
+            variant="ghost" 
+            onClick={() => setIsContextModalOpen(true)} 
+            className="cursor-pointer hover:bg-gray-100 transition-colors gap-2"
+          >
             <Globe size={16} className={selectedSources.length > 0 ? "text-indigo-500" : "text-gray-400"} />
             Global Context
             {selectedSources.length > 0 && (
-                <Badge color="indigo" radius="full" variant="solid" size="1">
+                <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200">
                     {selectedSources.length}
                 </Badge>
             )}
           </Button>
 
-          {/* Global Chat Button */}
-          <Button variant="ghost" color="gray" onClick={() => setIsChatOpen(true)} className="cursor-pointer hover:bg-gray-100 transition-colors">
-            <Bot size={16} className="text-gray-400" />
-            AI Chat
-          </Button>
-
           {/* Export Workspace */}
           <Button 
             variant="ghost" 
-            color="gray" 
             disabled={isExporting} 
             onClick={async () => {
               if (!user?.uid) return;
@@ -73,7 +74,7 @@ const Navbar: React.FC = () => {
                 setIsExporting(false);
               }
             }} 
-            className="cursor-pointer hover:bg-gray-100 transition-colors"
+            className="cursor-pointer hover:bg-gray-100 transition-colors gap-2"
           >
             <Download size={16} className="text-gray-400" />
             {isExporting ? 'Exporting...' : 'Export Workspace'}
@@ -85,7 +86,7 @@ const Navbar: React.FC = () => {
             onClose={() => setIsContextModalOpen(false)}
             onSave={setSelectedSources}
             initialSelectedSources={selectedSources}
-            currentDefinitionId={null} // Global context shouldn't exclude anything by default
+            currentDefinitionId={null} 
           />
 
           <SetPasswordModal 
@@ -94,48 +95,41 @@ const Navbar: React.FC = () => {
           />
 
           <APIKeyModal />
-          
-          <ContextModal />
-          
-          {/* Global Chat Panel */}
-          <ChatPanel 
-            isOpen={isChatOpen}
-            onClose={() => setIsChatOpen(false)}
-            parentId={user?.uid}
-            parentCollection="conversations"
-          />
 
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger>
-              <button className="outline-none cursor-pointer rounded-full hover:ring-2 hover:ring-indigo-100 transition-all">
-                <Avatar 
-                  src={user?.photoURL || undefined} 
-                  fallback={user?.displayName?.[0] || 'U'} 
-                  radius="full"
-                  size="2"
-                />
-              </button>
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Content className="cursor-default">
-              <DropdownMenu.Label>
-                <Text size="2" weight="bold">{user?.displayName}</Text>
-                <br />
-                <Text size="1" color="gray">{user?.email}</Text>
-              </DropdownMenu.Label>
-              <DropdownMenu.Separator />
-              <DropdownMenu.Item className="cursor-pointer" onClick={() => setIsPasswordModalOpen(true)}>
-                <Lock className="w-4 h-4 mr-2" />
-                Set Password
-              </DropdownMenu.Item>
-              <DropdownMenu.Separator />
-              <DropdownMenu.Item color="red" onClick={logout} className="cursor-pointer">
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign Out
-              </DropdownMenu.Item>
-            </DropdownMenu.Content>
-          </DropdownMenu.Root>
-        </Flex>
-      </Flex>
+          {/* User Menu */}
+          {user && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.photoURL || ''} alt={user.displayName || ''} />
+                    <AvatarFallback>{user.displayName?.[0] || 'U'}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user.displayName}</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setIsPasswordModalOpen(true)}>
+                  <Lock className="mr-2 h-4 w-4" />
+                  <span>Set Password</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={logout} className="text-red-600 focus:text-red-600">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

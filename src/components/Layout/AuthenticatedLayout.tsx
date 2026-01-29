@@ -1,6 +1,12 @@
 import React from 'react';
-import Navbar from '../Navbar/Navbar';
-import { Box } from '@radix-ui/themes';
+import { AppSidebar } from "@/components/app-sidebar"
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar"
+import APIKeyModal from "../Navbar/APIKeyModal"
+import GlobalContextManager from "../GlobalContext/GlobalContextManager"
 
 interface AuthenticatedLayoutProps {
   children: React.ReactNode;
@@ -8,12 +14,21 @@ interface AuthenticatedLayoutProps {
 
 const AuthenticatedLayout: React.FC<AuthenticatedLayoutProps> = ({ children }) => {
   return (
-    <Box className="h-screen flex flex-col overflow-hidden">
-      <Navbar />
-      <Box className="flex-grow overflow-auto flex flex-col">
-        {children}
-      </Box>
-    </Box>
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+          <SidebarTrigger className="-ml-1" />
+          <div className="ml-auto flex items-center gap-2">
+            <APIKeyModal />
+          </div>
+        </header>
+        <div className="flex flex-1 flex-col gap-4 p-4">
+          {children}
+        </div>
+        <GlobalContextManager />
+      </SidebarInset>
+    </SidebarProvider>
   );
 };
 

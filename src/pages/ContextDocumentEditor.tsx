@@ -7,17 +7,93 @@ import { getContextDocument, updateContextDocument, assignContextDocumentToDirec
 import { exportContextToExcel, exportContextToMarkdown } from '../services/exportService';
 import { ContextDocument } from '../types';
 import { getUserDirectories } from '../services/directoryService';
+import { Editor } from '../components/blocks/editor-x/editor';
+import { SerializedEditorState, $getRoot } from 'lexical';
 
 const ContextDocumentEditor: React.FC = () => {
-  const { documentId } = useParams<{ documentId: string }>();
+  const { id } = useParams<{ id: string }>();
+  const documentId = id;
   const navigate = useNavigate();
   const { user } = useAuth();
   
   const [document, setDocument] = useState<ContextDocument | null>(null);
   const [title, setTitle] = useState<string>('');
-  const [content, setContent] = useState<string>('');
+  // We'll store the serialized state object here
+  const [editorState, setEditorState] = useState<SerializedEditorState | undefined>(undefined);
+  // Store plain text for export
+  const [plainText, setPlainText] = useState<string>('');
   const [saving, setSaving] = useState<boolean>(false);
   const [directories, setDirectories] = useState<{ id: string; title: string }[]>([]);
+
+  // Helper to convert plain text or JSON string to SerializedEditorState
+  const parseContent = (content: string): SerializedEditorState => {
+    if (!content) {
+      setPlainText('');
+      // Return a default empty state
+      return {
+        root: {
+          children: [
+            {
+              children: [],
+              direction: "ltr",
+              format: "",
+              indent: 0,
+              type: "paragraph",
+              version: 1
+            }
+          ],
+          direction: "ltr",
+          format: "",
+          indent: 0,
+          type: "root",
+          version: 1
+        }
+      } as unknown as SerializedEditorState;
+    }
+
+    try {
+      // Try to parse as JSON first
+      const parsed = JSON.parse(content);
+      if (parsed && parsed.root) {
+        // We can't easily extract text from JSON here without an editor instance
+        // So plainText might be empty initially for JSON content until edited
+        return parsed;
+      }
+      throw new Error("Not a valid Lexical state");
+    } catch (e) {
+      // Fallback: treat as plain text
+      setPlainText(content);
+      return {
+        root: {
+          children: [
+            {
+              children: [
+                {
+                  detail: 0,
+                  format: 0,
+                  mode: "normal",
+                  style: "",
+                  text: content,
+                  type: "text",
+                  version: 1
+                }
+              ],
+              direction: "ltr",
+              format: "",
+              indent: 0,
+              type: "paragraph",
+              version: 1
+            }
+          ],
+          direction: "ltr",
+          format: "",
+          indent: 0,
+          type: "root",
+          version: 1
+        }
+      } as unknown as SerializedEditorState;
+    }
+  };
 
   useEffect(() => {
     if (!user || !documentId) return;
@@ -27,7 +103,7 @@ const ContextDocumentEditor: React.FC = () => {
         const docData = await getContextDocument(documentId);
         setDocument(docData);
         setTitle(docData.title);
-        setContent(docData.content || '');
+        setEditorState(parseContent(docData.content || ''));
       } catch (error) {
         console.error("Error loading document:", error);
       }
@@ -49,14 +125,15 @@ const ContextDocumentEditor: React.FC = () => {
     if (!documentId) return;
     setSaving(true);
     try {
+        const contentString = JSON.stringify(editorState);
         await updateContextDocument(documentId, {
             title,
-            content,
+            content: contentString,
             type: 'text',
         });
         // Update local state to reflect changes if needed
         if (document) {
-            setDocument({ ...document, title, content });
+            setDocument({ ...document, title, content: contentString });
         }
 
     } catch (error) {
@@ -77,7 +154,7 @@ const ContextDocumentEditor: React.FC = () => {
     }
   };
 
-  if (!document) {
+  if (!document || !editorState) {
     return <Flex align="center" justify="center" height="100vh"><Text>Loading...</Text></Flex>;
   }
 
@@ -128,10 +205,10 @@ const ContextDocumentEditor: React.FC = () => {
               </Button>
             </DropdownMenu.Trigger>
             <DropdownMenu.Content>
-              <DropdownMenu.Item onClick={() => exportContextToExcel({...document, title, content})}>
+              <DropdownMenu.Item onClick={() => exportContextToExcel({...document, title, content: plainText || JSON.stringify(editorState)})}>
                 Excel (.xlsx)
               </DropdownMenu.Item>
-              <DropdownMenu.Item onClick={() => exportContextToMarkdown({...document, title, content})}>
+              <DropdownMenu.Item onClick={() => exportContextToMarkdown({...document, title, content: plainText || JSON.stringify(editorState)})}>
                 Markdown (.md)
               </DropdownMenu.Item>
             </DropdownMenu.Content>
@@ -145,13 +222,18 @@ const ContextDocumentEditor: React.FC = () => {
 
       <Box className="flex-grow flex flex-col p-8 overflow-hidden bg-gray-50">
         <div className="flex-grow flex flex-col h-full max-w-5xl mx-auto w-full">
-            <textarea 
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Write your context document here..."
-                className="flex-grow w-full h-full p-6 text-base leading-relaxed bg-white border border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
-                style={{ minHeight: '100%' }}
+            <Editor
+                key={documentId}
+                editorSerializedState={editorState}
+                onSerializedChange={(value) => setEditorState(value)}
+                onChange={(state) => {
+                  state.read(() => {
+                    const text = $getRoot().getTextContent();
+                    setPlainText(text);
+                  });
+                }}
             />
+            {/* <div>Editor Temporarily Disabled for Debugging</div> */}
         </div>
       </Box>
     </Flex>

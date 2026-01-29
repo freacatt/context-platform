@@ -29,7 +29,10 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
   
   // State for selected context sources (array of { type, id, title })
   const [selectedSources, setSelectedSources] = useState<ContextSource[]>([]);
-  const [isInitialized, setIsInitialized] = useState(false);
+  // We use initializedUserId to track which user the current selectedSources belongs to.
+  // This prevents saving one user's data to another user's profile during switching.
+  const [initializedUserId, setInitializedUserId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<Error | null>(null);
 
   const [aggregatedContext, setAggregatedContext] = useState("");
   const [isContextLoading, setIsContextLoading] = useState(false);
@@ -41,13 +44,18 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
 
     if (!user) {
       setSelectedSources([]);
-      setIsInitialized(true);
+      setInitializedUserId(null);
       return;
     }
 
     // Fetch from Firebase
+    console.log("GlobalContext: Fetching from Firebase for user", user.uid);
+    setInitializedUserId(null); // Reset initialization state when user changes
+    setLoadError(null);
+    
     getUserGlobalContext(user.uid)
         .then(sources => {
+            console.log("GlobalContext: Fetched sources:", sources);
             if (sources) {
                 setSelectedSources(sources);
             } else {
@@ -56,21 +64,28 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
         })
         .catch(err => {
             console.error("Failed to load global context sources", err);
-            setSelectedSources([]);
+            setLoadError(err as Error);
+            // We keep selectedSources as [] (default) but loadError prevents saving
         })
         .finally(() => {
-            setIsInitialized(true);
+            setInitializedUserId(user.uid);
         });
   }, [user, authLoading]);
 
   // Save to Firebase whenever selectedSources changes
   useEffect(() => {
-    if (authLoading || !user || !isInitialized) return;
+    // Don't save if:
+    // 1. Auth is loading
+    // 2. No user
+    // 3. Not initialized for THIS user (prevents cross-user data leak or overwriting)
+    // 4. Load error occurred (prevent overwriting with empty)
+    if (authLoading || !user || initializedUserId !== user.uid || loadError) return;
     
+    console.log("GlobalContext: Saving sources to Firebase:", selectedSources);
     // Save to Firebase (fire and forget)
     saveUserGlobalContext(user.uid, selectedSources)
         .catch(err => console.error("Failed to save global context sources", err));
-  }, [selectedSources, user, authLoading, isInitialized]);
+  }, [selectedSources, user, authLoading, initializedUserId, loadError]);
 
   // Fetch and aggregate context data
   const fetchAndAggregateContext = useCallback(async (sources: ContextSource[]) => {
@@ -113,10 +128,10 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
 
   // Update aggregated context when selectedSources changes
   useEffect(() => {
-      if (isInitialized) {
+      if (initializedUserId) {
           fetchAndAggregateContext(selectedSources);
       }
-  }, [selectedSources, isInitialized, fetchAndAggregateContext]);
+  }, [selectedSources, initializedUserId, fetchAndAggregateContext]);
 
   const refreshAggregatedContext = async () => {
       await fetchAndAggregateContext(selectedSources);

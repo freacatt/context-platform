@@ -31,8 +31,10 @@ export const getUserGlobalContext = async (userId: string): Promise<ContextSourc
 
         if (userSnap.exists()) {
             const data = userSnap.data();
+            console.log("getUserGlobalContext: Data found:", data.globalContextSources);
             return (data.globalContextSources as ContextSource[]) || null;
         } else {
+            console.log("getUserGlobalContext: User document not found");
             return null;
         }
     } catch (error) {

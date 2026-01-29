@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { GlobalProvider } from './contexts/GlobalContext';
 import LandingPage from './pages/LandingPage';
+import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
 import PyramidsPage from './pages/PyramidsPage';
 import DiagramsPage from './pages/DiagramsPage';
@@ -19,6 +20,7 @@ import { UiUxArchitecturesPage } from './pages/UiUxArchitecturesPage';
 import { UiUxArchitectureEditorPage } from './pages/UiUxArchitectureEditorPage';
 import { TechnicalTaskBoard } from './pages/TechnicalTaskBoard';
 import { TechnicalTaskDetail } from './pages/TechnicalTaskDetail';
+import AiChatPage from './pages/AiChatPage';
 
 import AuthenticatedLayout from './components/Layout/AuthenticatedLayout';
 
@@ -43,6 +45,7 @@ function App() {
           <Router>
             <Routes>
               <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={<LoginPage />} />
               
               {/* Main Dashboard (Tool Selection) */}
               <Route 
@@ -100,7 +103,7 @@ function App() {
                 } 
               />
               <Route 
-                path="/product-definition/:definitionId" 
+                path="/product-definition/:id" 
                 element={
                   <ProtectedRoute>
                     <ProductDefinitionEditor />
@@ -108,7 +111,7 @@ function App() {
                 } 
               />
 
-              {/* Context Documents Tool Routes */}
+              {/* Context & Documents Routes */}
               <Route 
                 path="/context-documents" 
                 element={
@@ -117,42 +120,24 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
-              <Route
-                path="/directory/:directoryId"
-                element={
-                  <ProtectedRoute>
-                    <DirectoryDocumentsPage />
-                  </ProtectedRoute>
-                }
-              />
               <Route 
-                path="/context-document/:documentId" 
+                path="/context-document/:id" 
                 element={
                   <ProtectedRoute>
                     <ContextDocumentEditor />
                   </ProtectedRoute>
                 } 
               />
-
-              {/* Technical Tasks Tool Routes */}
               <Route 
-                path="/technical-tasks" 
+                path="/directory/:id" 
                 element={
                   <ProtectedRoute>
-                    <TechnicalTaskBoard />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/technical-task/:id" 
-                element={
-                  <ProtectedRoute>
-                    <TechnicalTaskDetail />
+                    <DirectoryDocumentsPage />
                   </ProtectedRoute>
                 } 
               />
 
-              {/* Technical Architecture Tool Routes */}
+              {/* Technical Architecture Routes */}
               <Route 
                 path="/technical-architectures" 
                 element={
@@ -170,7 +155,25 @@ function App() {
                 } 
               />
 
-              {/* UI/UX Architecture Tool Routes */}
+              {/* Technical Tasks Routes */}
+              <Route 
+                path="/technical-tasks" 
+                element={
+                  <ProtectedRoute>
+                    <TechnicalTaskBoard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/technical-task/:id" 
+                element={
+                  <ProtectedRoute>
+                    <TechnicalTaskDetail />
+                  </ProtectedRoute>
+                } 
+              />
+
+              {/* UI/UX Architecture Routes */}
               <Route 
                 path="/ui-ux-architectures" 
                 element={
@@ -188,6 +191,15 @@ function App() {
                 } 
               />
 
+               {/* AI Assistant Route */}
+               <Route 
+                path="/ai-chat" 
+                element={
+                  <ProtectedRoute>
+                    <AiChatPage />
+                  </ProtectedRoute>
+                } 
+              />
             </Routes>
           </Router>
         </GlobalProvider>

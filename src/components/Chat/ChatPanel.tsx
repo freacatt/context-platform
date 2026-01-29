@@ -1,6 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Box, Flex, Text, TextArea, IconButton, Dialog, ScrollArea, Button } from '@radix-ui/themes';
-import { Send, Trash2, MessageSquare, Bot, X, Plus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGlobalContext } from '../../contexts/GlobalContext';
 import { 
@@ -12,11 +10,43 @@ import {
 } from '../../services/chatService';
 import { 
   sendChatMessage, 
-  sendProductDefinitionChatMessage, 
-  sendGlobalChatMessage 
+  sendGlobalChatMessage,
+  sendProductDefinitionChatMessage
 } from '../../services/anthropic';
-import ChatMessage from './ChatMessage';
-import { Conversation, StoredMessage, Pyramid, ProductDefinition } from '../../types';
+import { Conversation as ConversationType, StoredMessage, Pyramid, ProductDefinition } from '../../types';
+import { Bot, MessageSquare, Plus, Trash2, X } from 'lucide-react';
+import { cn } from "@/lib/utils";
+
+// UI Components
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from "@/components/ui/dialog";
+
+// AI Elements
+import { 
+  Conversation, 
+  ConversationContent, 
+  ConversationEmptyState 
+} from '../ai-elements/conversation';
+import { 
+  Message, 
+  MessageContent, 
+  MessageResponse
+} from '../ai-elements/message';
+import { 
+  PromptInput, 
+  PromptInputTextarea,
+  PromptInputFooter,
+  PromptInputSubmit,
+  PromptInputTools,
+} from '../ai-elements/prompt-input';
 
 interface ChatPanelProps {
   isOpen: boolean;
@@ -38,25 +68,19 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 }) => {
   const { user, apiKey } = useAuth();
   const { aggregatedContext: globalContext } = useGlobalContext();
-  const [input, setInput] = useState<string>('');
   const [messages, setMessages] = useState<StoredMessage[]>([]);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversations, setConversations] = useState<ConversationType[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState<boolean>(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   // Subscribe to conversations list
   useEffect(() => {
     if (!user) return;
     const unsubscribe = subscribeToConversations(user.uid, (convs) => {
       setConversations(convs);
-      // Select first conversation if none selected and not explicitly creating new
-      if (!activeConversationId && convs.length > 0) {
-        // setActiveConversationId(convs[0].id); // Optional: Auto-select latest
-      }
     });
     return () => unsubscribe();
-  }, [user, activeConversationId]); // Added activeConversationId to deps to match logic if uncommented, but harmless here
+  }, [user]);
 
   // Subscribe to chat messages for active conversation
   useEffect(() => {
@@ -70,33 +94,25 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     return () => unsubscribe();
   }, [user, activeConversationId]);
 
-  // Auto-scroll to bottom
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages, isOpen, isTyping, activeConversationId]);
-
-  const handleNewChat = async () => {
-    setActiveConversationId(null); // Reset active ID to show empty state/ready for new
+  const handleNewChat = () => {
+    setActiveConversationId(null);
     setMessages([]);
   };
 
   const handleDeleteConversation = async (e: React.MouseEvent, convId: string) => {
-      e.stopPropagation();
-      if (window.confirm("Delete this conversation?")) {
-          if (activeConversationId === convId) {
-              setActiveConversationId(null);
-          }
-          await deleteConversation(convId);
-      }
+    e.stopPropagation();
+    if (window.confirm("Delete this conversation?")) {
+        if (activeConversationId === convId) {
+            setActiveConversationId(null);
+        }
+        await deleteConversation(convId);
+    }
   };
 
-  const handleSend = async () => {
-    if (!input.trim() || !apiKey || !user) return;
+  const handleSend = async ({ text }: { text: string }) => {
+    if (!text.trim() || !apiKey || !user) return;
     
-    const userMsg = input.trim();
-    setInput('');
+    const userMsg = text.trim();
     setIsTyping(true);
 
     try {
@@ -115,255 +131,233 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
       if (!currentConversationId) return;
 
-      // 1. Optimistic Update
-      const optimisticMessage: StoredMessage = {
-          id: `temp-${Date.now()}`,
-          userId: user.uid,
-          role: 'user',
-          content: userMsg,
-          timestamp: new Date(),
-          metadata: {},
-          parentId: currentConversationId,
-          parentCollection: 'conversations'
-      };
-      setMessages(prev => [...prev, optimisticMessage]);
-
+      // 1. Optimistic Update (Optional, as subscription will catch it)
+      // We skip optimistic update here to rely on subscription or just wait.
+      
       // 2. Save user message
       await sendMessage(user.uid, currentConversationId, 'user', userMsg, {}, 'conversations');
 
       // 3. Get AI Response
-      let response: string = "";
-      const contextToUse = additionalContext || "";
-
       // Create a simplified message history for the AI service
-      const historyForAI = messages.map(m => ({ role: m.role, content: m.content }));
+      const historyForApi = messages.map(msg => {
+          let contentStr = '';
+          if (Array.isArray(msg.content)) {
+              contentStr = msg.content.map(c => (c as any).text || '').join('');
+          } else if (typeof msg.content === 'string') {
+              contentStr = msg.content;
+          }
+          return {
+              role: (msg.role === 'conversations' ? 'user' : msg.role) as "user" | "assistant",
+              content: contentStr
+          };
+      });
 
-      if (parentCollection === 'productDefinitions' && productDefinition) {
-        // Use Product Definition Chat Mode (Legacy/Specific)
-        const res = await sendProductDefinitionChatMessage(
-            apiKey, 
-            productDefinition, 
-            contextToUse, 
-            historyForAI, 
-            userMsg,
-            globalContext || ""
-        );
-        response = res || "No response";
-      } else if (parentCollection === 'pyramids' && pyramid) {
-        // Use Standard Pyramid Chat Mode (Legacy/Specific)
-        const res = await sendChatMessage(
-            apiKey, 
-            pyramid, 
-            historyForAI, 
-            userMsg, 
-            contextToUse, 
-            globalContext || ""
-        );
-        response = res || "No response";
+      // Prepare context
+      let contextToUse = additionalContext || "";
+      let response = "";
+
+      if (productDefinition) {
+          response = await sendProductDefinitionChatMessage(
+              apiKey,
+              productDefinition,
+              historyForApi as any,
+              userMsg,
+              contextToUse
+          );
       } else {
-        // Use Global Chat Mode
-        const res = await sendGlobalChatMessage(apiKey, globalContext || "", historyForAI, userMsg);
-        response = res || "No response";
+          let globalContextStr = globalContext || "";
+          if (pyramid) {
+              globalContextStr += `\n\nPyramid Context: ${JSON.stringify(pyramid)}`;
+          }
+          if (contextToUse) {
+              globalContextStr += `\n\nAdditional Context: ${contextToUse}`;
+          }
+
+          response = await sendGlobalChatMessage(
+              apiKey,
+              globalContextStr,
+              [...historyForApi, { role: 'user', content: userMsg }] as any,
+              userMsg
+          );
       }
 
-      // 4. Save AI message
-      await sendMessage(user.uid, currentConversationId, 'assistant', response, {}, 'conversations');
+      // 4. Save Assistant Response
+      if (response) {
+          await sendMessage(
+              user.uid, 
+              currentConversationId, 
+              'assistant', 
+              response, 
+              {}, 
+              'conversations'
+          );
+      }
 
     } catch (error) {
-      console.error("Chat Error:", error);
+      console.error("Error sending message:", error);
+      alert("Failed to send message.");
     } finally {
       setIsTyping(false);
     }
   };
 
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
-  };
-
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <Dialog.Content style={{ maxWidth: 1100, height: '85vh', padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRadius: '16px', border: '1px solid #e5e7eb', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)' }}>
-          <Dialog.Title className="sr-only">AI Chat Assistant</Dialog.Title>
-          <Dialog.Description className="sr-only">
-            Chat interface for interacting with the AI assistant about your pyramids and product definitions.
-          </Dialog.Description>
-          <Flex className="h-full bg-white">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-[1100px] h-[85vh] p-0 flex flex-col gap-0 overflow-hidden sm:rounded-2xl border border-gray-200 shadow-2xl">
+          <DialogHeader className="sr-only">
+            <DialogTitle>AI Chat Assistant</DialogTitle>
+            <DialogDescription>
+                Chat interface for interacting with the AI assistant.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex h-full bg-white">
             {/* Sidebar - History */}
-            <Box className="w-[280px] border-r border-gray-200 bg-gray-50/50 flex flex-col h-full flex-shrink-0">
-                <Box className="p-4">
+            <div className="w-[280px] border-r border-gray-200 bg-gray-50/50 flex flex-col h-full flex-shrink-0">
+                <div className="p-4">
                     <Button 
-                        size="3"
-                        variant="soft" 
-                        color="gray" 
-                        className="w-full cursor-pointer justify-start bg-white border border-gray-300 shadow-sm hover:border-gray-400 hover:bg-gray-50 text-gray-700"
+                        variant="outline"
+                        className="w-full justify-start bg-white shadow-sm hover:bg-gray-50 text-gray-700 gap-2"
                         onClick={handleNewChat}
                     >
-                        <Plus size={18} className="mr-2" /> 
-                        <Text weight="medium">New Chat</Text>
+                        <Plus size={18} /> 
+                        New Chat
                     </Button>
-                </Box>
+                </div>
                 
-                <Box className="px-4 pb-2">
-                    <Text size="1" weight="bold" color="gray" className="uppercase tracking-wider opacity-60">History</Text>
-                </Box>
+                <div className="px-4 pb-2">
+                    <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">History</div>
+                </div>
 
-                <ScrollArea className="flex-1 px-3 pb-4">
-                    <Flex direction="column" gap="1">
-                        {conversations.map(conv => (
-                            <Box 
+                <ScrollArea className="flex-1 px-3">
+                    <div className="flex flex-col gap-2 pb-4">
+                        {conversations.map((conv) => (
+                            <div 
                                 key={conv.id}
-                                className={`
-                                    p-3 rounded-lg cursor-pointer transition-all duration-200 group relative
-                                    ${activeConversationId === conv.id 
-                                        ? 'bg-white shadow-sm ring-1 ring-gray-200 text-gray-900' 
-                                        : 'text-gray-600 hover:bg-gray-100/80 hover:text-gray-900'}
-                                `}
+                                className={cn(
+                                    "group flex items-center gap-3 p-2.5 rounded-md cursor-pointer transition-all text-sm border border-transparent",
+                                    activeConversationId === conv.id 
+                                        ? "bg-white border-gray-200 shadow-sm text-indigo-900 font-medium" 
+                                        : "hover:bg-gray-200/50 text-gray-600"
+                                )}
                                 onClick={() => setActiveConversationId(conv.id)}
                             >
-                                <Text size="2" className="block truncate pr-6 font-medium">
-                                    {conv.title || "New Chat"}
-                                </Text>
-                                <Text size="1" className="block truncate opacity-50 mt-0.5">
-                                    {(() => {
-                                        if (!conv.updatedAt) return '';
-                                        const date = conv.updatedAt instanceof Date ? conv.updatedAt : new Date(conv.updatedAt);
-                                        return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-                                    })()}
-                                </Text>
-                                <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <IconButton 
-                                        size="1" 
-                                        variant="ghost" 
-                                        color="red" 
-                                        onClick={(e) => handleDeleteConversation(e, conv.id)}
-                                        className="hover:bg-red-50"
-                                    >
-                                        <Trash2 size={14} />
-                                    </IconButton>
-                                </div>
-                            </Box>
+                                <MessageSquare size={16} className={activeConversationId === conv.id ? "text-indigo-500" : "text-gray-400"} />
+                                <span className="flex-1 truncate">
+                                    {conv.title || 'New Conversation'}
+                                </span>
+                                <button 
+                                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 hover:text-red-600 rounded transition-all"
+                                    onClick={(e) => handleDeleteConversation(e, conv.id)}
+                                >
+                                    <Trash2 size={14} />
+                                </button>
+                            </div>
                         ))}
                         {conversations.length === 0 && (
-                            <Box className="p-8 text-center opacity-40">
-                                <MessageSquare size={24} className="mx-auto mb-2" />
-                                <Text size="2">No history yet</Text>
-                            </Box>
+                            <p className="py-8 text-center text-xs text-gray-400">
+                                No conversations yet
+                            </p>
                         )}
-                    </Flex>
+                    </div>
                 </ScrollArea>
-            </Box>
+            </div>
 
             {/* Main Chat Area */}
-            <Flex direction="column" className="flex-1 h-full min-w-0 bg-white relative">
+            <div className="flex-1 flex flex-col h-full overflow-hidden relative bg-white">
                 {/* Header */}
-                <Flex 
-                    justify="between" 
-                    align="center" 
-                    className="px-6 py-4 border-b border-gray-100"
-                >
-                    <Flex gap="3" align="center">
-                        <Text size="3" weight="bold" className="text-gray-900">
+                <div className="h-14 border-b border-gray-100 flex items-center justify-between px-6 flex-shrink-0 bg-white/80 backdrop-blur-sm z-10">
+                    <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]"></div>
+                        <span className="font-medium text-gray-700">
                             {activeConversationId ? (conversations.find(c => c.id === activeConversationId)?.title || "Chat") : "New Chat"}
-                        </Text>
-                        <Box className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-medium tracking-wide">
-                        
-                        </Box>
-                    </Flex>
-                    <Dialog.Close>
-                        <IconButton variant="ghost" color="gray" className="cursor-pointer hover:bg-gray-100 rounded-full">
-                            <X size={20} />
-                        </IconButton>
-                    </Dialog.Close>
-                </Flex>
+                        </span>
+                    </div>
+                    <DialogClose asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-gray-100">
+                            <X size={18} className="text-gray-500" />
+                        </Button>
+                    </DialogClose>
+                </div>
 
-                {/* Messages Area */}
-                <Box className="flex-1 overflow-y-auto px-4 md:px-20 py-8 scroll-smooth" ref={scrollRef}>
-                    <Box className="max-w-3xl mx-auto w-full">
+                {/* Messages */}
+                <Conversation className="flex-1">
+                    <ConversationContent className="p-4 md:p-8 max-w-3xl mx-auto w-full">
                         {messages.length === 0 && !activeConversationId ? (
-                            <Flex direction="column" align="center" justify="center" className="min-h-[400px] text-center space-y-6">
-                                <Box className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 mb-2 ring-1 ring-gray-100">
-                                    <Bot size={32} />
-                                </Box>
-                                <Box>
-                                    <Text size="6" weight="bold" className="block mb-2 text-gray-900">How can I help you?</Text>
-                                    <Text size="2" color="gray" className="max-w-md mx-auto leading-relaxed">
-                                        I have access to your selected global context. Ask me anything about your pyramids or product definitions.
-                                    </Text>
-                                </Box>
-                            </Flex>
+                            <ConversationEmptyState 
+                                title="How can I help you?"
+                                description="I have access to your selected global context. Ask me anything about your pyramids or product definitions."
+                                icon={<Bot size={40} className="text-indigo-200" />}
+                            />
                         ) : (
-                            <Flex direction="column">
-                                {messages.map((msg) => (
-                                    <ChatMessage 
+                            messages.map((msg) => {
+                                let textContent = '';
+                                if (Array.isArray(msg.content)) {
+                                    textContent = msg.content.map(c => (c as any).text || '').join('');
+                                } else if (typeof msg.content === 'string') {
+                                    textContent = msg.content;
+                                }
+
+                                // Determine role safely
+                                let role = msg.role;
+                                if (role === 'conversations') role = 'user'; 
+                                
+                                return (
+                                    <Message 
                                         key={msg.id} 
-                                        message={msg} 
-                                        onCopy={handleCopy} 
-                                    />
-                                ))}
-                                {isTyping && (
-                                    <Flex gap="4" className="mb-6 animate-pulse">
-                                        <Box className="w-8 h-8 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
-                                            <Bot size={16} />
-                                        </Box>
-                                        <Box className="flex items-center gap-1 mt-2">
-                                            <div className="w-1.5 h-1.5 bg-gray-400 rounded-full" />
-                                            <div className="w-1.5 h-1.5 bg-gray-400 rounded-full" />
-                                            <div className="w-1.5 h-1.5 bg-gray-400 rounded-full" />
-                                        </Box>
-                                    </Flex>
-                                )}
-                            </Flex>
+                                        from={role as "user" | "assistant"}
+                                        className={role === 'user' ? "items-end" : "items-start"}
+                                    >
+                                        <MessageContent className={cn(
+                                            "px-4 py-3 rounded-2xl shadow-sm max-w-[85%]",
+                                            role === 'user' 
+                                                ? "bg-indigo-600 text-white [&_p]:text-white" 
+                                                : "bg-white border border-gray-100 text-gray-900"
+                                        )}>
+                                            <MessageResponse>{textContent}</MessageResponse>
+                                        </MessageContent>
+                                    </Message>
+                                );
+                            })
                         )}
-                    </Box>
-                </Box>
+                    </ConversationContent>
+                </Conversation>
 
                 {/* Input Area */}
-                <Box className="p-6 bg-gradient-to-t from-white via-white to-transparent">
-                    <Box className="max-w-3xl mx-auto w-full relative">
-                        <Box className="relative shadow-lg rounded-2xl bg-white ring-1 ring-gray-200 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all duration-200">
-                            <TextArea 
+                <div className="p-4 border-t bg-white w-full">
+                    <div className="max-w-3xl mx-auto">
+                        <PromptInput 
+                            onSubmit={handleSend} 
+                            className="border rounded-2xl bg-white shadow-sm hover:shadow-md transition-shadow focus-within:ring-2 focus-within:ring-indigo-100 focus-within:border-indigo-400"
+                        >
+                            <PromptInputTextarea 
                                 placeholder={apiKey ? "Message AI Assistant..." : "Please set API Key in Navbar first"}
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                        e.preventDefault();
-                                        handleSend();
-                                    }
-                                }}
-                                disabled={!apiKey || isTyping}
-                                size="3"
-                                rows={1}
-                                className="w-full min-h-[56px] max-h-[200px] py-4 pl-5 pr-14 bg-transparent border-none focus:ring-0 resize-none text-base"
-                                style={{ boxShadow: 'none' }}
+                                disabled={!apiKey}
+                                className="min-h-[56px] max-h-[200px]"
                             />
-                            <Box className="absolute right-2 bottom-2">
-                                <IconButton 
-                                    size="2" 
-                                    variant={input.trim() ? "solid" : "soft"}
-                                    color={input.trim() ? "indigo" : "gray"}
-                                    onClick={handleSend}
-                                    disabled={!input.trim() || !apiKey || isTyping}
-                                    className={`rounded-xl transition-all duration-200 ${input.trim() ? 'shadow-md hover:scale-105' : 'opacity-50'}`}
-                                >
-                                    <Send size={16} />
-                                </IconButton>
-                            </Box>
-                        </Box>
+                            <PromptInputFooter>
+                                <PromptInputTools />
+                                <PromptInputSubmit 
+                                    status={isTyping ? 'streaming' : 'idle'}
+                                    disabled={!apiKey}
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
+                                />
+                            </PromptInputFooter>
+                        </PromptInput>
                         {!apiKey && (
-                            <Text size="1" color="red" className="mt-2 block text-center font-medium">
+                            <p className="mt-2 text-center text-xs text-red-500 font-medium">
                                 API Key required to chat.
-                            </Text>
+                            </p>
                         )}
-                        <Text size="1" align="center" color="gray" className="mt-3 opacity-50 text-[11px]">
+                        <p className="mt-2 text-center text-[11px] text-gray-400 opacity-60">
                             AI can make mistakes. Please verify important information.
-                        </Text>
-                    </Box>
-                </Box>
-            </Flex>
-          </Flex>
-      </Dialog.Content>
-    </Dialog.Root>
+                        </p>
+                    </div>
+                </div>
+            </div>
+          </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

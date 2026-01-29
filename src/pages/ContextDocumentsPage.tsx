@@ -320,7 +320,18 @@ const ContextDocumentsPage: React.FC = () => {
                                     <Heading size="3">{doc.title}</Heading>
                                 </Flex>
                                 <Text size="2" color="gray" className="line-clamp-3">
-                                    {doc.content ? doc.content.substring(0, 100) + '...' : 'No content yet.'}
+                                    {(() => {
+                                        if (!doc.content) return 'No content yet.';
+                                        try {
+                                            const parsed = JSON.parse(doc.content);
+                                            if (parsed && parsed.root) {
+                                                return 'Rich Text Document';
+                                            }
+                                        } catch (e) {
+                                            // Not JSON
+                                        }
+                                        return doc.content.substring(0, 100) + '...';
+                                    })()}
                                 </Text>
                             </Box>
                         </Flex>

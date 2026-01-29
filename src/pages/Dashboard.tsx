@@ -1,8 +1,18 @@
 import React from 'react';
-import { Container, Box, Flex, Heading, Card, Text, Button } from '@radix-ui/themes';
-import { GitMerge, ArrowRight, BookOpen, Pyramid, LucideIcon, Server, CheckSquare, Layout, Workflow } from 'lucide-react';
+import { GitMerge, ArrowRight, BookOpen, Pyramid, LucideIcon, Server, CheckSquare, Layout, Bot } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
+import { AnimatedButton } from "@/components/ui/animated-button";
+import { AnimatedCard } from "@/components/ui/animated-card";
+import { AnimatedIcon } from "@/components/ui/animated-icon";
+import { Loading } from "@/components/ui/loading";
+import {
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 interface ToolCardProps {
   title: string;
@@ -10,44 +20,61 @@ interface ToolCardProps {
   icon: LucideIcon;
   to: string;
   color: string;
+  delay?: number;
 }
 
-const ToolCard: React.FC<ToolCardProps> = ({ title, description, icon: Icon, to, color }) => (
-  <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer border border-gray-200" style={{ height: '100%' }}>
-    <Flex direction="column" gap="4" height="100%">
-      <Box className={`w-12 h-12 rounded-lg flex items-center justify-center ${color}`}>
-        <Icon size={24} className="text-white" />
-      </Box>
-      <Box className="flex-grow">
-        <Heading size="4" mb="2">{title}</Heading>
-        <Text color="gray" size="2">{description}</Text>
-      </Box>
+const ToolCard: React.FC<ToolCardProps> = ({ title, description, icon: Icon, to, color, delay = 0 }) => (
+  <AnimatedCard delay={delay} className="hover:shadow-lg transition-shadow cursor-pointer border-gray-200 h-full flex flex-col">
+    <CardHeader>
+      <div className={cn("w-12 h-12 rounded-lg flex items-center justify-center mb-4", color)}>
+        <AnimatedIcon icon={Icon} size={24} className="text-white" animation="scale" />
+      </div>
+      <CardTitle className="text-xl">{title}</CardTitle>
+      <CardDescription className="text-sm text-gray-500 line-clamp-3">
+        {description}
+      </CardDescription>
+    </CardHeader>
+    <CardContent className="mt-auto pt-0">
       <Link to={to} className="w-full">
-        <Button variant="soft" className="w-full cursor-pointer">
-          Open Tool <ArrowRight size={16} />
-        </Button>
+        <AnimatedButton variant="secondary" className="w-full cursor-pointer justify-between group">
+          Open Tool <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+        </AnimatedButton>
       </Link>
-    </Flex>
-  </Card>
+    </CardContent>
+  </AnimatedCard>
 );
 
 const Dashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   
+  if (loading) {
+    return (
+      <div className="min-h-full flex items-center justify-center bg-gray-50">
+        <Loading />
+      </div>
+    );
+  }
+
   return (
-    <Box className="h-full bg-gray-50">
-      <Container size="3" className="p-4 pt-10">
-        {/* <Box className="mb-8 text-center">
+    <div className="min-h-full bg-gray-50">
+      <div className="container mx-auto p-4 pt-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+            <ToolCard 
+                title="AI Assistant" 
+                description="Chat with the AI assistant to get help with your project, generate ideas, or analyze your data."
+                icon={Bot}
+                to="/ai-chat"
+                color="bg-violet-600"
+                delay={0.1}
+            />
 
-        </Box> */}
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
             <ToolCard 
                 title="Pyramid Solver" 
                 description="Structure your problem solving with a logical pyramid approach. Break down complex issues into manageable questions and answers."
                 icon={Pyramid}
                 to="/pyramids"
                 color="bg-indigo-600"
+                delay={0.2}
             />
             
             <ToolCard 
@@ -56,6 +83,7 @@ const Dashboard: React.FC = () => {
                 icon={GitMerge}
                 to="/product-definitions"
                 color="bg-teal-600"
+                delay={0.3}
             />
 
             <ToolCard 
@@ -64,6 +92,7 @@ const Dashboard: React.FC = () => {
                 icon={BookOpen}
                 to="/context-documents"
                 color="bg-amber-600"
+                delay={0.4}
             />
 
             <ToolCard 
@@ -72,6 +101,7 @@ const Dashboard: React.FC = () => {
                 icon={Server}
                 to="/technical-architectures"
                 color="bg-purple-600"
+                delay={0.5}
             />
 
             <ToolCard 
@@ -80,6 +110,7 @@ const Dashboard: React.FC = () => {
                 icon={CheckSquare}
                 to="/technical-tasks"
                 color="bg-blue-600"
+                delay={0.6}
             />
 
             <ToolCard 
@@ -88,18 +119,11 @@ const Dashboard: React.FC = () => {
                 icon={Layout}
                 to="/ui-ux-architectures"
                 color="bg-pink-600"
-            />
-            
-            <ToolCard 
-                title="Diagrams" 
-                description="Create general visual diagrams with connected blocks. Attach context and use AI to refine descriptions."
-                icon={Workflow}
-                to="/diagrams"
-                color="bg-slate-700"
+                delay={0.7}
             />
         </div>
-      </Container>
-    </Box>
+      </div>
+    </div>
   );
 };
 

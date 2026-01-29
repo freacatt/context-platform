@@ -1,31 +1,80 @@
 import React from 'react';
-import { Flex, Heading, Text } from '@radix-ui/themes';
-import Login from '../components/Auth/Login';
+import { Flex, Text } from '@radix-ui/themes';
 import { useAuth } from '../contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
+import { HyperText } from "@/components/ui/hyper-text";
+import { ArrowRight, ChevronRight, Terminal } from 'lucide-react';
+import { AnimatedButton } from "@/components/ui/animated-button";
+import { Badge } from "@/components/ui/badge";
+import { motion } from "framer-motion";
 
 const LandingPage: React.FC = () => {
-  const { user, loading, error } = useAuth();
+  const { user, loading } = useAuth();
 
-  if (loading) return null; // Or a spinner
+  if (loading) return null; 
   if (user) return <Navigate to="/dashboard" />;
 
   return (
-    <Flex direction="column" align="center" justify="center" style={{ height: '100vh' }} gap="4" className="bg-slate-50">
-      <Heading size="9" className="text-indigo-600">
-        Context Platform
-      </Heading>
-      <Text size="4" color="gray" className="mb-8 max-w-md text-center">
-      </Text>
-      
-      {error && (
-        <Text color="red" size="2" className="mb-2 bg-red-100 p-3 rounded border border-red-200">
-          {error instanceof Error ? error.message : String(error)}
-        </Text>
-      )}
-      
-      <Login />
-    </Flex>
+    <div className="relative min-h-screen w-full overflow-hidden bg-white flex flex-col items-center justify-center">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:6rem_4rem]">
+        <div className="absolute bottom-0 left-0 right-0 top-0 bg-[radial-gradient(circle_500px_at_50%_200px,#C9EBFF,transparent)]"></div>
+      </div>
+
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="container mx-auto px-4 text-center z-10"
+      >
+        {/* Badge */}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+          className="mb-8 flex justify-center"
+        >
+          <Badge variant="outline" className="px-4 py-1.5 text-sm rounded-full bg-white/50 backdrop-blur-sm border-slate-200 shadow-sm animate-pulse">
+            <Terminal className="mr-2 h-3.5 w-3.5" />
+            v0.1 Now Available
+          </Badge>
+        </motion.div>
+
+        {/* Hero Title */}
+        <div className="flex justify-center w-full mb-6">
+          <HyperText
+            className="text-5xl md:text-7xl font-bold tracking-tight text-slate-900 dark:text-white"
+            text="Context Platform"
+          />
+        </div>
+        
+        {/* Description */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4, duration: 0.5 }}
+        >
+          <Text size="5" className="max-w-2xl mx-auto block text-slate-600 mb-10 leading-relaxed">
+            The definitive platform for managing architectural context, complex diagrams, and decision records. 
+            Designed for engineering teams who value clarity.
+          </Text>
+        </motion.div>
+
+        {/* Call to Action */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6, duration: 0.5 }}
+        >
+          <Link to="/login">
+            <AnimatedButton size="lg" className="px-8 py-6 text-lg rounded-full shadow-xl shadow-indigo-200 hover:shadow-indigo-300 transition-all bg-slate-900 text-white hover:bg-slate-800">
+              Enter Platform <ChevronRight className="ml-2 h-5 w-5" />
+            </AnimatedButton>
+          </Link>
+        </motion.div>
+
+      </motion.div>
+    </div>
   );
 };
 

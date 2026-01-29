@@ -188,7 +188,8 @@ export const subscribeToChat = (
 
     const subcollectionName = getSubcollectionName(parentCollection);
     const q = query(
-        collection(db, parentCollection, parentId, subcollectionName)
+        collection(db, parentCollection, parentId, subcollectionName),
+        where('userId', '==', userId)
     );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
