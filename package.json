@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "deploy": "vite build && firebase deploy",
+    "deploy": "vite build && npx firebase deploy",
     "lint": "eslint .",
     "preview": "vite preview"
   },
