@@ -105,15 +105,15 @@ function NavSubItem({ item }: { item: NavItem }) {
   return (
     <SidebarMenuSubItem>
       <Collapsible className="group/sub-collapsible w-full">
-        <div className="flex items-center w-full">
-          <SidebarMenuSubButton asChild className="flex-1">
+        <div className="flex items-center w-full relative">
+          <SidebarMenuSubButton asChild className="flex-1 pr-8">
             <Link to={item.url}>
               {item.icon && <item.icon className="size-4 mr-2" />}
               <span>{item.title}</span>
             </Link>
           </SidebarMenuSubButton>
           <CollapsibleTrigger asChild>
-            <SidebarMenuAction className="h-7 w-7 transition-transform duration-200 group-data-[state=open]/sub-collapsible:rotate-90">
+            <SidebarMenuAction className="h-7 w-7 top-0 right-1 transition-transform duration-200 group-data-[state=open]/sub-collapsible:rotate-90">
               <ChevronRight className="size-4" />
             </SidebarMenuAction>
           </CollapsibleTrigger>

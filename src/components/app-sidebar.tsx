@@ -18,6 +18,7 @@ import {
 import { NavMain, NavItem } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
+import { ModeToggle } from "@/components/mode-toggle"
 import {
   Sidebar,
   SidebarContent,
@@ -104,7 +105,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         directories.forEach(dir => {
           directoryMap.set(dir.id, {
             title: dir.title,
-            url: `/context-documents?directory=${dir.id}`, // Or a way to filter/view directory
+            url: `/directory/${dir.id}`,
             icon: Folder,
             items: []
           });
@@ -114,7 +115,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         documents.forEach(doc => {
           const docItem: NavItem = {
             title: doc.title,
-            url: `/context-documents/${doc.id}`, // Assuming this route exists or similar
+            url: `/context-document/${doc.id}`,
             icon: FileText
           };
 
@@ -264,6 +265,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavSecondary items={navSecondaryItems} className="mt-auto" onAction={handleAction} />
       </SidebarContent>
       <SidebarFooter>
+        <ModeToggle />
         <NavUser user={userData} logout={logout} />
       </SidebarFooter>
     </Sidebar>

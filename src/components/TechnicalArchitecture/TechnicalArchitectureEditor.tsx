@@ -3,9 +3,13 @@ import { TechnicalArchitecture } from '../../types';
 import { updateTechnicalArchitecture, generateMarkdown } from '../../services/technicalArchitectureService';
 import { exportTechnicalArchitectureToMarkdown } from '../../services/exportService';
 
-import { Card, Grid, Heading, Flex, Text, Badge, Box, Button } from '@radix-ui/themes';
 import { CheckCircle, Circle, Download } from 'lucide-react';
 import FieldEditModal from './FieldEditModal';
+
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 interface EditorProps {
     architecture: TechnicalArchitecture;
@@ -138,28 +142,28 @@ export const TechnicalArchitectureEditor: React.FC<EditorProps> = ({ architectur
 
     return (
         <div className="max-w-6xl mx-auto p-6">
-            <Flex justify="between" align="center" className="mb-8">
+            <div className="flex justify-between items-center mb-8">
                 <div>
-                    <Heading size="6" className="text-gray-900">{architecture.title}</Heading>
-                    <Text size="2" color="gray">
+                    <h1 className="text-3xl font-bold text-foreground mb-2">{architecture.title}</h1>
+                    <p className="text-sm text-muted-foreground">
                         {architecture.metadata?.description || "Define your technical standards."}
-                    </Text>
+                    </p>
                 </div>
-                <Flex align="center" gap="2">
-                    <Button variant="outline" color="gray" onClick={() => exportTechnicalArchitectureToMarkdown(architecture)}>
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" onClick={() => exportTechnicalArchitectureToMarkdown(architecture)}>
                         <Download size={16} className="mr-2" /> Export .md
                     </Button>
-                    {isSaving && <Text size="2" color="gray">Saving...</Text>}
-                </Flex>
-            </Flex>
+                    {isSaving && <span className="text-sm text-muted-foreground">Saving...</span>}
+                </div>
+            </div>
 
-            <Flex direction="column" gap="8">
+            <div className="flex flex-col gap-8">
                 {categories.map(category => (
-                    <Box key={category.name}>
-                        <Heading size="4" mb="4" className="text-gray-700 border-b pb-2">
+                    <div key={category.name}>
+                        <h2 className="text-xl font-semibold mb-4 text-foreground border-b border-border pb-2">
                             {category.name}
-                        </Heading>
-                        <Grid columns={{ initial: '1', sm: '2', md: '3', lg: '4' }} gap="4">
+                        </h2>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                             {category.fields.map((field) => {
                                 const value = getValueByPath(architecture, field.path);
                                 const isFilled = isFieldFilled(value);
@@ -167,32 +171,39 @@ export const TechnicalArchitectureEditor: React.FC<EditorProps> = ({ architectur
                                 return (
                                     <Card 
                                         key={field.id} 
-                                        className={`cursor-pointer hover:shadow-md transition-all ${isFilled ? 'border-green-500 ring-1 ring-green-500' : 'border-l-4 border-l-purple-500'}`}
+                                        className={cn(
+                                            "cursor-pointer hover:shadow-md transition-all border-l-4",
+                                            isFilled 
+                                                ? "border-l-green-500 border-t border-r border-b border-border" 
+                                                : "border-l-purple-500 border-t border-r border-b border-border"
+                                        )}
                                         onClick={() => setEditingFieldId(field.id)}
                                     >
-                                        <Flex justify="between" align="start" className="mb-2">
-                                            <Heading size="2" weight="bold" className={isFilled ? 'text-green-700' : 'text-gray-800'}>
-                                                {field.title}
-                                            </Heading>
-                                            {isFilled ? (
-                                                <CheckCircle size={16} className="text-green-500" />
-                                            ) : (
-                                                <Circle size={16} className="text-gray-300" />
+                                        <CardContent className="p-4">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h3 className={cn("text-sm font-bold", isFilled ? "text-green-600 dark:text-green-500" : "text-foreground")}>
+                                                    {field.title}
+                                                </h3>
+                                                {isFilled ? (
+                                                    <CheckCircle size={16} className="text-green-500 shrink-0" />
+                                                ) : (
+                                                    <Circle size={16} className="text-muted-foreground shrink-0" />
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-muted-foreground line-clamp-3 mb-2 min-h-[3em]">
+                                                {field.description || (value && typeof value === 'string' ? value : "Click to edit...")}
+                                            </p>
+                                            {isFilled && (
+                                                <Badge className="bg-green-500 hover:bg-green-600 text-white border-transparent text-[10px] px-2 py-0 h-5">Completed</Badge>
                                             )}
-                                        </Flex>
-                                        <Text size="1" color="gray" className="line-clamp-3 mb-2">
-                                            {field.description || (value && typeof value === 'string' ? value : "Click to edit...")}
-                                        </Text>
-                                        {isFilled && (
-                                            <Badge color="green" radius="full" size="1">Completed</Badge>
-                                        )}
+                                        </CardContent>
                                     </Card>
                                 );
                             })}
-                        </Grid>
-                    </Box>
+                        </div>
+                    </div>
                 ))}
-            </Flex>
+            </div>
 
             {activeField && (
                 <FieldEditModal

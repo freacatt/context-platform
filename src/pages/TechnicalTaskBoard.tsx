@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { Flex, Heading, Text, Button, Dialog, TextField, Select, IconButton, Box, DropdownMenu } from '@radix-ui/themes';
 import { Plus, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { 
@@ -18,6 +17,33 @@ import { Pipeline, TechnicalTask, TaskType } from '../types/technicalTask';
 import { TechnicalArchitecture } from '../types';
 import { TaskCard } from '../components/TechnicalTask/TaskCard';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export const TechnicalTaskBoard: React.FC = () => {
     const { user } = useAuth();
@@ -200,152 +226,159 @@ export const TechnicalTaskBoard: React.FC = () => {
     };
 
     return (
-        <Box className="h-full flex flex-col bg-gray-50">
+        <div className="h-full flex flex-col bg-muted/40">
             {/* Header */}
-            <Box className="p-4 border-b bg-white">
-                <Box className="max-w-[1800px] mx-auto w-full">
-                    <Flex justify="between" align="center">
-                        <Box>
-                            <Heading size="3">Technical Tasks</Heading>
-                            <Text color="gray" size="1">Manage your technical implementation tasks in technical task page</Text>
-                        </Box>
-                        <Flex gap="3">
-                            <Dialog.Root open={isPipelineOpen} onOpenChange={setIsPipelineOpen}>
-                                <Dialog.Trigger>
-                                    <Button variant="outline" color="gray">
-                                        <Plus size={16} /> New Pipeline
+            <div className="p-4 border-b bg-background">
+                <div className="max-w-[1800px] mx-auto w-full">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <h1 className="text-2xl font-bold tracking-tight">Technical Tasks</h1>
+                            <p className="text-sm text-muted-foreground">Manage your technical implementation tasks in technical task page</p>
+                        </div>
+                        <div className="flex gap-3">
+                            <Dialog open={isPipelineOpen} onOpenChange={setIsPipelineOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline">
+                                        <Plus size={16} className="mr-2" /> New Pipeline
                                     </Button>
-                                </Dialog.Trigger>
-                                <Dialog.Content style={{ maxWidth: 400 }}>
-                                    <Dialog.Title>Add Pipeline</Dialog.Title>
-                                    <Dialog.Description size="2" mb="4">
-                                        Create a new column for your task board.
-                                    </Dialog.Description>
-                                    <Flex direction="column" gap="3">
-                                        <label>
-                                            <Text as="div" size="2" mb="1" weight="bold">Title</Text>
-                                            <TextField.Root 
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-[425px]">
+                                    <DialogHeader>
+                                        <DialogTitle>Add Pipeline</DialogTitle>
+                                        <DialogDescription>
+                                            Create a new column for your task board.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="grid gap-4 py-4">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="pipeline-title">Title</Label>
+                                            <Input
+                                                id="pipeline-title"
                                                 value={newPipelineTitle}
                                                 onChange={(e) => setNewPipelineTitle(e.target.value)}
                                                 placeholder="e.g. In Review"
                                             />
-                                        </label>
-                                        <Flex gap="3" justify="end" mt="4">
-                                            <Dialog.Close>
-                                                <Button variant="soft" color="gray">Cancel</Button>
-                                            </Dialog.Close>
-                                            <Button onClick={handleCreatePipeline}>Create</Button>
-                                        </Flex>
-                                    </Flex>
-                                </Dialog.Content>
-                            </Dialog.Root>
+                                        </div>
+                                    </div>
+                                    <DialogFooter>
+                                        <DialogClose asChild>
+                                            <Button variant="outline">Cancel</Button>
+                                        </DialogClose>
+                                        <Button onClick={handleCreatePipeline}>Create</Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
 
-                            <Dialog.Root open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                                <Dialog.Trigger>
-                                    <Button variant="solid" color="blue">
-                                        <Plus size={16} /> New Task
+                            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                                <DialogTrigger asChild>
+                                    <Button>
+                                        <Plus size={16} className="mr-2" /> New Task
                                     </Button>
-                                </Dialog.Trigger>
-                                <Dialog.Content style={{ maxWidth: 450 }}>
-                                    <Dialog.Title>Create New Technical Task</Dialog.Title>
-                                    <Dialog.Description size="2" mb="4">
-                                        Fill in the details below to create a new technical task.
-                                    </Dialog.Description>
-                                    <Flex direction="column" gap="3">
-                                        <label>
-                                            <Text as="div" size="2" mb="1" weight="bold">Task Title</Text>
-                                            <TextField.Root 
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-[450px]">
+                                    <DialogHeader>
+                                        <DialogTitle>Create New Technical Task</DialogTitle>
+                                        <DialogDescription>
+                                            Fill in the details below to create a new technical task.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="grid gap-4 py-4">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="task-title">Task Title</Label>
+                                            <Input
+                                                id="task-title"
                                                 value={newTaskTitle}
                                                 onChange={(e) => setNewTaskTitle(e.target.value)}
                                                 placeholder="Enter task title"
                                             />
-                                        </label>
-                                        <label>
-                                            <Text as="div" size="2" mb="1" weight="bold">Type</Text>
-                                            <Select.Root value={newTaskType} onValueChange={(v) => setNewTaskType(v as TaskType)}>
-                                                <Select.Trigger className="w-full" />
-                                                <Select.Content>
-                                                    <Select.Item value="NEW_TASK">New Task</Select.Item>
-                                                    <Select.Item value="FIX_TASK">Fix Task</Select.Item>
-                                                </Select.Content>
-                                            </Select.Root>
-                                        </label>
-                                        <label>
-                                            <Text as="div" size="2" mb="1" weight="bold">Technical Architecture</Text>
-                                            <Select.Root value={selectedArch} onValueChange={setSelectedArch}>
-                                                <Select.Trigger className="w-full" placeholder="Select Architecture..." />
-                                                <Select.Content>
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label>Type</Label>
+                                            <Select value={newTaskType} onValueChange={(v) => setNewTaskType(v as TaskType)}>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select type" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="NEW_TASK">New Task</SelectItem>
+                                                    <SelectItem value="FIX_TASK">Fix Task</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label>Technical Architecture</Label>
+                                            <Select value={selectedArch} onValueChange={setSelectedArch}>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select Architecture..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
                                                     {architectures.map(arch => (
-                                                        <Select.Item key={arch.id} value={arch.id}>{arch.title}</Select.Item>
+                                                        <SelectItem key={arch.id} value={arch.id}>{arch.title}</SelectItem>
                                                     ))}
-                                                </Select.Content>
-                                            </Select.Root>
-                                        </label>
-                                        <Flex gap="3" justify="end" mt="4">
-                                            <Dialog.Close>
-                                                <Button variant="soft" color="gray">Cancel</Button>
-                                            </Dialog.Close>
-                                            <Button onClick={handleCreateTask} disabled={!newTaskTitle || !selectedArch} color="blue">Create Task</Button>
-                                        </Flex>
-                                    </Flex>
-                                </Dialog.Content>
-                            </Dialog.Root>
-                        </Flex>
-                    </Flex>
-                </Box>
-            </Box>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                    <DialogFooter>
+                                        <DialogClose asChild>
+                                            <Button variant="outline">Cancel</Button>
+                                        </DialogClose>
+                                        <Button onClick={handleCreateTask} disabled={!newTaskTitle || !selectedArch}>Create Task</Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             {/* Board Area */}
             <DragDropContext onDragEnd={onDragEnd}>
-                <Box className="flex-1 overflow-x-auto p-4">
-                    <Box className="max-w-[1800px] mx-auto h-full">
+                <div className="flex-1 overflow-x-auto p-4">
+                    <div className="max-w-[1800px] mx-auto h-full">
                         <Droppable droppableId="board" type="pipeline" direction="horizontal">
                             {(provided) => (
-                                <Flex 
-                                    gap="4" 
-                                    className="h-full min-w-max"
+                                <div 
+                                    className="flex gap-4 h-full min-w-max items-start"
                                     ref={provided.innerRef}
                                     {...provided.droppableProps}
                                 >
                                     {pipelines.map((pipeline, index) => (
                                         <Draggable key={pipeline.id} draggableId={pipeline.id} index={index}>
                                             {(provided) => (
-                                                <Box 
+                                                <div 
                                                     ref={provided.innerRef}
                                                     {...provided.draggableProps}
-                                                    className="w-80 flex flex-col bg-gray-100 rounded-lg h-full max-h-full shadow-md border border-gray-200"
+                                                    className="w-80 flex flex-col bg-muted/50 rounded-lg h-full max-h-full shadow-sm border border-border"
                                                     style={{ ...provided.draggableProps.style }}
                                                 >
-                                                    <Flex 
+                                                    <div 
                                                         {...provided.dragHandleProps}
-                                                        justify="between" 
-                                                        align="center" 
-                                                        className="p-3 bg-gray-200 rounded-t-lg cursor-grab active:cursor-grabbing border-b border-gray-300"
+                                                        className="p-3 bg-muted rounded-t-lg cursor-grab active:cursor-grabbing border-b border-border flex justify-between items-center"
                                                     >
-                                                        <Text weight="bold" size="2">{pipeline.title}</Text>
-                                                        <DropdownMenu.Root>
-                                                            <DropdownMenu.Trigger>
-                                                                <IconButton size="1" variant="ghost" color="gray">
+                                                        <span className="font-semibold text-sm">{pipeline.title}</span>
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button size="icon" variant="ghost" className="h-6 w-6">
                                                                     <MoreHorizontal size={14} />
-                                                                </IconButton>
-                                                            </DropdownMenu.Trigger>
-                                                            <DropdownMenu.Content>
-                                                                <DropdownMenu.Item onClick={() => {
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent>
+                                                                <DropdownMenuItem onClick={() => {
                                                                     setEditingPipeline(pipeline);
                                                                     setRenameTitle(pipeline.title);
                                                                 }}>
                                                                     <Pencil size={14} className="mr-2"/> Rename
-                                                                </DropdownMenu.Item>
-                                                                <DropdownMenu.Item color="red" onClick={() => handleDeletePipeline(pipeline.id)}>
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeletePipeline(pipeline.id)}>
                                                                     <Trash2 size={14} className="mr-2"/> Delete
-                                                                </DropdownMenu.Item>
-                                                            </DropdownMenu.Content>
-                                                        </DropdownMenu.Root>
-                                                    </Flex>
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    </div>
 
                                                     <Droppable droppableId={pipeline.id} type="task">
                                                         {(provided) => (
-                                                            <Box 
+                                                            <div 
                                                                 className="p-2 flex-1 overflow-y-auto"
                                                                 ref={provided.innerRef}
                                                                 {...provided.droppableProps}
@@ -369,37 +402,40 @@ export const TechnicalTaskBoard: React.FC = () => {
                                                                     ))
                                                                 }
                                                                 {provided.placeholder}
-                                                            </Box>
+                                                            </div>
                                                         )}
                                                     </Droppable>
-                                                </Box>
+                                                </div>
                                             )}
                                         </Draggable>
                                     ))}
                                     {provided.placeholder}
-                                </Flex>
+                                </div>
                             )}
                         </Droppable>
-                    </Box>
-                </Box>
+                    </div>
+                </div>
             </DragDropContext>
 
             {/* Rename Pipeline Dialog */}
-            <Dialog.Root open={!!editingPipeline} onOpenChange={(open) => !open && setEditingPipeline(null)}>
-                <Dialog.Content style={{ maxWidth: 400 }}>
-                    <Dialog.Title>Rename Pipeline</Dialog.Title>
-                    <Flex direction="column" gap="3">
-                        <TextField.Root 
+            <Dialog open={!!editingPipeline} onOpenChange={(open) => !open && setEditingPipeline(null)}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Rename Pipeline</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <Input
                             value={renameTitle}
                             onChange={(e) => setRenameTitle(e.target.value)}
+                            placeholder="Pipeline Title"
                         />
-                        <Flex gap="3" justify="end" mt="4">
-                            <Button variant="soft" color="gray" onClick={() => setEditingPipeline(null)}>Cancel</Button>
-                            <Button onClick={handleRenamePipeline}>Save</Button>
-                        </Flex>
-                    </Flex>
-                </Dialog.Content>
-            </Dialog.Root>
-        </Box>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEditingPipeline(null)}>Cancel</Button>
+                        <Button onClick={handleRenamePipeline}>Save</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
     );
 };

@@ -1,7 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, Button, Flex, TextField, Callout } from '@radix-ui/themes';
 import { Key, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const APIKeyModal = () => {
   const { apiKey, updateApiKey } = useAuth();
@@ -35,71 +47,71 @@ const APIKeyModal = () => {
   };
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={setIsOpen}>
-      <Dialog.Trigger>
-        <Button variant="ghost" color="gray" className="cursor-pointer">
-            <Key size={16} className={apiKey ? "text-green-600" : "text-gray-400"} />
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" className="cursor-pointer text-muted-foreground hover:text-foreground">
+            <Key size={16} className={apiKey ? "text-green-600 mr-2" : "text-gray-400 mr-2"} />
             {apiKey ? "API Key Active" : "Set API Key"}
         </Button>
-      </Dialog.Trigger>
+      </DialogTrigger>
 
-      <Dialog.Content style={{ maxWidth: 450 }}>
-        <Dialog.Title>Claude API Key Configuration</Dialog.Title>
-        <Dialog.Description size="2" mb="4">
-          To use the AI generation features, please provide your Anthropic API Key.
-          It will be stored securely in your user profile.
-        </Dialog.Description>
+      <DialogContent className="sm:max-w-[450px]">
+        <DialogHeader>
+          <DialogTitle>Claude API Key Configuration</DialogTitle>
+          <DialogDescription>
+            To use the AI generation features, please provide your Anthropic API Key.
+            It will be stored securely in your user profile.
+          </DialogDescription>
+        </DialogHeader>
 
-        <Flex direction="column" gap="3">
-          <TextField.Root 
-            placeholder="sk-ant-..." 
-            type="password"
-            value={keyInput}
-            onChange={(e) => {
-                setKeyInput(e.target.value);
-                setStatus('idle');
-            }}
-          >
-            <TextField.Slot>
-                <Key size={16} />
-            </TextField.Slot>
-          </TextField.Root>
+        <div className="flex flex-col gap-4 py-4">
+          <div className="relative">
+            <Key className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+                placeholder="sk-ant-..." 
+                type="password"
+                value={keyInput}
+                onChange={(e) => {
+                    setKeyInput(e.target.value);
+                    setStatus('idle');
+                }}
+                className="pl-9"
+            />
+          </div>
 
           {(status === 'validation_error' || status === 'save_error') && (
-            <Callout.Root color="red" size="1">
-                <Callout.Icon>
-                    <AlertTriangle size={16} />
-                </Callout.Icon>
-                <Callout.Text>
+            <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>
                     Invalid API Key format or save failed. Must start with 'sk-ant-'.
-                </Callout.Text>
-            </Callout.Root>
+                </AlertDescription>
+            </Alert>
           )}
 
           {status === 'success' && (
-            <Callout.Root color="green" size="1">
-                <Callout.Icon>
-                    <CheckCircle size={16} />
-                </Callout.Icon>
-                <Callout.Text>
+            <Alert className="border-green-500 text-green-600 dark:border-green-500 dark:text-green-400">
+                <CheckCircle className="h-4 w-4 stroke-green-600 dark:stroke-green-400" />
+                <AlertTitle>Success</AlertTitle>
+                <AlertDescription>
                     You saved your API Key
-                </Callout.Text>
-            </Callout.Root>
+                </AlertDescription>
+            </Alert>
           )}
+        </div>
 
-          <Flex gap="3" mt="4" justify="end">
-            <Dialog.Close>
-              <Button variant="soft" color="gray">
-                Cancel
-              </Button>
-            </Dialog.Close>
-            <Button onClick={handleSave} disabled={status === 'saving'}>
-              {status === 'saving' ? 'Saving...' : 'Save API Key'}
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline">
+              Cancel
             </Button>
-          </Flex>
-        </Flex>
-      </Dialog.Content>
-    </Dialog.Root>
+          </DialogClose>
+          <Button onClick={handleSave} disabled={status === 'saving'}>
+            {status === 'saving' ? 'Saving...' : 'Save API Key'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

@@ -1,11 +1,31 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Box, Flex, Heading, TextField, Text, Button, Card, IconButton, Dialog, DropdownMenu } from '@radix-ui/themes';
-import { Plus, Trash2, FileText, Edit2, Folder, ChevronDown, MoreVertical } from 'lucide-react';
+import { Plus, Trash2, FileText, Edit2, Folder, ChevronDown, MoreVertical, Search } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserContextDocuments, createContextDocument, deleteContextDocument, renameContextDocument, assignContextDocumentToDirectory } from '../services/contextDocumentService';
 import { getUserDirectories, createDirectory, renameDirectory, deleteDirectory } from '../services/directoryService';
 import { Link, useNavigate } from 'react-router-dom';
 import { ContextDocument } from '../types';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Label } from "@/components/ui/label";
 
 const ContextDocumentsPage: React.FC = () => {
   const { user } = useAuth();
@@ -176,150 +196,150 @@ const ContextDocumentsPage: React.FC = () => {
   );
 
   return (
-    <Box className="h-full flex-grow bg-white">
-      <Container size="4" className="p-4">
+    <div className="h-full flex-grow bg-background">
+      <div className="container mx-auto p-4">
         {/* Header Section */}
-        <Flex justify="between" align="center" className="mb-8 mt-6">
-          <Box>
-            <Heading size="6" className="text-gray-800">Context & Documents</Heading>
-            <Text color="gray" size="2">Create knowledge base documents to use as context for your products.</Text>
-          </Box>
+        <div className="flex justify-between items-center mb-8 mt-6">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Context & Documents</h1>
+            <p className="text-muted-foreground text-sm mt-1">Create knowledge base documents to use as context for your products.</p>
+          </div>
           
-          <Flex align="center" gap="2">
-            <Dialog.Root open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-              <Dialog.Trigger>
-                <Button size="2" variant="solid" color="amber" className="cursor-pointer">
-                    <Plus size={16} /> New Document
+          <div className="flex items-center gap-2">
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+              <DialogTrigger asChild>
+                <Button variant="default" className="cursor-pointer bg-amber-500 hover:bg-amber-600 text-white">
+                    <Plus size={16} className="mr-2" /> New Document
                 </Button>
-              </Dialog.Trigger>
-              <Dialog.Content style={{ maxWidth: 450 }}>
-                <Dialog.Title>Create New Context Document</Dialog.Title>
-                <Dialog.Description size="2" mb="4">
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[450px]">
+                <DialogHeader>
+                  <DialogTitle>Create New Context Document</DialogTitle>
+                  <DialogDescription>
                     Enter a title for your new document.
-                </Dialog.Description>
+                  </DialogDescription>
+                </DialogHeader>
 
-                <Flex direction="column" gap="3">
-                    <label>
-                        <Text as="div" size="2" mb="1" weight="bold">
-                            Title
-                        </Text>
-                        <TextField.Root
+                <div className="flex flex-col gap-4 py-4">
+                    <div className="flex flex-col gap-2">
+                        <Label htmlFor="title">Title</Label>
+                        <Input
+                            id="title"
                             placeholder="e.g. Market Research 2024"
                             value={newTitle}
                             onChange={(e) => setNewTitle(e.target.value)}
                         />
-                    </label>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button onClick={handleCreate} disabled={isCreating}>
+                        {isCreating ? 'Creating...' : 'Create Document'}
+                    </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
-                    <Flex gap="3" mt="4" justify="end">
-                        <Dialog.Close>
-                            <Button variant="soft" color="gray">Cancel</Button>
-                        </Dialog.Close>
-                        <Button onClick={handleCreate} disabled={isCreating}>
-                            {isCreating ? 'Creating...' : 'Create Document'}
-                        </Button>
-                    </Flex>
-                </Flex>
-              </Dialog.Content>
-            </Dialog.Root>
-
-            <Dialog.Root open={isCreateDirOpen} onOpenChange={setIsCreateDirOpen}>
-              <Dialog.Trigger>
+            <Dialog open={isCreateDirOpen} onOpenChange={setIsCreateDirOpen}>
+              <DialogTrigger asChild>
                 <Button 
-                  size="2" 
-                  variant="solid" 
-                  className="cursor-pointer bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-600 hover:to-violet-600 shadow-sm hover:shadow-md transition-all duration-200 rounded-md"
+                  className="cursor-pointer bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-600 hover:to-violet-600 shadow-sm hover:shadow-md transition-all duration-200"
                 >
-                  <Folder size={16} className="mr-2 text-white" /> New Directory
+                  <Folder size={16} className="mr-2" /> New Directory
                 </Button>
-              </Dialog.Trigger>
-              <Dialog.Content style={{ maxWidth: 450 }}>
-                <Dialog.Title>Create Directory</Dialog.Title>
-                <Dialog.Description size="2" mb="4">
-                  Enter a name for the directory.
-                </Dialog.Description>
-                <Flex direction="column" gap="3">
-                  <label>
-                    <Text as="div" size="2" mb="1" weight="bold">Name</Text>
-                    <TextField.Root
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[450px]">
+                <DialogHeader>
+                  <DialogTitle>Create Directory</DialogTitle>
+                  <DialogDescription>
+                    Enter a name for the directory.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col gap-4 py-4">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="dirname">Name</Label>
+                    <Input
+                      id="dirname"
                       placeholder="e.g. Research"
                       value={newDirTitle}
                       onChange={(e) => setNewDirTitle(e.target.value)}
                     />
-                  </label>
-                  <Flex gap="3" mt="4" justify="end">
-                    <Dialog.Close>
-                      <Button variant="soft" color="gray">Cancel</Button>
-                    </Dialog.Close>
+                  </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                      <Button variant="outline">Cancel</Button>
+                    </DialogClose>
                     <Button onClick={handleCreateDirectory} disabled={isCreatingDir}>
                       {isCreatingDir ? 'Creating...' : 'Create Directory'}
                     </Button>
-                  </Flex>
-                </Flex>
-              </Dialog.Content>
-            </Dialog.Root>
-          </Flex>
-        </Flex>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
 
         {/* Search */}
-        <Box className="mb-6">
-             <TextField.Root
-                placeholder="Search documents..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-            >
-                <TextField.Slot>
-                    {/* Icon can go here */}
-                </TextField.Slot>
-            </TextField.Root>
-        </Box>
+        <div className="mb-6">
+             <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                    placeholder="Search documents..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-8"
+                />
+            </div>
+        </div>
 
         {/* Directories */}
-        <Box className="mb-4">
-          <Flex gap="2" wrap="wrap">
+        <div className="mb-4">
+          <div className="flex gap-2 flex-wrap">
             {directories.map(dir => (
-              <Box key={dir.id} className="relative group">
-                  <Flex align="center" className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-md transition-colors border border-indigo-200 pr-1">
+              <div key={dir.id} className="relative group">
+                  <div className="flex items-center bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 rounded-md transition-colors border border-indigo-200 dark:border-indigo-800 pr-1">
                     <Button 
                       variant="ghost" 
-                      color="indigo" 
-                      className="cursor-pointer hover:bg-transparent px-3"
+                      className="cursor-pointer hover:bg-transparent px-3 text-indigo-700 dark:text-indigo-300 hover:text-indigo-800 dark:hover:text-indigo-200 h-9"
                       onClick={() => navigate(`/directory/${dir.id}`)}
                     >
                       <Folder size={14} className="mr-2" /> {dir.title}
                     </Button>
-                    <DropdownMenu.Root>
-                        <DropdownMenu.Trigger>
-                            <IconButton variant="ghost" color="indigo" size="1" className="rounded-full hover:bg-indigo-200 cursor-pointer">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full hover:bg-indigo-200 dark:hover:bg-indigo-800 cursor-pointer">
                                 <MoreVertical size={12} />
-                            </IconButton>
-                        </DropdownMenu.Trigger>
-                        <DropdownMenu.Content>
-                            <DropdownMenu.Item onClick={(e) => handleRenameDirectory(dir.id, dir.title, e)}>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuItem onClick={(e) => handleRenameDirectory(dir.id, dir.title, e)}>
                                 <Edit2 size={14} className="mr-2" /> Rename
-                            </DropdownMenu.Item>
-                            <DropdownMenu.Item color="red" onClick={(e) => handleDeleteDirectory(dir.id, e)}>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={(e) => handleDeleteDirectory(dir.id, e)}>
                                 <Trash2 size={14} className="mr-2" /> Delete
-                            </DropdownMenu.Item>
-                        </DropdownMenu.Content>
-                    </DropdownMenu.Root>
-                  </Flex>
-              </Box>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+              </div>
             ))}
-          </Flex>
-        </Box>
+          </div>
+        </div>
 
         {/* Documents Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredDocuments.map(doc => (
-                <Card key={doc.id} className="hover:shadow-md transition-shadow border border-gray-200 flex flex-col">
+                <Card key={doc.id} className="hover:shadow-md transition-shadow flex flex-col">
                     <Link to={`/context-document/${doc.id}`} className="block flex-grow">
-                        <Flex direction="column" height="100%" justify="between" p="3">
-                            <Box>
-                                <Flex align="center" gap="2" mb="2">
+                        <CardContent className="p-3 pb-0 flex flex-col h-full justify-between">
+                            <div>
+                                <div className="flex items-center gap-2 mb-2">
                                     <FileText size={20} className="text-amber-500" />
-                                    <Heading size="3">{doc.title}</Heading>
-                                </Flex>
-                                <Text size="2" color="gray" className="line-clamp-3">
+                                    <h3 className="font-semibold text-lg">{doc.title}</h3>
+                                </div>
+                                <p className="text-sm text-muted-foreground line-clamp-3">
                                     {(() => {
                                         if (!doc.content) return 'No content yet.';
                                         try {
@@ -332,133 +352,135 @@ const ContextDocumentsPage: React.FC = () => {
                                         }
                                         return doc.content.substring(0, 100) + '...';
                                     })()}
-                                </Text>
-                            </Box>
-                        </Flex>
+                                </p>
+                            </div>
+                        </CardContent>
                     </Link>
-                    <Flex justify="between" align="center" p="3" pt="0" className="border-t border-gray-100 mt-2 pt-2">
-                         <Text size="1" color="gray">
+                    <div className="flex justify-between items-center p-3 pt-0 border-t mt-2 pt-2">
+                         <span className="text-xs text-muted-foreground">
                             Last modified: {(() => {
                                 if (!doc.lastModified) return '';
                                 const date = doc.lastModified instanceof Date ? doc.lastModified : new Date(doc.lastModified);
                                 return date.toLocaleDateString();
                             })()}
-                        </Text>
-                        <Flex gap="2" align="center">
-                            <DropdownMenu.Root>
-                              <DropdownMenu.Trigger>
-                                <Button variant="soft" color="gray" className="cursor-pointer">
+                        </span>
+                        <div className="flex gap-1 items-center">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 cursor-pointer text-muted-foreground">
                                   <Folder size={14} className="mr-2" />
                                   {(doc.directoryId && directories.find(d => d.id === doc.directoryId)?.title) || 'No Directory'}
                                   <ChevronDown size={14} className="ml-2" />
                                 </Button>
-                              </DropdownMenu.Trigger>
-                              <DropdownMenu.Content>
-                                <DropdownMenu.Item onClick={() => assignDirectory(doc.id, null)}>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent>
+                                <DropdownMenuItem onClick={() => assignDirectory(doc.id, null)}>
                                   No Directory
-                                </DropdownMenu.Item>
+                                </DropdownMenuItem>
                                 {directories.map(dir => (
-                                  <DropdownMenu.Item key={dir.id} onClick={() => assignDirectory(doc.id, dir.id)}>
+                                  <DropdownMenuItem key={dir.id} onClick={() => assignDirectory(doc.id, dir.id)}>
                                     {dir.title}
-                                  </DropdownMenu.Item>
+                                  </DropdownMenuItem>
                                 ))}
-                              </DropdownMenu.Content>
-                            </DropdownMenu.Root>
-                            <IconButton 
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                            <Button 
                                 variant="ghost" 
-                                color="gray" 
+                                size="icon"
                                 onClick={(e) => handleRename(doc.id, doc.title, e)}
-                                className="cursor-pointer hover:bg-gray-50"
+                                className="h-8 w-8 cursor-pointer hover:bg-muted"
                             >
                                 <Edit2 size={16} />
-                            </IconButton>
-                            <IconButton 
+                            </Button>
+                            <Button 
                                 variant="ghost" 
-                                color="red" 
+                                size="icon"
                                 onClick={(e) => handleDelete(doc.id, e)}
-                                className="cursor-pointer hover:bg-red-50"
+                                className="h-8 w-8 cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500"
                             >
                                 <Trash2 size={16} />
-                            </IconButton>
-                        </Flex>
-                    </Flex>
+                            </Button>
+                        </div>
+                    </div>
                 </Card>
             ))}
             
             {filteredDocuments.length === 0 && (
-                <Box className="col-span-full py-12 text-center">
-                    <Text color="gray">No documents found. Create one to get started!</Text>
-                </Box>
+                <div className="col-span-full py-12 text-center">
+                    <p className="text-muted-foreground">No documents found. Create one to get started!</p>
+                </div>
             )}
         </div>
 
-        <Dialog.Root open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
-          <Dialog.Content style={{ maxWidth: 450 }}>
-            <Dialog.Title>Rename Document</Dialog.Title>
-            <Dialog.Description size="2" mb="4">
-              Enter a new title for this document.
-            </Dialog.Description>
+        <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+          <DialogContent className="sm:max-w-[450px]">
+            <DialogHeader>
+              <DialogTitle>Rename Document</DialogTitle>
+              <DialogDescription>
+                Enter a new title for this document.
+              </DialogDescription>
+            </DialogHeader>
 
-            <Flex direction="column" gap="3">
-              <label>
-                <Text as="div" size="2" mb="1" weight="bold">
-                  Title
-                </Text>
-                <TextField.Root
+            <div className="flex flex-col gap-4 py-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="rename-title">Title</Label>
+                <Input
+                  id="rename-title"
                   value={renameNewTitle}
                   onChange={(e) => setRenameNewTitle(e.target.value)}
                   placeholder="Enter new title"
                 />
-              </label>
-            </Flex>
+              </div>
+            </div>
 
-            <Flex gap="3" mt="4" justify="end">
-              <Dialog.Close>
-                <Button variant="soft" color="gray">
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">
                   Cancel
                 </Button>
-              </Dialog.Close>
+              </DialogClose>
               <Button onClick={confirmRename}>
                 Save
               </Button>
-            </Flex>
-          </Dialog.Content>
-        </Dialog.Root>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-        <Dialog.Root open={renameDirDialogOpen} onOpenChange={setRenameDirDialogOpen}>
-          <Dialog.Content style={{ maxWidth: 450 }}>
-            <Dialog.Title>Rename Directory</Dialog.Title>
-            <Dialog.Description size="2" mb="4">
-              Enter a new name for this directory.
-            </Dialog.Description>
+        <Dialog open={renameDirDialogOpen} onOpenChange={setRenameDirDialogOpen}>
+          <DialogContent className="sm:max-w-[450px]">
+            <DialogHeader>
+              <DialogTitle>Rename Directory</DialogTitle>
+              <DialogDescription>
+                Enter a new name for this directory.
+              </DialogDescription>
+            </DialogHeader>
 
-            <Flex direction="column" gap="3">
-              <label>
-                <Text as="div" size="2" mb="1" weight="bold">
-                  Name
-                </Text>
-                <TextField.Root
+            <div className="flex flex-col gap-4 py-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="rename-dir">Name</Label>
+                <Input
+                  id="rename-dir"
                   value={renameDirNewTitle}
                   onChange={(e) => setRenameDirNewTitle(e.target.value)}
                   placeholder="Enter new name"
                 />
-              </label>
-            </Flex>
+              </div>
+            </div>
 
-            <Flex gap="3" mt="4" justify="end">
-              <Dialog.Close>
-                <Button variant="soft" color="gray">
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">
                   Cancel
                 </Button>
-              </Dialog.Close>
+              </DialogClose>
               <Button onClick={confirmRenameDirectory}>
                 Save
               </Button>
-            </Flex>
-          </Dialog.Content>
-        </Dialog.Root>
-      </Container>
-    </Box>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </div>
   );
 };
 

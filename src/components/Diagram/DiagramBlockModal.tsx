@@ -1,10 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { Dialog, Button, Flex, Text, TextArea, TextField, Box, Card, Badge } from '@radix-ui/themes';
-import { Sparkles, Link as LinkIcon, Notebook, PaintBucket, Trash2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Sparkles, Notebook, PaintBucket, Trash2 } from 'lucide-react';
 import { AiRecommendationButton } from '../Common/AiRecommendationButton';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGlobalContext } from '../../contexts/GlobalContext';
-import { DiagramNodeData, ContextSource } from '../../types';
+import { ContextSource } from '../../types';
 import { generateDiagramBlockDescription } from '../../services/anthropic';
 import ContextSelectorModal from '../GlobalContext/ContextSelectorModal';
 
@@ -68,28 +81,31 @@ const DiagramBlockModal: React.FC<DiagramBlockModalProps> = ({
   };
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={onClose}>
-      <Dialog.Content style={{ maxWidth: 800 }}>
-        <Dialog.Title>Edit Block</Dialog.Title>
-        <Dialog.Description size="2" mb="4">
-          Update the block title, description, connections, and attachments.
-        </Dialog.Description>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-[800px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit Block</DialogTitle>
+          <DialogDescription>
+            Update the block title, description, connections, and attachments.
+          </DialogDescription>
+        </DialogHeader>
 
-        <Flex direction="column" gap="4">
-          <Box>
-            <Text as="label" size="2" weight="bold">Title</Text>
-            <TextField.Root
+        <div className="flex flex-col gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="title" className="font-bold">Title</Label>
+            <Input
+              id="title"
               value={localTitle}
               onChange={(e) => setLocalTitle(e.target.value)}
               placeholder="Block title"
             />
-          </Box>
+          </div>
 
-          <Box>
-            <Flex justify="between" align="center" className="mb-1">
-              <Text as="label" size="2" weight="bold">Description</Text>
+          <div className="grid gap-2">
+            <div className="flex justify-between items-center mb-1">
+              <Label htmlFor="description" className="font-bold">Description</Label>
               <AiRecommendationButton
-                size="1"
+                size="sm"
                 variant="ghost"
                 color="purple"
                 label="AI Suggest"
@@ -106,68 +122,69 @@ const DiagramBlockModal: React.FC<DiagramBlockModalProps> = ({
                 onSuccess={(text) => setLocalDescription(text)}
                 onError={() => {}}
               />
-            </Flex>
-            <TextArea
+            </div>
+            <Textarea
+              id="description"
               value={localDescription}
               onChange={(e) => setLocalDescription(e.target.value)}
               placeholder="Describe what this block represents..."
               rows={4}
-              style={{ minHeight: '120px', resize: 'vertical' }}
+              className="min-h-[120px] resize-y"
             />
-          </Box>
+          </div>
 
-          <Box>
-            <Text as="label" size="2" weight="bold">Navigation Map</Text>
-            <Flex gap="3" className="mt-2">
-              <Box className="flex-1">
-                <Text color="gray" size="2">Outgoing</Text>
-                <Flex direction="column" gap="2" mt="2">
+          <div className="grid gap-2">
+            <Label className="font-bold">Navigation Map</Label>
+            <div className="flex gap-3 mt-2">
+              <div className="flex-1">
+                <span className="text-muted-foreground text-sm">Outgoing</span>
+                <div className="flex flex-col gap-2 mt-2">
                   {outgoing.length === 0 ? (
-                    <Text color="gray" size="2">None</Text>
+                    <span className="text-muted-foreground text-sm">None</span>
                   ) : outgoing.map(e => (
-                    <Card key={e.id} variant="surface" style={{ padding: '8px' }}>
-                      <Flex justify="between" align="center">
-                        <Text size="2">{e.title}</Text>
+                    <Card key={e.id} className="p-2 bg-muted/50">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">{e.title}</span>
                         {e.direction && (
-                          <Badge color="indigo" variant="soft" className="ml-2">{e.direction}</Badge>
+                          <Badge variant="secondary" className="ml-2 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300">{e.direction}</Badge>
                         )}
-                      </Flex>
+                      </div>
                     </Card>
                   ))}
-                </Flex>
-              </Box>
-              <Box className="flex-1">
-                <Text color="gray" size="2">Incoming</Text>
-                <Flex direction="column" gap="2" mt="2">
+                </div>
+              </div>
+              <div className="flex-1">
+                <span className="text-muted-foreground text-sm">Incoming</span>
+                <div className="flex flex-col gap-2 mt-2">
                   {incoming.length === 0 ? (
-                    <Text color="gray" size="2">None</Text>
+                    <span className="text-muted-foreground text-sm">None</span>
                   ) : incoming.map(e => (
-                    <Card key={e.id} variant="surface" style={{ padding: '8px' }}>
-                      <Flex justify="between" align="center">
-                        <Text size="2">{e.title}</Text>
+                    <Card key={e.id} className="p-2 bg-muted/50">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">{e.title}</span>
                         {e.direction && (
-                          <Badge color="indigo" variant="soft" className="ml-2">{e.direction}</Badge>
+                          <Badge variant="secondary" className="ml-2 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300">{e.direction}</Badge>
                         )}
-                      </Flex>
+                      </div>
                     </Card>
                   ))}
-                </Flex>
-              </Box>
-            </Flex>
-          </Box>
+                </div>
+              </div>
+            </div>
+          </div>
 
-          <Box>
-            <Text as="label" size="2" weight="bold">Attachments</Text>
-            <Flex gap="2" mt="2" align="center">
-              <Button variant="soft" size="1" className="cursor-pointer" onClick={() => setContextModalOpen(true)}>
+          <div className="grid gap-2">
+            <Label className="font-bold">Attachments</Label>
+            <div className="flex gap-2 mt-2 items-center">
+              <Button variant="secondary" size="sm" className="cursor-pointer" onClick={() => setContextModalOpen(true)}>
                 <Notebook size={14} className="mr-1" /> Attach context
               </Button>
-              <Flex gap="1" wrap="wrap">
+              <div className="flex gap-1 flex-wrap">
                 {attachedSources.map(s => (
-                  <Badge key={`${s.type}-${s.id}`} variant="soft" color="gray">{s.title || s.id}</Badge>
+                  <Badge key={`${s.type}-${s.id}`} variant="secondary">{s.title || s.id}</Badge>
                 ))}
-              </Flex>
-            </Flex>
+              </div>
+            </div>
             <ContextSelectorModal
               isOpen={contextModalOpen}
               onClose={() => setContextModalOpen(false)}
@@ -175,25 +192,25 @@ const DiagramBlockModal: React.FC<DiagramBlockModalProps> = ({
               initialSelectedSources={attachedSources}
               currentDefinitionId={null}
             />
-          </Box>
+          </div>
 
-          <Box>
-            <Text as="label" size="2" weight="bold">Border Color</Text>
-            <Flex gap="2" align="center" mt="2">
+          <div className="grid gap-2">
+            <Label className="font-bold">Border Color</Label>
+            <div className="flex gap-2 items-center mt-2">
               <input
                 type="color"
                 value={localBorderColor}
                 onChange={(e) => setLocalBorderColor(e.target.value)}
+                className="h-9 w-16 p-1 rounded-md border border-input bg-background cursor-pointer"
               />
-              <PaintBucket size={16} className="text-gray-600" />
-            </Flex>
-          </Box>
-        </Flex>
+              <PaintBucket size={16} className="text-muted-foreground" />
+            </div>
+          </div>
+        </div>
 
-        <Flex gap="3" justify="between" mt="4">
+        <DialogFooter className="flex justify-between items-center sm:justify-between w-full">
           <Button 
-            color="red" 
-            variant="soft" 
+            variant="destructive"
             onClick={onDelete}
             className="cursor-pointer"
           >
@@ -201,15 +218,13 @@ const DiagramBlockModal: React.FC<DiagramBlockModalProps> = ({
             Delete Block
           </Button>
 
-          <Flex gap="3">
-            <Dialog.Close>
-              <Button variant="soft" color="gray" className="cursor-pointer">Cancel</Button>
-            </Dialog.Close>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={onClose} className="cursor-pointer">Cancel</Button>
             <Button onClick={handleSave} className="cursor-pointer">Save</Button>
-          </Flex>
-        </Flex>
-      </Dialog.Content>
-    </Dialog.Root>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

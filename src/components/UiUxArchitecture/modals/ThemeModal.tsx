@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, Button, Flex, Text, TextField, Tabs, Box, Grid, Heading, TextArea } from '@radix-ui/themes';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { ThemeSpecification } from '../../../types/uiUxArchitecture';
 import { AiRecommendationButton } from '../../Common/AiRecommendationButton';
 import { generateUiUxSuggestion } from '../../../services/anthropic';
@@ -31,158 +36,153 @@ export const ThemeModal: React.FC<ThemeModalProps> = ({ open, onOpenChange, them
   };
 
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Content style={{ maxWidth: 800 }}>
-        <Dialog.Title>Edit Theme Specification</Dialog.Title>
-        <Dialog.Description size="2" mb="4" color="gray">
-          Configure the global design system, typography, and color palette.
-        </Dialog.Description>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-[800px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit Theme Specification</DialogTitle>
+          <DialogDescription>
+            Configure the global design system, typography, and color palette.
+          </DialogDescription>
+        </DialogHeader>
         
-        <Tabs.Root defaultValue="colors">
-          <Tabs.List>
-            <Tabs.Trigger value="colors">Colors</Tabs.Trigger>
-            <Tabs.Trigger value="typography">Typography</Tabs.Trigger>
-            <Tabs.Trigger value="spacing">Spacing & Radius</Tabs.Trigger>
-            <Tabs.Trigger value="advanced">Advanced</Tabs.Trigger>
-          </Tabs.List>
+        <Tabs defaultValue="colors" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="colors">Colors</TabsTrigger>
+            <TabsTrigger value="typography">Typography</TabsTrigger>
+            <TabsTrigger value="spacing">Spacing & Radius</TabsTrigger>
+            <TabsTrigger value="advanced">Advanced</TabsTrigger>
+          </TabsList>
 
-          <Box pt="3">
-            <Tabs.Content value="colors">
-              <Grid columns="2" gap="3">
+          <div className="pt-4">
+            <TabsContent value="colors" className="mt-0">
+              <div className="grid grid-cols-2 gap-4">
                 {Object.keys(localTheme.main.colors).map((key) => (
-                  <Box key={key}>
-                    <Text size="2" mb="1" style={{ textTransform: 'capitalize' }}>{key}</Text>
-                    <Flex gap="2">
-                      <TextField.Root 
+                  <div key={key} className="space-y-2">
+                    <Label className="capitalize">{key}</Label>
+                    <div className="flex gap-2">
+                      <Input 
                         value={(localTheme.main.colors as any)[key]} 
                         onChange={e => handleChange(['main', 'colors', key], e.target.value)}
                         placeholder="#000000"
-                        style={{ flex: 1 }}
+                        className="flex-1"
                       />
                       <div 
-                        style={{ 
-                          width: 32, 
-                          height: 32, 
-                          backgroundColor: (localTheme.main.colors as any)[key],
-                          border: '1px solid #ccc',
-                          borderRadius: 4
-                        }} 
+                        className="w-8 h-8 rounded border border-input"
+                        style={{ backgroundColor: (localTheme.main.colors as any)[key] }}
                       />
-                    </Flex>
-                  </Box>
+                    </div>
+                  </div>
                 ))}
-              </Grid>
-            </Tabs.Content>
+              </div>
+            </TabsContent>
 
-            <Tabs.Content value="typography">
-              <Flex direction="column" gap="3">
-                <Box>
-                  <Text size="2" mb="1">Font Family</Text>
-                  <TextField.Root 
-                    value={localTheme.main.typography.font_family} 
-                    onChange={e => handleChange(['main', 'typography', 'font_family'], e.target.value)}
+            <TabsContent value="typography" className="space-y-4 mt-0">
+              <div className="space-y-2">
+                <Label>Font Family</Label>
+                <Input 
+                  value={localTheme.main.typography.font_family} 
+                  onChange={e => handleChange(['main', 'typography', 'font_family'], e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Base Font Size</Label>
+                <Input 
+                  value={localTheme.main.typography.font_size_base} 
+                  onChange={e => handleChange(['main', 'typography', 'font_size_base'], e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <Label>Theme Description</Label>
+                  <AiRecommendationButton
+                    onGenerate={(apiKey, globalContext) => generateUiUxSuggestion(
+                      apiKey,
+                      "UI/UX Architecture",
+                      'theme',
+                      "Global Theme",
+                      `Font Family: ${localTheme.main.typography.font_family}\nBase Size: ${localTheme.main.typography.font_size_base}`,
+                      globalContext,
+                      'description'
+                    )}
+                    onSuccess={(result) => handleChange(['main', 'description'], result)}
+                    label="AI Suggest"
                   />
-                </Box>
-                <Box>
-                  <Text size="2" mb="1">Base Font Size</Text>
-                  <TextField.Root 
-                    value={localTheme.main.typography.font_size_base} 
-                    onChange={e => handleChange(['main', 'typography', 'font_size_base'], e.target.value)}
-                  />
-                </Box>
-                
-                <Box>
-                  <Flex justify="between" align="center" mb="1">
-                    <Text size="2">Theme Description</Text>
-                    <AiRecommendationButton
-                      onGenerate={(apiKey, globalContext) => generateUiUxSuggestion(
-                        apiKey,
-                        "UI/UX Architecture",
-                        'theme',
-                        "Global Theme",
-                        `Font Family: ${localTheme.main.typography.font_family}\nBase Size: ${localTheme.main.typography.font_size_base}`,
-                        globalContext,
-                        'description'
-                      )}
-                      onSuccess={(result) => handleChange(['main', 'description'], result)}
-                      label="AI Suggest"
-                    />
-                  </Flex>
-                  <TextArea 
-                    value={localTheme.main.description || ''} 
-                    onChange={e => handleChange(['main', 'description'], e.target.value)}
-                    placeholder="Describe the overall theme and design philosophy..."
-                    style={{ minHeight: 80, resize: 'vertical' }}
-                  />
-                </Box>
-              </Flex>
-            </Tabs.Content>
+                </div>
+                <Textarea 
+                  value={localTheme.main.description || ''} 
+                  onChange={e => handleChange(['main', 'description'], e.target.value)}
+                  placeholder="Describe the overall theme and design philosophy..."
+                  className="min-h-[80px]"
+                />
+              </div>
+            </TabsContent>
 
-            <Tabs.Content value="spacing">
-              <Flex direction="column" gap="3">
-                <Box>
-                  <Text size="2" mb="1">Spacing Unit</Text>
-                  <TextField.Root 
-                    value={localTheme.main.spacing_unit} 
-                    onChange={e => handleChange(['main', 'spacing_unit'], e.target.value)}
-                  />
-                </Box>
-                <Box>
-                  <Heading size="3" mb="2">Border Radius</Heading>
-                  <Grid columns="3" gap="3">
-                    {Object.keys(localTheme.main.border_radius).map((key) => (
-                      <Box key={key}>
-                        <Text size="2" mb="1">{key.toUpperCase()}</Text>
-                        <TextField.Root 
-                          value={(localTheme.main.border_radius as any)[key]} 
-                          onChange={e => handleChange(['main', 'border_radius', key], e.target.value)}
-                        />
-                      </Box>
-                    ))}
-                  </Grid>
-                </Box>
-              </Flex>
-            </Tabs.Content>
+            <TabsContent value="spacing" className="space-y-4 mt-0">
+              <div className="space-y-2">
+                <Label>Spacing Unit</Label>
+                <Input 
+                  value={localTheme.main.spacing_unit} 
+                  onChange={e => handleChange(['main', 'spacing_unit'], e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-medium mb-2">Border Radius</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  {Object.keys(localTheme.main.border_radius).map((key) => (
+                    <div key={key} className="space-y-2">
+                      <Label className="uppercase text-xs">{key}</Label>
+                      <Input 
+                        value={(localTheme.main.border_radius as any)[key]} 
+                        onChange={e => handleChange(['main', 'border_radius', key], e.target.value)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
 
-            <Tabs.Content value="advanced">
-              <Flex direction="column" gap="3">
-                <Heading size="3">Breakpoints</Heading>
-                <Grid columns="3" gap="3">
+            <TabsContent value="advanced" className="space-y-4 mt-0">
+              <div className="space-y-2">
+                <h3 className="font-medium">Breakpoints</h3>
+                <div className="grid grid-cols-3 gap-4">
                   {Object.keys(localTheme.advanced.breakpoints).map((key) => (
-                    <Box key={key}>
-                      <Text size="2" mb="1" style={{ textTransform: 'capitalize' }}>{key}</Text>
-                      <TextField.Root 
+                    <div key={key} className="space-y-2">
+                      <Label className="capitalize">{key}</Label>
+                      <Input 
                         value={(localTheme.advanced.breakpoints as any)[key]} 
                         onChange={e => handleChange(['advanced', 'breakpoints', key], e.target.value)}
                       />
-                    </Box>
+                    </div>
                   ))}
-                </Grid>
-                
-                <Heading size="3" mt="3">Shadows</Heading>
-                <Grid columns="3" gap="3">
+                </div>
+              </div>
+              
+              <div className="space-y-2 pt-2">
+                <h3 className="font-medium">Shadows</h3>
+                <div className="grid grid-cols-3 gap-4">
                   {Object.keys(localTheme.advanced.shadows).map((key) => (
-                    <Box key={key}>
-                      <Text size="2" mb="1" style={{ textTransform: 'capitalize' }}>{key}</Text>
-                      <TextField.Root 
+                    <div key={key} className="space-y-2">
+                      <Label className="capitalize">{key}</Label>
+                      <Input 
                         value={(localTheme.advanced.shadows as any)[key]} 
                         onChange={e => handleChange(['advanced', 'shadows', key], e.target.value)}
                       />
-                    </Box>
+                    </div>
                   ))}
-                </Grid>
-              </Flex>
-            </Tabs.Content>
-          </Box>
-        </Tabs.Root>
+                </div>
+              </div>
+            </TabsContent>
+          </div>
+        </Tabs>
 
-        <Flex gap="3" mt="4" justify="end">
-          <Dialog.Close>
-            <Button variant="soft" color="gray">Cancel</Button>
-          </Dialog.Close>
+        <DialogFooter className="mt-4">
+          <DialogClose asChild>
+            <Button variant="outline">Cancel</Button>
+          </DialogClose>
           <Button onClick={() => onSave(localTheme)}>Save Changes</Button>
-        </Flex>
-      </Dialog.Content>
-    </Dialog.Root>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

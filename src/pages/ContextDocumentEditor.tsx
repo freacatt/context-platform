@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Flex, Text, Button, IconButton, TextField, DropdownMenu } from '@radix-ui/themes';
 import { ArrowLeft, Save, Download, ChevronDown, Folder } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getContextDocument, updateContextDocument, assignContextDocumentToDirectory } from '../services/contextDocumentService';
@@ -9,6 +8,15 @@ import { ContextDocument } from '../types';
 import { getUserDirectories } from '../services/directoryService';
 import { Editor } from '../components/blocks/editor-x/editor';
 import { SerializedEditorState, $getRoot } from 'lexical';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const ContextDocumentEditor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -155,72 +163,72 @@ const ContextDocumentEditor: React.FC = () => {
   };
 
   if (!document || !editorState) {
-    return <Flex align="center" justify="center" height="100vh"><Text>Loading...</Text></Flex>;
+    return <div className="flex items-center justify-center h-screen"><p>Loading...</p></div>;
   }
 
   return (
-    <Flex direction="column" className="h-full flex-grow bg-white">
-      <Flex 
-        justify="between" 
-        align="center" 
-        className="px-6 py-3 border-b border-gray-200 bg-white shadow-sm z-10"
+    <div className="flex flex-col h-full flex-grow bg-background">
+      <div 
+        className="flex justify-between items-center px-6 py-3 border-b border-border bg-background shadow-sm z-10"
       >
-        <Flex align="center" gap="4">
-          <IconButton variant="ghost" onClick={() => navigate('/context-documents')}>
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/context-documents')}>
             <ArrowLeft size={20} />
-          </IconButton>
-          <Box>
-             <TextField.Root 
-                variant="soft" 
+          </Button>
+          <div>
+             <Input
                 value={title} 
                 onChange={(e) => setTitle(e.target.value)}
-                style={{ fontSize: '1.2rem', fontWeight: 'bold', width: '300px' }}
+                className="text-lg font-bold w-[300px] border-none shadow-none focus-visible:ring-1 bg-transparent"
                 placeholder="Document Title"
              />
-          </Box>
-        </Flex>
+          </div>
+        </div>
 
-        <Flex gap="2" align="center">
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger>
-              <Button variant="soft" color="gray" className="cursor-pointer">
-                <Folder size={16} /> {(document.directoryId && directories.find(d => d.id === document.directoryId)?.title) || 'No Directory'} <ChevronDown size={14} />
+        <div className="flex gap-2 items-center">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="secondary" className="cursor-pointer">
+                <Folder size={16} className="mr-2" /> 
+                {(document.directoryId && directories.find(d => d.id === document.directoryId)?.title) || 'No Directory'} 
+                <ChevronDown size={14} className="ml-2" />
               </Button>
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Content>
-              <DropdownMenu.Item onClick={() => assignDirectory(null)}>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => assignDirectory(null)}>
                 No Directory
-              </DropdownMenu.Item>
+              </DropdownMenuItem>
               {directories.map(dir => (
-                <DropdownMenu.Item key={dir.id} onClick={() => assignDirectory(dir.id)}>
+                <DropdownMenuItem key={dir.id} onClick={() => assignDirectory(dir.id)}>
                   {dir.title}
-                </DropdownMenu.Item>
+                </DropdownMenuItem>
               ))}
-            </DropdownMenu.Content>
-          </DropdownMenu.Root>
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger>
-              <Button variant="soft" color="gray" className="cursor-pointer">
-                <Download size={16} /> Export <ChevronDown size={14} />
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="secondary" className="cursor-pointer">
+                <Download size={16} className="mr-2" /> Export <ChevronDown size={14} className="ml-2" />
               </Button>
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Content>
-              <DropdownMenu.Item onClick={() => exportContextToExcel({...document, title, content: plainText || JSON.stringify(editorState)})}>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => exportContextToExcel({...document, title, content: plainText || JSON.stringify(editorState)})}>
                 Excel (.xlsx)
-              </DropdownMenu.Item>
-              <DropdownMenu.Item onClick={() => exportContextToMarkdown({...document, title, content: plainText || JSON.stringify(editorState)})}>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportContextToMarkdown({...document, title, content: plainText || JSON.stringify(editorState)})}>
                 Markdown (.md)
-              </DropdownMenu.Item>
-            </DropdownMenu.Content>
-          </DropdownMenu.Root>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-          <Button onClick={handleSave} disabled={saving} color="green" variant="soft">
-            <Save size={16} /> {saving ? 'Saving...' : 'Save Changes'}
+          <Button onClick={handleSave} disabled={saving} className="bg-green-600 hover:bg-green-700 text-white">
+            <Save size={16} className="mr-2" /> {saving ? 'Saving...' : 'Save Changes'}
           </Button>
-        </Flex>
-      </Flex>
+        </div>
+      </div>
 
-      <Box className="flex-grow flex flex-col p-8 overflow-hidden bg-gray-50">
+      <div className="flex-grow flex flex-col p-8 overflow-hidden bg-muted/20">
         <div className="flex-grow flex flex-col h-full max-w-5xl mx-auto w-full">
             <Editor
                 key={documentId}
@@ -235,8 +243,8 @@ const ContextDocumentEditor: React.FC = () => {
             />
             {/* <div>Editor Temporarily Disabled for Debugging</div> */}
         </div>
-      </Box>
-    </Flex>
+      </div>
+    </div>
   );
 };
 

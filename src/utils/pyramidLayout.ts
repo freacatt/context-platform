@@ -15,6 +15,10 @@ export interface Block {
     content: string;
     parentIds: string[];
     childIds: string[];
+    isAI?: boolean;
+    question?: string;
+    answer?: string;
+    combinedQuestion?: string;
 }
 
 export const calculateCoordinates = (u: number, v: number): Coordinates => {

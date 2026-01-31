@@ -166,89 +166,89 @@ const AiChatPage: React.FC = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-64px)] bg-gray-50">
+    <div className="flex h-[calc(100vh-64px)] bg-background">
       {/* Sidebar Toggle (Mobile/Collapsed) */}
       {!isSidebarOpen && (
         <div className="absolute left-4 top-4 z-10">
-            <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => setIsSidebarOpen(true)}
-                className="bg-white shadow-md hover:bg-gray-100"
-            >
-                <PanelLeftOpen size={20} className="text-gray-600" />
-            </Button>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => setIsSidebarOpen(true)}
+            className="bg-background shadow-md hover:bg-accent"
+          >
+            <PanelLeftOpen size={20} className="text-muted-foreground" />
+          </Button>
         </div>
       )}
 
       {/* Sidebar */}
       {isSidebarOpen && (
-        <div className="w-80 border-r border-gray-200 bg-white flex flex-col h-full transition-all duration-300">
-            <div className="p-4 border-b border-gray-100 flex justify-between items-center">
-                <h2 className="text-lg font-medium flex items-center gap-2 text-gray-900">
-                    <Bot size={20} className="text-indigo-600" />
-                    History
-                </h2>
-                <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(false)}>
-                    <PanelLeftClose size={20} className="text-gray-500" />
-                </Button>
-            </div>
-            
-            <div className="p-4">
-                <Button 
-                    variant="secondary" 
-                    className="w-full justify-start gap-2 cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-900" 
-                    onClick={handleNewChat}
-                >
-                    <Plus size={18} />
-                    New Chat
-                </Button>
-            </div>
+        <div className="w-80 border-r border-border bg-card flex flex-col h-full transition-all duration-300">
+          <div className="p-4 border-b border-border flex justify-between items-center">
+            <h2 className="text-lg font-medium flex items-center gap-2 text-foreground">
+              <Bot size={20} className="text-primary" />
+              History
+            </h2>
+            <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(false)}>
+              <PanelLeftClose size={20} className="text-muted-foreground" />
+            </Button>
+          </div>
+          
+          <div className="p-4">
+            <Button 
+              variant="secondary" 
+              className="w-full justify-start gap-2 cursor-pointer bg-secondary hover:bg-secondary/80 text-secondary-foreground" 
+              onClick={handleNewChat}
+            >
+              <Plus size={18} />
+              New Chat
+            </Button>
+          </div>
 
-            <ScrollArea className="flex-1 px-3">
-                <div className="flex flex-col gap-2 pb-4">
-                    {conversations.map((conv) => (
-                        <div 
-                            key={conv.id}
-                            className={cn(
-                                "group flex items-center gap-3 p-3 rounded-md cursor-pointer transition-colors text-sm",
-                                activeConversationId === conv.id 
-                                    ? "bg-indigo-50 text-indigo-900" 
-                                    : "hover:bg-gray-100 text-gray-700"
-                            )}
-                            onClick={() => setActiveConversationId(conv.id)}
-                        >
-                            <MessageSquare size={16} className={activeConversationId === conv.id ? "text-indigo-500" : "text-gray-400"} />
-                            <span className="flex-1 truncate font-medium">
-                                {conv.title || 'New Conversation'}
-                            </span>
-                            <button 
-                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded text-gray-500 transition-opacity"
-                                onClick={(e) => handleDeleteConversation(e, conv.id)}
-                            >
-                                <Trash2 size={14} />
-                            </button>
-                        </div>
-                    ))}
-                    {conversations.length === 0 && (
-                        <p className="py-8 text-center text-sm italic text-gray-500">
-                            No conversations yet
-                        </p>
-                    )}
+          <ScrollArea className="flex-1 px-3">
+            <div className="flex flex-col gap-2 pb-4">
+              {conversations.map((conv) => (
+                <div 
+                  key={conv.id}
+                  className={cn(
+                    "group flex items-center gap-3 p-3 rounded-md cursor-pointer transition-colors text-sm",
+                    activeConversationId === conv.id 
+                      ? "bg-accent text-accent-foreground" 
+                      : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                  )}
+                  onClick={() => setActiveConversationId(conv.id)}
+                >
+                  <MessageSquare size={16} className={activeConversationId === conv.id ? "text-primary" : "text-muted-foreground"} />
+                  <span className="flex-1 truncate font-medium">
+                    {conv.title || 'New Conversation'}
+                  </span>
+                  <button 
+                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-background rounded text-muted-foreground transition-opacity"
+                    onClick={(e) => handleDeleteConversation(e, conv.id)}
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
-            </ScrollArea>
+              ))}
+              {conversations.length === 0 && (
+                <p className="py-8 text-center text-sm italic text-muted-foreground">
+                  No conversations yet
+                </p>
+              )}
+            </div>
+          </ScrollArea>
         </div>
       )}
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-         <Conversation className="flex-1 w-full">
+         <Conversation className="flex-1 w-full bg-background">
             <ConversationContent className="max-w-4xl mx-auto w-full p-4 md:p-8">
                 {messages.length === 0 ? (
                     <ConversationEmptyState 
                         title="Welcome to AI Assistant"
                         description="Start a new conversation to get help with your project."
-                        icon={<Bot size={48} className="text-indigo-200" />}
+                        icon={<Bot size={48} className="text-primary/50" />}
                     />
                 ) : (
                     messages.map((msg) => {
@@ -272,8 +272,8 @@ const AiChatPage: React.FC = () => {
                                 <MessageContent className={cn(
                                     "px-4 py-3 rounded-2xl shadow-sm max-w-[85%] text-sm",
                                     role === 'user' 
-                                        ? "!bg-indigo-600 !text-white [&_p]:!text-white [&_pre]:!bg-indigo-700 [&_code]:!bg-indigo-700 [&_code]:!text-white [&_li]:!text-white [&_strong]:!text-white" 
-                                        : "!bg-white border !border-gray-200 !text-gray-900 [&_p]:!text-gray-900 [&_li]:!text-gray-900 [&_strong]:!text-gray-900 [&_pre]:!bg-gray-100 [&_code]:!bg-gray-100 [&_code]:!text-gray-900"
+                                        ? "bg-primary text-primary-foreground [&_p]:text-primary-foreground [&_pre]:bg-primary-foreground/10 [&_code]:bg-primary-foreground/10 [&_code]:text-primary-foreground" 
+                                        : "bg-muted border border-border text-foreground [&_p]:text-foreground [&_li]:text-foreground [&_strong]:text-foreground [&_pre]:bg-background [&_code]:bg-background [&_code]:text-foreground"
                                 )}>
                                     <MessageResponse>{textContent}</MessageResponse>
                                 </MessageContent>
@@ -284,15 +284,15 @@ const AiChatPage: React.FC = () => {
             </ConversationContent>
          </Conversation>
             
-         <div className="p-4 border-t bg-white w-full mt-auto shrink-0 z-10">
+         <div className="p-4 border-t border-border bg-background w-full mt-auto shrink-0 z-10">
             <div className="max-w-4xl mx-auto">
                 <PromptInput 
                     onSubmit={handleSendMessage} 
-                    className="border rounded-2xl bg-white shadow-sm hover:shadow-md transition-shadow focus-within:ring-2 focus-within:ring-indigo-100 focus-within:border-indigo-400"
+                    className="border border-border rounded-2xl bg-card shadow-sm hover:shadow-md transition-shadow focus-within:ring-2 focus-within:ring-ring focus-within:border-primary"
                 >
                     <PromptInputTextarea 
                         placeholder="Ask anything about your project context..." 
-                        className="min-h-[60px] max-h-[200px]"
+                        className="min-h-[60px] max-h-[200px] bg-transparent text-foreground placeholder:text-muted-foreground"
                     />
                     <PromptInputFooter>
                         <PromptInputTools>

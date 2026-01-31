@@ -3,8 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getTechnicalTask } from '../services/technicalTaskService';
 import { TechnicalTask } from '../types/technicalTask';
-import { TechnicalTaskEditor } from '../components/TechnicalTask/TechnicalTaskEditor';
-import { Box } from '@radix-ui/themes';
+import TechnicalTaskEditor from '../components/TechnicalTask/TechnicalTaskEditor';
 
 export const TechnicalTaskDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -47,8 +46,8 @@ export const TechnicalTaskDetail: React.FC = () => {
     if (!task) return null;
 
     return (
-        <Box className="h-full bg-white">
+        <div className="h-full bg-background">
             <TechnicalTaskEditor task={task} />
-        </Box>
+        </div>
     );
 };

@@ -1,8 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, Flex, Text, TextArea, Button, Box } from '@radix-ui/themes';
 import { AiRecommendationButton } from '../Common/AiRecommendationButton';
 import { generateTechnicalArchitectureSuggestion } from '../../services/anthropic';
 import { TechnicalArchitecture } from '../../types';
+
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 interface FieldEditModalProps {
   isOpen: boolean;
@@ -71,20 +82,22 @@ const FieldEditModal: React.FC<FieldEditModalProps> = ({
   };
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={onClose}>
-      <Dialog.Content style={{ maxWidth: 700 }}>
-        <Dialog.Title>{title}</Dialog.Title>
-        <Dialog.Description size="2" mb="4">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[700px]">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>
             {description || "Provide details for this architectural decision."}
-        </Dialog.Description>
+          </DialogDescription>
+        </DialogHeader>
 
-        <Flex direction="column" gap="3">
-          <Box>
-            <Flex justify="between" align="center" mb="1">
-              <Text as="label" size="2" weight="bold">
+        <div className="flex flex-col gap-3">
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <Label className="font-bold">
                 {fieldType === 'list' ? 'Items (one per line)' : 
                  fieldType === 'map' ? 'Key: Value pairs (one per line)' : 'Content'}
-              </Text>
+              </Label>
               <AiRecommendationButton
                 onGenerate={(apiKey, globalContext) => generateTechnicalArchitectureSuggestion(
                   apiKey,
@@ -103,8 +116,8 @@ const FieldEditModal: React.FC<FieldEditModalProps> = ({
                 label="AI Recommendation"
                 color="purple"
               />
-            </Flex>
-            <TextArea 
+            </div>
+            <Textarea 
               value={textValue} 
               onChange={(e) => setTextValue(e.target.value)} 
               placeholder={
@@ -113,22 +126,21 @@ const FieldEditModal: React.FC<FieldEditModalProps> = ({
                   "Type your content here..."
               }
               rows={12}
-              className="mt-1 font-mono text-sm"
-              style={{ resize: 'vertical' }}
+              className="mt-1 font-mono text-sm resize-y"
             />
-          </Box>
+          </div>
+        </div>
 
-          <Flex gap="3" justify="end" mt="4">
-            <Button variant="soft" color="gray" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} color="purple">
-              Save Changes
-            </Button>
-          </Flex>
-        </Flex>
-      </Dialog.Content>
-    </Dialog.Root>
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} className="bg-purple-600 hover:bg-purple-700 text-white">
+            Save Changes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

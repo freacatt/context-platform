@@ -1,10 +1,30 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Box, Flex, Heading, TextField, Text, Dialog, Button, Grid, Card, IconButton, DropdownMenu } from '@radix-ui/themes';
 import { Search, Plus, MoreVertical, Trash2, ArrowRight, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Diagram } from '../types';
 import { getUserDiagrams, createDiagram, deleteDiagram } from '../services/diagramService';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const DiagramsPage: React.FC = () => {
   const { user } = useAuth();
@@ -71,120 +91,118 @@ const DiagramsPage: React.FC = () => {
     });
 
   return (
-    <Box className="min-h-screen bg-gray-50">
-      <Container size="4" className="p-4">
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto p-4">
         {/* Header Section */}
-        <Flex justify="between" align="center" className="mb-8 mt-6">
-          <Heading size="6" className="text-gray-900">My Diagrams</Heading>
+        <div className="flex justify-between items-center mb-8 mt-6">
+          <h1 className="text-2xl font-bold text-foreground">My Diagrams</h1>
           
-          <Dialog.Root open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-            <Dialog.Trigger>
-              <Button size="2" className="cursor-pointer">
-                <Plus size={16} /> New Diagram
+          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="cursor-pointer">
+                <Plus size={16} className="mr-2" /> New Diagram
               </Button>
-            </Dialog.Trigger>
+            </DialogTrigger>
 
-            <Dialog.Content style={{ maxWidth: 450 }}>
-              <Dialog.Title>Create New Diagram</Dialog.Title>
-              <Dialog.Description size="2" mb="4">
-                Start a new visual diagram.
-              </Dialog.Description>
+            <DialogContent className="sm:max-w-[450px]">
+              <DialogHeader>
+                <DialogTitle>Create New Diagram</DialogTitle>
+                <DialogDescription>
+                  Start a new visual diagram.
+                </DialogDescription>
+              </DialogHeader>
 
-              <Flex direction="column" gap="3">
-                <label>
-                  <Text as="div" size="2" mb="1" weight="bold">
-                    Title <Text color="red">*</Text>
-                  </Text>
-                  <TextField.Root
+              <div className="flex flex-col gap-4 py-4">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="diagram-title">Title <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="diagram-title"
                     placeholder="e.g., System Flow"
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
                   />
-                </label>
-              </Flex>
+                </div>
+              </div>
 
-              <Flex gap="3" mt="4" justify="end">
-                <Dialog.Close>
-                  <Button variant="soft" color="gray" className="cursor-pointer">
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline" className="cursor-pointer">
                     Cancel
                   </Button>
-                </Dialog.Close>
+                </DialogClose>
                 <Button onClick={handleCreate} disabled={!newTitle.trim() || isCreating} className="cursor-pointer">
                   {isCreating ? 'Creating...' : 'Create Diagram'}
                 </Button>
-              </Flex>
-            </Dialog.Content>
-          </Dialog.Root>
-        </Flex>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
 
         {/* Filter Bar */}
-        <Flex gap="4" className="mb-6">
-          <Box className="flex-grow">
-            <TextField.Root 
+        <div className="flex gap-4 mb-6">
+          <div className="flex-grow max-w-md relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input 
               placeholder="Search diagrams..." 
-              size="2"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-            >
-              <TextField.Slot>
-                <Search size={16} />
-              </TextField.Slot>
-            </TextField.Root>
-          </Box>
-        </Flex>
+              className="pl-8"
+            />
+          </div>
+        </div>
 
         {/* List Section */}
         {loading ? (
-            <Text>Loading...</Text>
+            <p>Loading...</p>
         ) : filteredDiagrams.length === 0 ? (
-            <Flex direction="column" align="center" justify="center" className="py-20 text-gray-500 bg-white rounded-lg border border-dashed border-gray-300">
-                <Text size="4" weight="bold" className="mb-2">No diagrams found</Text>
-                <Text size="2">Create your first diagram to get started!</Text>
-            </Flex>
+            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground bg-card rounded-lg border border-dashed border-border">
+                <h3 className="text-lg font-bold mb-2">No diagrams found</h3>
+                <p className="text-sm">Create your first diagram to get started!</p>
+            </div>
         ) : (
-            <Grid columns={{ initial: '1', sm: '2', md: '3' }} gap="4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {filteredDiagrams.map(diagram => (
-                    <Card key={diagram.id} className="cursor-pointer relative group h-full flex flex-col bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all p-4" onClick={() => navigate(`/diagram/${diagram.id}`)}>
-                        <Flex direction="column" gap="3" className="h-full">
-                            <Flex justify="between" align="start">
-                                <Box className="flex-1 min-w-0 pr-2">
-                                    <Text size="5" weight="bold" className="block mb-1 truncate text-gray-900">
+                    <Card key={diagram.id} className="cursor-pointer relative group h-full flex flex-col hover:shadow-md transition-all" onClick={() => navigate(`/diagram/${diagram.id}`)}>
+                        <CardContent className="p-4 flex flex-col gap-3 h-full">
+                            <div className="flex justify-between items-start">
+                                <div className="flex-1 min-w-0 pr-2">
+                                    <h3 className="font-bold text-lg mb-1 truncate text-foreground">
                                         {diagram.title}
-                                    </Text>
-                                    <Flex align="center" gap="1">
-                                        <Clock size={12} className="text-gray-400" />
-                                        <Text size="1" color="gray">
+                                    </h3>
+                                    <div className="flex items-center gap-1">
+                                        <Clock size={12} className="text-muted-foreground" />
+                                        <span className="text-xs text-muted-foreground">
                                             {diagram.lastModified ? new Date(diagram.lastModified).toLocaleDateString() : 'Just now'}
-                                        </Text>
-                                    </Flex>
-                                </Box>
-                                <Box onClick={(e) => e.stopPropagation()}>
-                                    <DropdownMenu.Root>
-                                        <DropdownMenu.Trigger>
-                                            <IconButton variant="ghost" color="gray" size="1" className="cursor-pointer">
+                                        </span>
+                                    </div>
+                                </div>
+                                <div onClick={(e) => e.stopPropagation()}>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer">
                                                 <MoreVertical size={16} />
-                                            </IconButton>
-                                        </DropdownMenu.Trigger>
-                                        <DropdownMenu.Content>
-                                            <DropdownMenu.Item color="red" onClick={() => handleDelete(diagram.id)} className="cursor-pointer">
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onClick={() => handleDelete(diagram.id)} className="text-red-600 focus:text-red-600 cursor-pointer">
                                                 <Trash2 size={14} className="mr-2" /> Delete
-                                            </DropdownMenu.Item>
-                                        </DropdownMenu.Content>
-                                    </DropdownMenu.Root>
-                                </Box>
-                            </Flex>
-                            <Flex justify="end" align="center" className="mt-auto pt-2">
-                                <Button variant="soft" size="1" className="cursor-pointer">
-                                    Open <ArrowRight size={14} />
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
+                            </div>
+                            <div className="flex justify-end items-center mt-auto pt-2">
+                                <Button variant="ghost" size="sm" className="cursor-pointer">
+                                    Open <ArrowRight size={14} className="ml-2" />
                                 </Button>
-                            </Flex>
-                        </Flex>
+                            </div>
+                        </CardContent>
                     </Card>
                 ))}
-            </Grid>
+            </div>
         )}
-      </Container>
-    </Box>
+      </div>
+    </div>
   );
 };
 

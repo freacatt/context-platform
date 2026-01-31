@@ -1,5 +1,4 @@
 import React from 'react';
-import { Flex, Text } from '@radix-ui/themes';
 import { LoginForm } from "@/components/login-form";
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
@@ -12,7 +11,7 @@ const LoginPage: React.FC = () => {
   if (user) return <Navigate to="/dashboard" />;
 
   return (
-    <Flex direction="column" align="center" justify="center" style={{ height: '100vh' }} gap="4" className="bg-slate-50">
+    <div className="flex flex-col items-center justify-center h-screen gap-4 bg-slate-50 dark:bg-background">
        <div className="flex justify-center mb-8">
          <HyperText
            className="text-4xl font-bold text-black dark:text-white"
@@ -21,15 +20,15 @@ const LoginPage: React.FC = () => {
        </div>
       
       {error && (
-        <Text color="red" size="2" className="mb-2 bg-red-100 p-3 rounded border border-red-200">
+        <p className="mb-2 bg-red-100 dark:bg-red-900/30 p-3 rounded border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm">
           {error instanceof Error ? error.message : String(error)}
-        </Text>
+        </p>
       )}
       
       <div className="w-full max-w-sm px-4">
         <LoginForm />
       </div>
-    </Flex>
+    </div>
   );
 };
 

@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Container, Box, Flex, Heading, Text, Card, Button, IconButton } from '@radix-ui/themes';
 import { Folder, ArrowLeft, FileText } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getDirectory, getDirectoryDocuments } from '../services/directoryService';
 import { ContextDocument, Directory } from '../types';
 
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+
 const DirectoryDocumentsPage: React.FC = () => {
-  const { directoryId } = useParams<{ directoryId: string }>();
+  const { id: directoryId } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -33,64 +35,62 @@ const DirectoryDocumentsPage: React.FC = () => {
   }, [user, directoryId]);
 
   return (
-    <Box className="h-full flex-grow bg-white">
-      <Container size="4" className="p-4">
-        <Flex justify="between" align="center" className="mb-8 mt-6">
-          <Flex align="center" gap="3">
-            <IconButton variant="ghost" onClick={() => navigate('/context-documents')} className="cursor-pointer">
+    <div className="h-full flex-grow bg-background">
+      <div className="container mx-auto p-4">
+        <div className="flex justify-between items-center mb-8 mt-6">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/context-documents')} className="cursor-pointer">
               <ArrowLeft size={18} />
-            </IconButton>
-            <Heading size="6" className="text-gray-800">
-              <Flex align="center" gap="2">
-                <Folder size={20} className="text-indigo-600" />
+            </Button>
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                <Folder size={20} className="text-indigo-600 dark:text-indigo-400" />
                 {directory ? directory.title : 'Directory'}
-              </Flex>
-            </Heading>
-          </Flex>
-        </Flex>
+            </h1>
+          </div>
+        </div>
 
         {loading ? (
-          <Text>Loading…</Text>
+          <p>Loading…</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {documents.map(doc => (
-              <Card key={doc.id} className="hover:shadow-md transition-shadow border border-gray-200 flex flex-col">
-                <Link to={`/context-document/${doc.id}`} className="block flex-grow">
-                  <Flex direction="column" height="100%" justify="between" p="3">
-                    <Box>
-                      <Flex align="center" gap="2" mb="2">
+              <Card key={doc.id} className="hover:shadow-md transition-shadow flex flex-col h-full">
+                <Link to={`/context-document/${doc.id}`} className="block flex-grow p-0">
+                  <CardContent className="p-4 flex flex-col h-full">
+                    <div className="flex-grow">
+                      <div className="flex items-center gap-2 mb-2">
                         <FileText size={20} className="text-amber-500" />
-                        <Heading size="3">{doc.title}</Heading>
-                      </Flex>
-                      <Text size="2" color="gray" className="line-clamp-3">
+                        <h3 className="font-semibold text-lg truncate">{doc.title}</h3>
+                      </div>
+                      <p className="text-sm text-muted-foreground line-clamp-3">
                         {doc.content ? doc.content.substring(0, 100) + '...' : 'No content yet.'}
-                      </Text>
-                    </Box>
-                  </Flex>
+                      </p>
+                    </div>
+                  </CardContent>
                 </Link>
-                <Flex justify="between" align="center" p="3" pt="0" className="border-t border-gray-100 mt-2 pt-2">
-                  <Text size="1" color="gray">
+                <div className="flex justify-between items-center p-3 pt-0 border-t mt-auto pt-2">
+                  <span className="text-xs text-muted-foreground">
                     Last modified: {(() => {
                       if (!doc.lastModified) return '';
                       const date = doc.lastModified instanceof Date ? doc.lastModified : new Date(doc.lastModified);
                       return date.toLocaleDateString();
                     })()}
-                  </Text>
-                  <Button variant="soft" color="gray" className="cursor-pointer" onClick={() => navigate(`/context-document/${doc.id}`)}>
+                  </span>
+                  <Button variant="secondary" size="sm" className="cursor-pointer" onClick={() => navigate(`/context-document/${doc.id}`)}>
                     Open
                   </Button>
-                </Flex>
+                </div>
               </Card>
             ))}
             {documents.length === 0 && (
-              <Box className="col-span-full py-12 text-center">
-                <Text color="gray">No documents in this directory.</Text>
-              </Box>
+              <div className="col-span-full py-12 text-center">
+                <p className="text-muted-foreground">No documents in this directory.</p>
+              </div>
             )}
           </div>
         )}
-      </Container>
-    </Box>
+      </div>
+    </div>
   );
 };
 

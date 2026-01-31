@@ -3,7 +3,6 @@ import { useParams } from 'react-router-dom';
 import { UiUxArchitectureEditor } from '../components/UiUxArchitecture/UiUxArchitectureEditor';
 import { getUiUxArchitecture } from '../services/uiUxArchitectureService';
 import { UiUxArchitecture } from '../types/uiUxArchitecture';
-import { Flex, Text, Spinner } from '@radix-ui/themes';
 
 export const UiUxArchitectureEditorPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -28,17 +27,17 @@ export const UiUxArchitectureEditorPage: React.FC = () => {
 
   if (loading) {
     return (
-        <Flex align="center" justify="center" style={{ height: '100vh' }}>
-          <Spinner size="3" />
-        </Flex>
+        <div className="flex items-center justify-center h-screen bg-background">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
     );
   }
 
   if (!architecture) {
     return (
-        <Flex align="center" justify="center" style={{ height: '100vh' }}>
-          <Text>Architecture not found.</Text>
-        </Flex>
+        <div className="flex items-center justify-center h-screen bg-background">
+          <p className="text-foreground">Architecture not found.</p>
+        </div>
     );
   }
 

@@ -13,7 +13,17 @@ import ReactFlow, {
   ReactFlowProvider
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Button, Flex, Heading, Text, Box, TextField, IconButton, Dialog } from '@radix-ui/themes';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogClose
+} from "@/components/ui/dialog";
 import { Plus, Save, Download, ArrowLeft, Pencil, Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
@@ -450,58 +460,56 @@ const UiUxArchitectureEditorContent: React.FC<UiUxArchitectureEditorProps> = ({ 
           <Controls />
           
           <Panel position="top-left">
-            <Flex gap="3" align="center">
-                <Button variant="soft" onClick={() => navigate('/ui-ux-architectures')}>
-                    <ArrowLeft size={16} /> Back
+            <div className="flex gap-3 items-center bg-background/80 backdrop-blur-sm p-2 rounded-lg border border-border shadow-sm">
+                <Button variant="ghost" onClick={() => navigate('/ui-ux-architectures')}>
+                    <ArrowLeft size={16} className="mr-2" /> Back
                 </Button>
                 
                 {editingTitle ? (
-                  <Flex gap="2" align="center">
-                    <TextField.Root 
+                  <div className="flex gap-2 items-center">
+                    <Input 
                       value={tempTitle} 
                       onChange={e => setTempTitle(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && handleTitleSave()}
-                      style={{ height: 32 }}
+                      className="h-8"
                     />
-                    <IconButton size="1" color="green" variant="soft" onClick={handleTitleSave}>
+                    <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600" onClick={handleTitleSave}>
                       <Check size={14} />
-                    </IconButton>
-                    <IconButton size="1" color="red" variant="soft" onClick={() => { setTempTitle(architecture.title); setEditingTitle(false); }}>
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600" onClick={() => { setTempTitle(architecture.title); setEditingTitle(false); }}>
                       <X size={14} />
-                    </IconButton>
-                  </Flex>
+                    </Button>
+                  </div>
                 ) : (
-                  <Flex gap="2" align="center" className="group">
-                    <Heading size="4">{architecture.title}</Heading>
-                    <IconButton 
-                      size="1" 
+                  <div className="flex gap-2 items-center group cursor-pointer" onClick={() => { setTempTitle(architecture.title); setEditingTitle(true); }}>
+                    <h2 className="text-lg font-bold">{architecture.title}</h2>
+                    <Button 
+                      size="icon" 
                       variant="ghost" 
-                      color="gray" 
-                      onClick={() => { setTempTitle(architecture.title); setEditingTitle(true); }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <Pencil size={12} />
-                    </IconButton>
-                  </Flex>
+                    </Button>
+                  </div>
                 )}
-            </Flex>
+            </div>
           </Panel>
 
           <Panel position="top-right">
-            <Flex gap="2">
-                <Button onClick={createNewComponent} color="orange">
-                    <Plus size={16} /> New Component
+            <div className="flex gap-2 bg-background/80 backdrop-blur-sm p-2 rounded-lg border border-border shadow-sm">
+                <Button onClick={createNewComponent} className="bg-orange-500 hover:bg-orange-600">
+                    <Plus size={16} className="mr-2" /> New Component
                 </Button>
-                <Button onClick={createNewPage} color="green">
-                    <Plus size={16} /> New Page
+                <Button onClick={createNewPage} className="bg-green-600 hover:bg-green-700">
+                    <Plus size={16} className="mr-2" /> New Page
                 </Button>
-                <Button onClick={handleExport} variant="soft">
-                    <Download size={16} /> Export MD
+                <Button onClick={handleExport} variant="outline">
+                    <Download size={16} className="mr-2" /> Export MD
                 </Button>
                 <Button onClick={handleSave} disabled={saving}>
-                    <Save size={16} /> {saving ? 'Saving...' : 'Save'}
+                    <Save size={16} className="mr-2" /> {saving ? 'Saving...' : 'Save'}
                 </Button>
-            </Flex>
+            </div>
           </Panel>
         </ReactFlow>
 
@@ -535,17 +543,19 @@ const UiUxArchitectureEditorContent: React.FC<UiUxArchitectureEditorProps> = ({ 
             />
         )}
 
-        <Dialog.Root open={!!edgeToDelete} onOpenChange={(open) => !open && setEdgeToDelete(null)}>
-            <Dialog.Content style={{ maxWidth: 450 }}>
-                <Dialog.Title>Remove Connection</Dialog.Title>
-                <Dialog.Description size="2" mb="4">
-                    Do you want to remove this connection?
-                </Dialog.Description>
-                <Flex gap="3" mt="4" justify="end">
-                    <Dialog.Close>
-                        <Button variant="soft" color="gray">Cancel</Button>
-                    </Dialog.Close>
-                    <Button color="red" onClick={() => {
+        <Dialog open={!!edgeToDelete} onOpenChange={(open) => !open && setEdgeToDelete(null)}>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Remove Connection</DialogTitle>
+                    <DialogDescription>
+                        Do you want to remove this connection?
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button variant="destructive" onClick={() => {
                         if (edgeToDelete) {
                             setEdges((edges) => edges.filter((e) => e.id !== edgeToDelete.id));
                             onEdgesDelete([edgeToDelete]);
@@ -554,9 +564,9 @@ const UiUxArchitectureEditorContent: React.FC<UiUxArchitectureEditorProps> = ({ 
                     }}>
                         Remove
                     </Button>
-                </Flex>
-            </Dialog.Content>
-        </Dialog.Root>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 };

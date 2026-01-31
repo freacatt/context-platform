@@ -1,10 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Box, Flex, Heading, TextField, Text, Button, Card, IconButton, Dialog } from '@radix-ui/themes';
 import { Search, Plus, Server, Trash2, Edit2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserTechnicalArchitectures, createTechnicalArchitecture, deleteTechnicalArchitecture, renameTechnicalArchitecture } from '../services/technicalArchitectureService';
 import { useNavigate } from 'react-router-dom';
 import { TechnicalArchitecture } from '../types';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 export const TechnicalArchitecturesPage: React.FC = () => {
   const { user } = useAuth();
@@ -93,140 +107,141 @@ export const TechnicalArchitecturesPage: React.FC = () => {
   );
 
   return (
-    <Box className="h-full bg-white">
-      <Container size="4" className="p-4">
+    <div className="h-full bg-background">
+      <div className="container mx-auto p-4">
         {/* Header Section */}
-        <Flex justify="between" align="center" className="mb-8 mt-6">
-          <Box>
-            <Heading size="6" className="text-gray-800">Technical Architectures</Heading>
-            <Text color="gray" size="2">Define and manage your system architecture standards.</Text>
-          </Box>
+        <div className="flex justify-between items-center mb-8 mt-6">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Technical Architectures</h1>
+            <p className="text-muted-foreground text-sm mt-1">Define and manage your system architecture standards.</p>
+          </div>
           
-          <Dialog.Root open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <Dialog.Trigger>
-                <Button size="2" variant="solid" color="purple" className="cursor-pointer">
-                    <Plus size={16} /> New Architecture
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+                <Button className="cursor-pointer bg-purple-600 hover:bg-purple-700 text-white">
+                    <Plus size={16} className="mr-2" /> New Architecture
                 </Button>
-            </Dialog.Trigger>
-            <Dialog.Content style={{ maxWidth: 450 }}>
-                <Dialog.Title>Create New Technical Architecture</Dialog.Title>
-                <Dialog.Description size="2" mb="4">
-                    Enter a title for your new architecture definition.
-                </Dialog.Description>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[450px]">
+                <DialogHeader>
+                    <DialogTitle>Create New Technical Architecture</DialogTitle>
+                    <DialogDescription>
+                        Enter a title for your new architecture definition.
+                    </DialogDescription>
+                </DialogHeader>
 
-                <Flex direction="column" gap="3">
-                    <label>
-                        <Text as="div" size="2" mb="1" weight="bold">
-                            Title
-                        </Text>
-                        <TextField.Root
+                <div className="flex flex-col gap-4 py-4">
+                    <div className="flex flex-col gap-2">
+                        <Label htmlFor="create-arch-title">Title</Label>
+                        <Input
+                            id="create-arch-title"
                             placeholder="e.g. Microservices Architecture"
                             value={newTitle}
                             onChange={(e) => setNewTitle(e.target.value)}
                         />
-                    </label>
-                </Flex>
+                    </div>
+                </div>
 
-                <Flex gap="3" mt="4" justify="end">
-                    <Dialog.Close>
-                        <Button variant="soft" color="gray">
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline">
                             Cancel
                         </Button>
-                    </Dialog.Close>
-                    <Button onClick={handleCreate} disabled={!newTitle.trim() || isCreating} color="purple">
+                    </DialogClose>
+                    <Button onClick={handleCreate} disabled={!newTitle.trim() || isCreating} className="bg-purple-600 hover:bg-purple-700 text-white">
                         {isCreating ? 'Creating...' : 'Create'}
                     </Button>
-                </Flex>
-            </Dialog.Content>
-          </Dialog.Root>
-        </Flex>
+                </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
 
         {/* Filter Bar */}
-        <Flex gap="4" className="mb-6">
-          <Box className="flex-grow max-w-md">
-            <TextField.Root 
+        <div className="flex gap-4 mb-6">
+          <div className="flex-grow max-w-md relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input 
               placeholder="Search architectures..." 
-              size="2"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-            >
-              <TextField.Slot>
-                <Search size={16} />
-              </TextField.Slot>
-            </TextField.Root>
-          </Box>
-        </Flex>
+              className="pl-8"
+            />
+          </div>
+        </div>
 
         {/* List Section */}
         {loading ? (
-            <Flex justify="center" py="8"><Text>Loading...</Text></Flex>
+            <div className="flex justify-center py-8"><p>Loading...</p></div>
         ) : filteredArchitectures.length === 0 ? (
-            <Flex direction="column" align="center" justify="center" className="py-12 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50">
-                <Server size={48} className="text-gray-300 mb-4" />
-                <Heading size="4" color="gray">No Architectures Yet</Heading>
-                <Text color="gray" className="mb-4">Start by creating your first architecture definition.</Text>
-                <Button variant="outline" color="purple" onClick={() => setIsCreateOpen(true)}>
+            <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-border rounded-lg bg-muted/20">
+                <Server size={48} className="text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold text-muted-foreground mb-2">No Architectures Yet</h3>
+                <p className="text-muted-foreground mb-4">Start by creating your first architecture definition.</p>
+                <Button variant="outline" className="border-purple-600 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30" onClick={() => setIsCreateOpen(true)}>
                     Create New Architecture
                 </Button>
-            </Flex>
+            </div>
         ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredArchitectures.map(arch => (
                     <Card key={arch.id} className="hover:shadow-md transition-shadow border-l-4 border-l-purple-500 flex flex-col">
-                        <Box className="flex-grow cursor-pointer p-3" onClick={() => navigate(`/technical-architecture/${arch.id}`)}>
-                            <Flex direction="column" gap="2">
-                                <Heading size="3" className="truncate">{arch.title}</Heading>
-                                <Text size="1" color="gray" className="line-clamp-2">
-                                    {arch.metadata?.description || "No description provided"}
-                                </Text>
-                            </Flex>
-                        </Box>
-                        <Flex justify="end" p="2" gap="2" className="border-t border-gray-100">
-                             <IconButton size="1" variant="ghost" color="gray" onClick={(e) => handleRename(arch.id, arch.title, e)} className="cursor-pointer">
+                        <div className="flex-grow cursor-pointer p-0" onClick={() => navigate(`/technical-architecture/${arch.id}`)}>
+                            <CardContent className="p-3">
+                                <div className="flex flex-col gap-2">
+                                    <h3 className="font-semibold text-lg truncate">{arch.title}</h3>
+                                    <p className="text-sm text-muted-foreground line-clamp-2">
+                                        {arch.metadata?.description || "No description provided"}
+                                    </p>
+                                </div>
+                            </CardContent>
+                        </div>
+                        <div className="flex justify-end p-2 gap-2 border-t mt-auto">
+                             <Button size="icon" variant="ghost" onClick={(e) => handleRename(arch.id, arch.title, e)} className="h-8 w-8 cursor-pointer hover:bg-muted">
                                 <Edit2 size={14} />
-                            </IconButton>
-                             <IconButton size="1" variant="ghost" color="red" onClick={(e) => handleDelete(arch.id, e)} className="cursor-pointer">
+                            </Button>
+                             <Button size="icon" variant="ghost" onClick={(e) => handleDelete(arch.id, e)} className="h-8 w-8 cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500">
                                 <Trash2 size={14} />
-                            </IconButton>
-                        </Flex>
+                            </Button>
+                        </div>
                     </Card>
                 ))}
             </div>
         )}
 
-        <Dialog.Root open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
-          <Dialog.Content style={{ maxWidth: 450 }}>
-            <Dialog.Title>Rename Architecture</Dialog.Title>
-            <Dialog.Description size="2" mb="4">
-              Enter a new title for this architecture.
-            </Dialog.Description>
+        <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+          <DialogContent className="sm:max-w-[450px]">
+            <DialogHeader>
+              <DialogTitle>Rename Architecture</DialogTitle>
+              <DialogDescription>
+                Enter a new title for this architecture.
+              </DialogDescription>
+            </DialogHeader>
 
-            <Flex direction="column" gap="3">
-              <label>
-                <Text as="div" size="2" mb="1" weight="bold">
-                  Title
-                </Text>
-                <TextField.Root
+            <div className="flex flex-col gap-4 py-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="rename-arch-title">Title</Label>
+                <Input
+                  id="rename-arch-title"
                   value={renameNewTitle}
                   onChange={(e) => setRenameNewTitle(e.target.value)}
                   placeholder="Enter new title"
                 />
-              </label>
-            </Flex>
+              </div>
+            </div>
 
-            <Flex gap="3" mt="4" justify="end">
-              <Dialog.Close>
-                <Button variant="soft" color="gray">
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">
                   Cancel
                 </Button>
-              </Dialog.Close>
+              </DialogClose>
               <Button onClick={confirmRename}>
                 Save
               </Button>
-            </Flex>
-          </Dialog.Content>
-        </Dialog.Root>
-      </Container>
-    </Box>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </div>
   );
 };

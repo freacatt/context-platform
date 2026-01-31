@@ -18,7 +18,7 @@ const PageNode = memo(({ data }: NodeProps<PageNodeData>) => {
       
       {/* TOP */}
       <div className="absolute -top-[18px] left-1/2 transform -translate-x-1/2 z-50 pointer-events-none">
-         <div className="bg-green-600 rounded-t-full w-[40px] h-[18px] flex items-center justify-center shadow-md border-2 border-white dark:border-gray-800">
+         <div className="bg-green-600 rounded-t-full w-[40px] h-[18px] flex items-center justify-center shadow-md border-2 border-white dark:border-zinc-900">
              <Plus size={14} color="white" className="mb-0.5" />
          </div>
       </div>
@@ -37,7 +37,7 @@ const PageNode = memo(({ data }: NodeProps<PageNodeData>) => {
 
       {/* RIGHT */}
       <div className="absolute -right-[18px] top-1/2 transform -translate-y-1/2 z-50 pointer-events-none">
-         <div className="bg-green-600 rounded-r-full w-[18px] h-[40px] flex items-center justify-center shadow-md border-2 border-white dark:border-gray-800">
+         <div className="bg-green-600 rounded-r-full w-[18px] h-[40px] flex items-center justify-center shadow-md border-2 border-white dark:border-zinc-900">
              <Plus size={14} color="white" className="ml-0.5" />
          </div>
       </div>
@@ -56,7 +56,7 @@ const PageNode = memo(({ data }: NodeProps<PageNodeData>) => {
 
       {/* BOTTOM */}
       <div className="absolute -bottom-[18px] left-1/2 transform -translate-x-1/2 z-50 pointer-events-none">
-         <div className="bg-green-600 rounded-b-full w-[40px] h-[18px] flex items-center justify-center shadow-md border-2 border-white dark:border-gray-800">
+         <div className="bg-green-600 rounded-b-full w-[40px] h-[18px] flex items-center justify-center shadow-md border-2 border-white dark:border-zinc-900">
              <Plus size={14} color="white" className="mt-0.5" />
          </div>
       </div>
@@ -75,7 +75,7 @@ const PageNode = memo(({ data }: NodeProps<PageNodeData>) => {
 
       {/* LEFT */}
       <div className="absolute -left-[18px] top-1/2 transform -translate-y-1/2 z-50 pointer-events-none">
-         <div className="bg-green-600 rounded-l-full w-[18px] h-[40px] flex items-center justify-center shadow-md border-2 border-white dark:border-gray-800">
+         <div className="bg-green-600 rounded-l-full w-[18px] h-[40px] flex items-center justify-center shadow-md border-2 border-white dark:border-zinc-900">
              <Plus size={14} color="white" className="mr-0.5" />
          </div>
       </div>
@@ -94,44 +94,46 @@ const PageNode = memo(({ data }: NodeProps<PageNodeData>) => {
 
       <Card 
         onClick={data.onEdit} 
-        className="w-full min-h-[190px] border-2 border-gray-400 dark:border-gray-600 rounded-[10px] bg-card cursor-pointer hover:shadow-lg transition-shadow relative z-10"
+        className="w-full min-h-[190px] border-2 cursor-pointer hover:shadow-lg transition-shadow relative z-10 bg-card"
       >
         <CardContent className="p-4 flex flex-col h-full">
-            <div className="flex gap-3 items-center mb-2">
+          <div className="flex gap-3 items-center mb-2">
             <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full text-green-600 dark:text-green-400">
-                <Layout size={20} />
+              <Layout size={20} />
             </div>
             <div>
-                <h3 className="font-bold text-lg leading-none">{data.page.main.title || 'New Page'}</h3>
-                <span className="text-xs text-muted-foreground">{data.page.main.route}</span>
+              <h3 className="font-bold text-sm text-foreground">{data.page.main.title || 'New Page'}</h3>
+              <span className="text-xs text-muted-foreground block">{data.page.main.route}</span>
             </div>
-            </div>
-            
-            <div className="flex gap-2 mt-3 flex-wrap">
-            <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300">
-                {data.page.main.layout || 'Default Layout'}
+          </div>
+          
+          <div className="flex gap-2 mt-3 flex-wrap">
+            <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/50 dark:text-blue-300 border-none">
+              {data.page.main.layout || 'Default Layout'}
             </Badge>
             {data.page.main.requires_auth && (
-                <Badge variant="destructive" className="text-xs">Auth Required</Badge>
+              <Badge variant="destructive" className="bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/50 dark:text-red-300 border-none">Auth Required</Badge>
             )}
-            </div>
+          </div>
 
-            {data.page.main.condition && (
-            <div className="mt-2 p-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded">
-                <span className="text-xs font-bold text-amber-600 dark:text-amber-500 block">Condition:</span>
-                <span className="text-xs text-muted-foreground line-clamp-2">{data.page.main.condition}</span>
+          {data.page.main.condition && (
+            <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded">
+              <span className="text-xs font-bold text-yellow-700 dark:text-yellow-500 mr-1">Condition:</span>
+              <span className="text-xs text-muted-foreground line-clamp-2">{data.page.main.condition}</span>
             </div>
-            )}
+          )}
 
-            {data.page.main.description && (
+          {data.page.main.description && (
             <div className="mt-2">
-                <p className="text-xs text-muted-foreground line-clamp-3">{data.page.main.description}</p>
+              <p className="text-xs text-muted-foreground line-clamp-3">{data.page.main.description}</p>
             </div>
-            )}
+          )}
 
-            <span className="text-xs text-muted-foreground mt-auto pt-2 block">
-            {data.page.main.components.length} Components
+          <div className="mt-auto pt-2">
+            <span className="text-xs text-muted-foreground block">
+              {data.page.main.components.length} Components
             </span>
+          </div>
         </CardContent>
       </Card>
     </div>

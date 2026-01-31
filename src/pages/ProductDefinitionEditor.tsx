@@ -10,13 +10,20 @@ import ReactFlow, {
   Edge
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Box, Flex, Heading, Text, IconButton, Button, DropdownMenu } from '@radix-ui/themes';
-import { ArrowLeft, Download, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Download } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getProductDefinition, updateNodeDescription } from '../services/productDefinitionService';
 import { exportProductDefinitionToExcel, exportProductDefinitionToMarkdown } from '../services/exportService';
 import TopicEditModal from '../components/ProductDefinition/TopicEditModal';
 import { ProductDefinition, ProductDefinitionNode } from '../types';
+
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Layout configuration
 const LEVEL_1_RADIUS = 300;
@@ -26,7 +33,7 @@ const nodeTypes = {};
 const edgeTypes = {};
 
 const ProductDefinitionEditorContent: React.FC = () => {
-  const { definitionId } = useParams<{ definitionId: string }>();
+  const { id: definitionId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   
@@ -84,7 +91,8 @@ const ProductDefinitionEditorContent: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            minHeight: '50px'
+            minHeight: '50px',
+            color: 'black'
         };
 
         if (isRoot) {
@@ -239,48 +247,44 @@ const ProductDefinitionEditorContent: React.FC = () => {
   };
 
   if (!definition) {
-    return <Flex align="center" justify="center" height="100vh"><Text>Loading...</Text></Flex>;
+    return <div className="flex items-center justify-center h-screen"><p>Loading...</p></div>;
   }
 
   return (
-    <Flex direction="column" className="h-full">
+    <div className="flex flex-col h-full bg-background">
       {/* Header */}
-      <Flex 
-        justify="between" 
-        align="center" 
-        className="px-6 py-3 border-b border-gray-200 bg-white shadow-sm z-10"
-      >
-        <Flex align="center" gap="4">
-          <IconButton variant="ghost" onClick={() => navigate('/product-definitions')}>
+      <div className="flex justify-between items-center px-6 py-3 border-b border-border bg-background shadow-sm z-10">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/product-definitions')}>
             <ArrowLeft size={20} />
-          </IconButton>
-          <Box>
-            <Heading size="4">{definition.title}</Heading>
-            <Text size="1" color="gray">Product Definition</Text>
-          </Box>
-        </Flex>
+          </Button>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">{definition.title}</h1>
+            <p className="text-xs text-muted-foreground">Product Definition</p>
+          </div>
+        </div>
 
-        <Flex align="center" gap="4">
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger>
-              <Button variant="surface" className="cursor-pointer">
-                <Download size={16} className="mr-2" /> Export <ChevronDown size={14} className="ml-1" />
+        <div className="flex items-center gap-4">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="cursor-pointer">
+                <Download size={16} className="mr-2" /> Export
               </Button>
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Content>
-              <DropdownMenu.Item onClick={() => definition && exportProductDefinitionToExcel(definition)}>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => definition && exportProductDefinitionToExcel(definition)}>
                 Excel (.xlsx)
-              </DropdownMenu.Item>
-              <DropdownMenu.Item onClick={() => definition && exportProductDefinitionToMarkdown(definition)}>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => definition && exportProductDefinitionToMarkdown(definition)}>
                 Markdown (.md)
-              </DropdownMenu.Item>
-            </DropdownMenu.Content>
-          </DropdownMenu.Root>
-        </Flex>
-      </Flex>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
 
       {/* Main Content: Graph */}
-      <Box className="flex-grow relative bg-gray-50 h-[calc(100vh-140px)]">
+      <div className="flex-grow relative bg-muted/20 h-[calc(100vh-140px)]">
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -295,7 +299,7 @@ const ProductDefinitionEditorContent: React.FC = () => {
           <Controls />
           <Background color="#aaa" gap={16} />
         </ReactFlow>
-      </Box>
+      </div>
 
       {/* Modals & Overlays */}
       <TopicEditModal 
@@ -305,7 +309,7 @@ const ProductDefinitionEditorContent: React.FC = () => {
         onSave={handleSaveDescription}
         productTitle={definition.title}
       />
-    </Flex>
+    </div>
   );
 };
 

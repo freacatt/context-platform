@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, Flex, Text, Button, Checkbox, Tabs, ScrollArea, Box, Card } from '@radix-ui/themes';
-import { BookOpen, FileText, Server, CheckSquare, Palette } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardContent } from "@/components/ui/card";
+import { BookOpen, FileText, Server, CheckSquare, Palette, ChevronDown, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getUserPyramids } from '../../services/pyramidService';
 import { getUserProductDefinitions } from '../../services/productDefinitionService';
@@ -108,14 +120,14 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
   };
 
   const renderList = (items: Array<{ id: string, title: string, type?: string }>, sourceType: 'contextDocument' | 'productDefinition' | 'pyramid' | 'technicalArchitecture' | 'technicalTask' | 'uiUxArchitecture' | 'diagram') => (
-    <ScrollArea type="auto" style={{ height: 300 }}>
-      <Flex direction="column" gap="2" p="2">
+    <ScrollArea className="h-[300px] w-full rounded-md border p-4">
+      <div className="flex flex-col gap-2">
         {items.length === 0 ? (
-          <Text color="gray" size="2">No items found.</Text>
+          <p className="text-muted-foreground text-sm">No items found.</p>
         ) : (
           items.map(item => (
-            <Card key={item.id} variant="surface" style={{ padding: '8px' }}>
-              <Flex align="center" gap="2">
+            <Card key={item.id} className="bg-background">
+              <CardContent className="p-2 flex items-center gap-2">
                 <Checkbox 
                   checked={isSelected(sourceType, item.id)}
                   onCheckedChange={() => handleToggle(sourceType, item)}
@@ -134,12 +146,12 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
                 {sourceType === 'uiUxArchitecture' && (
                     <Palette size={16} className="text-pink-500" />
                 )}
-                <Text size="2">{item.title}</Text>
-              </Flex>
+                <span className="text-sm">{item.title}</span>
+              </CardContent>
             </Card>
           ))
         )}
-      </Flex>
+      </div>
     </ScrollArea>
   );
 
@@ -169,145 +181,149 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
     };
 
     return (
-      <ScrollArea type="auto" style={{ height: 300 }}>
-        <Flex direction="column" gap="3">
-          <Card variant="surface" style={{ padding: '8px' }}>
-            <Flex align="center" gap="2" className="cursor-pointer" onClick={() => setExpandedDirs(prev => ({ ...prev, none: !prev.none }))}>
-              <Checkbox 
-                checked={areAllDocsSelected(noDirDocs)}
-                onCheckedChange={(checked) => toggleSelectDocs(noDirDocs, !!checked)}
-              />
-              <Text size="2">No Directory</Text>
-            </Flex>
-            {expandedDirs.none && (
-              <Box pt="2">
-                <Flex direction="column" gap="2">
+      <ScrollArea className="h-[300px] w-full rounded-md border p-4">
+        <div className="flex flex-col gap-3">
+          <Card className="bg-background">
+            <CardContent className="p-2">
+              <div className="flex items-center gap-2 cursor-pointer" onClick={() => setExpandedDirs(prev => ({ ...prev, none: !prev.none }))}>
+                <div onClick={(e) => e.stopPropagation()}>
+                    <Checkbox 
+                    checked={areAllDocsSelected(noDirDocs)}
+                    onCheckedChange={(checked) => toggleSelectDocs(noDirDocs, !!checked)}
+                    />
+                </div>
+                {expandedDirs.none ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                <span className="text-sm font-medium">No Directory</span>
+              </div>
+              {expandedDirs.none && (
+                <div className="pt-2 pl-6 flex flex-col gap-2">
                   {noDirDocs.length === 0 ? (
-                    <Text color="gray" size="2">No documents</Text>
+                    <p className="text-muted-foreground text-xs">No documents</p>
                   ) : (
                     noDirDocs.map(item => (
-                      <Card key={item.id} variant="surface" style={{ padding: '8px' }}>
-                        <Flex align="center" gap="2">
-                          <Checkbox 
-                            checked={isSelected('contextDocument', item.id)}
-                            onCheckedChange={() => handleToggle('contextDocument', { id: item.id, title: item.title })}
-                          />
-                          <FileText size={16} className="text-amber-500" />
-                          <Text size="2">{item.title}</Text>
-                        </Flex>
-                      </Card>
+                      <div key={item.id} className="flex items-center gap-2 p-1 border rounded bg-muted/30">
+                        <Checkbox 
+                          checked={isSelected('contextDocument', item.id)}
+                          onCheckedChange={() => handleToggle('contextDocument', { id: item.id, title: item.title })}
+                        />
+                        <FileText size={16} className="text-amber-500" />
+                        <span className="text-sm">{item.title}</span>
+                      </div>
                     ))
                   )}
-                </Flex>
-              </Box>
-            )}
+                </div>
+              )}
+            </CardContent>
           </Card>
 
           {directories.map(dir => {
             const expanded = expandedDirs[dir.id] || false;
             return (
-              <Card key={dir.id} variant="surface" style={{ padding: '8px' }}>
-                <Flex align="center" gap="2" className="cursor-pointer" onClick={() => setExpandedDirs(prev => ({ ...prev, [dir.id]: !expanded }))}>
-                  <Checkbox 
-                    checked={areAllDocsSelected(grouped[dir.id] || [])}
-                    onCheckedChange={(checked) => toggleSelectDocs(grouped[dir.id] || [], !!checked)}
-                  />
-                  <Text size="2">{dir.title}</Text>
-                </Flex>
-                {expanded && (
-                  <Box pt="2">
-                    <Flex direction="column" gap="2">
+              <Card key={dir.id} className="bg-background">
+                <CardContent className="p-2">
+                  <div className="flex items-center gap-2 cursor-pointer" onClick={() => setExpandedDirs(prev => ({ ...prev, [dir.id]: !expanded }))}>
+                     <div onClick={(e) => e.stopPropagation()}>
+                        <Checkbox 
+                        checked={areAllDocsSelected(grouped[dir.id] || [])}
+                        onCheckedChange={(checked) => toggleSelectDocs(grouped[dir.id] || [], !!checked)}
+                        />
+                    </div>
+                    {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                    <span className="text-sm font-medium">{dir.title}</span>
+                  </div>
+                  {expanded && (
+                    <div className="pt-2 pl-6 flex flex-col gap-2">
                       {(grouped[dir.id] || []).length === 0 ? (
-                        <Text color="gray" size="2">No documents</Text>
+                        <p className="text-muted-foreground text-xs">No documents</p>
                       ) : (
                         (grouped[dir.id] || []).map(item => (
-                          <Card key={item.id} variant="surface" style={{ padding: '8px' }}>
-                            <Flex align="center" gap="2">
-                              <Checkbox 
-                                checked={isSelected('contextDocument', item.id)}
-                                onCheckedChange={() => handleToggle('contextDocument', { id: item.id, title: item.title })}
-                              />
-                              <FileText size={16} className="text-amber-500" />
-                              <Text size="2">{item.title}</Text>
-                            </Flex>
-                          </Card>
+                          <div key={item.id} className="flex items-center gap-2 p-1 border rounded bg-muted/30">
+                            <Checkbox 
+                              checked={isSelected('contextDocument', item.id)}
+                              onCheckedChange={() => handleToggle('contextDocument', { id: item.id, title: item.title })}
+                            />
+                            <FileText size={16} className="text-amber-500" />
+                            <span className="text-sm">{item.title}</span>
+                          </div>
                         ))
                       )}
-                    </Flex>
-                  </Box>
-                )}
+                    </div>
+                  )}
+                </CardContent>
               </Card>
             );
           })}
-        </Flex>
+        </div>
       </ScrollArea>
     );
   };
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={onClose}>
-      <Dialog.Content style={{ maxWidth: 600 }}>
-        <Dialog.Title>Select Context Sources</Dialog.Title>
-        <Dialog.Description size="2" mb="4">
-          Select Pyramids, Product Definitions, Documents, Architectures, Tasks, UI/UX, or Diagrams to use as context for AI recommendations.
-        </Dialog.Description>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Select Context Sources</DialogTitle>
+          <DialogDescription>
+            Select Pyramids, Product Definitions, Documents, Architectures, Tasks, UI/UX, or Diagrams to use as context for AI recommendations.
+          </DialogDescription>
+        </DialogHeader>
 
         {loading ? (
-          <Flex justify="center" p="4"><Text>Loading sources...</Text></Flex>
+          <div className="flex justify-center p-4"><span className="text-muted-foreground">Loading sources...</span></div>
         ) : (
-          <Tabs.Root value={activeTab} onValueChange={setActiveTab}>
-            <Tabs.List style={{ flexWrap: 'wrap', gap: '4px' }}>
-              <Tabs.Trigger value="pyramids">Pyramids ({pyramids.length})</Tabs.Trigger>
-              <Tabs.Trigger value="definitions">Product Defs ({definitions.length})</Tabs.Trigger>
-              <Tabs.Trigger value="documents">Documents ({documents.length})</Tabs.Trigger>
-              <Tabs.Trigger value="architectures">Architectures ({architectures.length})</Tabs.Trigger>
-              <Tabs.Trigger value="tasks">Tasks ({tasks.length})</Tabs.Trigger>
-              <Tabs.Trigger value="uiUx">UI/UX ({uiUxArchitectures.length})</Tabs.Trigger>
-              <Tabs.Trigger value="diagrams">Diagrams ({diagrams.length})</Tabs.Trigger>
-            </Tabs.List>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="flex flex-wrap h-auto gap-1">
+              <TabsTrigger value="pyramids">Pyramids ({pyramids.length})</TabsTrigger>
+              <TabsTrigger value="definitions">Product Defs ({definitions.length})</TabsTrigger>
+              <TabsTrigger value="documents">Documents ({documents.length})</TabsTrigger>
+              <TabsTrigger value="architectures">Architectures ({architectures.length})</TabsTrigger>
+              <TabsTrigger value="tasks">Tasks ({tasks.length})</TabsTrigger>
+              <TabsTrigger value="uiUx">UI/UX ({uiUxArchitectures.length})</TabsTrigger>
+              <TabsTrigger value="diagrams">Diagrams ({diagrams.length})</TabsTrigger>
+            </TabsList>
 
-            <Box pt="3">
-              <Tabs.Content value="pyramids">
+            <div className="pt-3">
+              <TabsContent value="pyramids">
                 {renderList(pyramids, 'pyramid')}
-              </Tabs.Content>
+              </TabsContent>
 
-              <Tabs.Content value="definitions">
+              <TabsContent value="definitions">
                 {renderList(definitions, 'productDefinition')}
-              </Tabs.Content>
+              </TabsContent>
 
-              <Tabs.Content value="documents">
+              <TabsContent value="documents">
                 {renderDocumentsAccordion()}
-              </Tabs.Content>
+              </TabsContent>
 
-              <Tabs.Content value="architectures">
+              <TabsContent value="architectures">
                 {renderList(architectures, 'technicalArchitecture')}
-              </Tabs.Content>
+              </TabsContent>
 
-              <Tabs.Content value="tasks">
+              <TabsContent value="tasks">
                 {renderList(tasks, 'technicalTask')}
-              </Tabs.Content>
+              </TabsContent>
 
-              <Tabs.Content value="uiUx">
+              <TabsContent value="uiUx">
                 {renderList(uiUxArchitectures, 'uiUxArchitecture')}
-              </Tabs.Content>
+              </TabsContent>
               
-              <Tabs.Content value="diagrams">
+              <TabsContent value="diagrams">
                 {renderList(diagrams, 'diagram')}
-              </Tabs.Content>
-            </Box>
-          </Tabs.Root>
+              </TabsContent>
+            </div>
+          </Tabs>
         )}
 
-        <Flex gap="3" justify="end" mt="4">
-          <Button variant="soft" color="gray" onClick={onClose}>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
           <Button onClick={handleSave}>
             Save Context ({selected.length})
           </Button>
-        </Flex>
-      </Dialog.Content>
-    </Dialog.Root>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

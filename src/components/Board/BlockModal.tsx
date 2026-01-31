@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, Button, Flex, Text, TextArea, Box, Badge, Callout } from '@radix-ui/themes';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Label } from "@/components/ui/label";
 import { Sparkles, Save, Merge, AlertTriangle } from 'lucide-react';
 import { AiRecommendationButton } from '../Common/AiRecommendationButton';
 import { useAuth } from '../../contexts/AuthContext';
@@ -23,7 +36,6 @@ const BlockModal: React.FC<BlockModalProps> = ({ isOpen, onClose, block, parents
   const [answer, setAnswer] = useState<string>('');
   const [question, setQuestion] = useState<string>('');
   const [combinedQuestion, setCombinedQuestion] = useState<string>('');
-  // const [isGenerating, setIsGenerating] = useState<boolean>(false); // Removed as it is handled by AiRecommendationButton
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [suggestionTarget, setSuggestionTarget] = useState<'question' | 'combined' | 'answer' | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -132,72 +144,72 @@ Answer: ${h.answer || "N/A"}
   const renderSuggestions = (target: string) => {
     if (suggestionTarget !== target || suggestions.length === 0) return null;
     return (
-        <Flex gap="2" direction="column" className="mb-2 mt-2 p-2 rounded border" style={{ backgroundColor: 'var(--purple-2)', borderColor: 'var(--purple-6)' }}>
-            <Text size="1" color="purple" weight="bold">AI Suggestions:</Text>
+        <div className="mb-2 mt-2 p-2 rounded border bg-purple-100/50 border-purple-200 dark:bg-purple-900/20 dark:border-purple-800 flex flex-col gap-2">
+            <span className="text-xs font-bold text-purple-600 dark:text-purple-400">AI Suggestions:</span>
             {suggestions.map((s, i) => (
-                <Box 
+                <div 
                     key={i} 
                     onClick={() => applySuggestion(s)}
-                    className="cursor-pointer p-1 rounded text-xs transition-colors"
-                    style={{ color: 'var(--purple-11)' }}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--purple-4)'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                    className="cursor-pointer p-1 rounded text-xs transition-colors text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-800/50"
                 >
                     • {s}
-                </Box>
+                </div>
             ))}
-        </Flex>
+        </div>
     );
   };
 
   if (!block) return null;
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={onClose}>
-      <Dialog.Content style={{ maxWidth: 1000 }}>
-        <Dialog.Title>Edit Block {formatBlockLabel(block.id)}</Dialog.Title>
-        <Dialog.Description size="2" mb="4">
-          Provide an answer to the previous level and formulate a new question.
-        </Dialog.Description>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-[1000px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit Block {formatBlockLabel(block.id)}</DialogTitle>
+          <DialogDescription>
+            Provide an answer to the previous level and formulate a new question.
+          </DialogDescription>
+        </DialogHeader>
 
         {aiError && (
-            <Callout.Root color="red" size="1" className="mb-4">
-                <Callout.Icon><AlertTriangle size={16} /></Callout.Icon>
-                <Callout.Text>{aiError}</Callout.Text>
-            </Callout.Root>
+            <Alert variant="destructive" className="mb-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>{aiError}</AlertDescription>
+            </Alert>
         )}
 
-        <Flex direction="column" gap="4">
+        <div className="flex flex-col gap-4">
           {/* Parent Context Section */}
           {parents && parents.length > 0 && (
-            <Box className="bg-surface p-3 rounded-md border border-border">
-              <Text size="2" weight="bold" className="uppercase text-xs mb-2 block text-foreground-muted">
+            <div className="bg-muted p-3 rounded-md border">
+              <span className="text-xs font-bold uppercase text-muted-foreground mb-2 block">
                 Previous Level Context (Parents)
-              </Text>
-              <Flex direction="column" gap="2">
+              </span>
+              <div className="flex flex-col gap-2">
                 {parents.map(parent => (
-                  <Box key={parent.id} className="text-sm text-foreground">
-                    <Badge color="indigo" variant="soft" className="mr-2">
+                  <div key={parent.id} className="text-sm flex items-center">
+                    <Badge variant="secondary" className="mr-2 bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800">
                       {formatBlockLabel(parent.id)}
                     </Badge>
-                    <Text>{parent.question || parent.content || "(No question defined)"}</Text>
-                  </Box>
+                    <span>{parent.question || parent.content || "(No question defined)"}</span>
+                  </div>
                 ))}
-              </Flex>
-            </Box>
+              </div>
+            </div>
           )}
 
           {/* Combined Question Section (Only for blocks with >1 parents) */}
           {parents && parents.length > 1 && (
-            <Box>
-                <Flex justify="between" align="center" className="mb-1">
-                    <Text as="label" size="2" weight="bold">
+            <div>
+                <div className="flex justify-between items-center mb-1">
+                    <Label className="font-bold">
                         Combined Question
-                    </Text>
+                    </Label>
                     <AiRecommendationButton
-                        size="1" 
-                        variant="soft" 
-                        color="orange" 
+                        size="sm" 
+                        variant="ghost" 
+                        color="orange" // Keeping for legacy, though not used in ShadCN button directly unless mapped
+                        className="text-orange-600 hover:text-orange-700 hover:bg-orange-100 dark:text-orange-400 dark:hover:bg-orange-900/20"
                         label="Combine Questions"
                         loadingLabel="Combining..."
                         icon={<Merge size={14} className="mr-1" />}
@@ -223,29 +235,29 @@ Answer: ${h.answer || "N/A"}
                         onSuccess={setSuggestions}
                         onError={(err) => setAiError(err.message || "Failed to combine questions.")}
                     />
-                </Flex>
-                <TextArea 
+                </div>
+                <Textarea 
                     placeholder="Formulate a question that combines the insights from the parents..." 
                     value={combinedQuestion}
                     onChange={(e) => setCombinedQuestion(e.target.value)}
                     rows={2}
-                    style={{ minHeight: '80px', resize: 'vertical' }}
+                    className="min-h-[80px]"
                 />
                 {renderSuggestions('combined')}
-            </Box>
+            </div>
           )}
 
           {/* Answer Input - Hidden for the first block (1-A / 0-0) */}
           {block.id !== '0-0' && (
-            <Box>
-                <Flex justify="between" align="center" className="mb-1">
-                    <Text as="label" size="2" weight="bold">
+            <div>
+                <div className="flex justify-between items-center mb-1">
+                    <Label className="font-bold">
                         {parents && parents.length > 1 ? "Answer to Combined Question" : "Answer to Previous Question"}
-                    </Text>
+                    </Label>
                     <AiRecommendationButton
-                        size="1" 
+                        size="sm" 
                         variant="ghost" 
-                        color="purple" 
+                        color="purple"
                         label="AI Answer"
                         loadingLabel="Generating..."
                         icon={<Sparkles size={14} className="mr-1" />}
@@ -273,30 +285,30 @@ Answer: ${h.answer || "N/A"}
                         onSuccess={setSuggestions}
                         onError={(err) => setAiError(err.message || "Failed to generate answer.")}
                     />
-                </Flex>
-                <TextArea 
+                </div>
+                <Textarea 
                 placeholder="Write your answer/insight..." 
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
                 rows={3}
-                style={{ minHeight: '100px', resize: 'vertical' }}
+                className="min-h-[100px]"
                 />
                 {renderSuggestions('answer')}
-            </Box>
+            </div>
           )}
 
           {/* New Question Input */}
           {block.id !== '7-7' && (
-            <Box>
-                <Flex justify="between" align="center" className="mb-1">
-                <Text as="label" size="2" weight="bold">
+            <div>
+                <div className="flex justify-between items-center mb-1">
+                <Label className="font-bold">
                     New Question / Insight
-                </Text>
-                <Flex gap="2">
+                </Label>
+                <div className="flex gap-2">
                     <AiRecommendationButton
-                        size="1" 
+                        size="sm" 
                         variant="ghost" 
-                        color="purple" 
+                        color="purple"
                         label="AI Suggestion"
                         loadingLabel="Generating..."
                         icon={<Sparkles size={14} className="mr-1" />}
@@ -326,33 +338,33 @@ Answer: ${h.answer || "N/A"}
                         onSuccess={setSuggestions}
                         onError={(err) => setAiError(err.message || "Failed to generate suggestions.")}
                     />
-                </Flex>
-                </Flex>
+                </div>
+                </div>
 
-                <TextArea 
+                <Textarea 
                 placeholder="What is the key question or insight for this block?" 
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 rows={3}
-                style={{ minHeight: '100px', resize: 'vertical' }}
+                className="min-h-[100px]"
                 />
                 {renderSuggestions('question')}
-            </Box>
+            </div>
           )}
-        </Flex>
+        </div>
 
-        <Flex gap="3" mt="4" justify="end">
-          <Dialog.Close>
-            <Button variant="soft" color="gray">
+        <DialogFooter className="mt-4">
+          <DialogClose asChild>
+            <Button variant="outline">
               Cancel
             </Button>
-          </Dialog.Close>
+          </DialogClose>
           <Button onClick={handleSave}>
-            <Save size={16} className="mr-2" /> Save Changes
+            <Save className="mr-2 h-4 w-4" /> Save Changes
           </Button>
-        </Flex>
-      </Dialog.Content>
-    </Dialog.Root>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

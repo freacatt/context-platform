@@ -1,11 +1,19 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Box, Text, IconButton, Tooltip, Callout } from '@radix-ui/themes';
 import { ZoomIn, ZoomOut, Maximize, AlertTriangle } from 'lucide-react';
 import { subscribeToPyramid, updatePyramidBlocks } from '../../services/pyramidService';
 import { calculateCoordinates, BLOCK_SIZE } from '../../utils/pyramidLayout';
 import Block from './Block';
 import BlockModal from './BlockModal';
 import { Pyramid, Block as BlockType } from '../../types';
+
+import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface PyramidBoardProps {
   pyramidId: string;
@@ -18,67 +26,22 @@ const PyramidBoard: React.FC<PyramidBoardProps> = ({ pyramidId, onPyramidLoaded 
   const [error, setError] = useState<string | null>(null);
   const [selectedBlock, setSelectedBlock] = useState<BlockType | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [zoom, setZoom] = useState<number>(1);
-
-  // Generate connection lines
-  const connections = useMemo(() => {
-    const lines = [];
-    for (let u = 0; u < 8; u++) {
-      for (let v = 0; v < 8; v++) {
-        const start = calculateCoordinates(u, v);
-        
-        // Connect to u+1 (Bottom Left visually)
-        if (u < 7) {
-            const end = calculateCoordinates(u + 1, v);
-            lines.push(
-                <line 
-                    key={`conn-u-${u}-${v}`}
-                    x1={start.x} y1={start.y}
-                    x2={end.x} y2={end.y}
-                    stroke="#94a3b8" 
-                    strokeWidth="2"
-                    strokeOpacity="0.5"
-                    className="connection-line"
-                />
-            );
-        }
-
-        // Connect to v+1 (Bottom Right visually)
-        if (v < 7) {
-            const end = calculateCoordinates(u, v + 1);
-            lines.push(
-                <line 
-                    key={`conn-v-${u}-${v}`}
-                    x1={start.x} y1={start.y}
-                    x2={end.x} y2={end.y}
-                    stroke="#94a3b8" 
-                    strokeWidth="2"
-                    strokeOpacity="0.5"
-                    className="connection-line"
-                />
-            );
-        }
-      }
-    }
-    return lines;
-  }, []);
+  
+  // Viewport State
+  const [scale, setScale] = useState<number>(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
-    if (!pyramidId) return;
-
     const unsubscribe = subscribeToPyramid(pyramidId, (data) => {
-        if (data) {
-            setPyramid(data);
-            if (onPyramidLoaded) onPyramidLoaded(data);
-        } else {
-            console.error("Pyramid not found");
-        }
-        setLoading(false);
+      setPyramid(data);
+      setLoading(false);
+      if (onPyramidLoaded && data) {
+        onPyramidLoaded(data);
+      }
     });
-
-    return () => {
-        if (unsubscribe) unsubscribe();
-    };
+    return () => unsubscribe();
   }, [pyramidId, onPyramidLoaded]);
 
   const handleBlockClick = (block: BlockType) => {
@@ -86,152 +49,164 @@ const PyramidBoard: React.FC<PyramidBoardProps> = ({ pyramidId, onPyramidLoaded 
     setIsModalOpen(true);
   };
 
-  const handleSaveBlock = async (updatedBlock: BlockType) => {
-    if (!pyramid) return;
-    const newBlocks = { ...pyramid.blocks, [updatedBlock.id]: updatedBlock };
-    setPyramid(prev => prev ? ({ ...prev, blocks: newBlocks }) : null);
-    setError(null);
-    
-    try {
-        await updatePyramidBlocks(pyramidId, newBlocks);
-    } catch (err) {
-        console.error("Failed to save block:", err);
-        setError("Failed to save changes. Please check your connection and try again.");
-    }
+  const handleBlockModalSave = async (updatedBlock: BlockType) => {
+      if (!pyramid) return;
+
+      const updatedBlocks = { ...pyramid.blocks };
+      updatedBlocks[updatedBlock.id] = updatedBlock;
+
+      try {
+        await updatePyramidBlocks(pyramidId, updatedBlocks);
+        // Optimistic update
+        setPyramid({ ...pyramid, blocks: updatedBlocks });
+        setIsModalOpen(false);
+      } catch (err) {
+        console.error("Failed to update block", err);
+        // Use a more user-friendly error notification in a real app
+        alert("Failed to save block content.");
+      }
   };
 
-  if (loading) return (
-    <Box className="w-full h-[85vh] min-h-[600px] flex items-center justify-center bg-surface border border-border rounded-xl">
-       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground"></div>
-       <Text className="ml-3 text-foreground-muted">Loading Pyramid...</Text>
-    </Box>
+  // --- Zoom & Pan Controls ---
+  const handleZoomIn = () => setScale(prev => Math.min(prev + 0.1, 2));
+  const handleZoomOut = () => setScale(prev => Math.max(prev - 0.1, 0.5));
+  const handleResetView = () => {
+    setScale(1);
+    setOffset({ x: 0, y: 0 });
+  };
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
+  };
+
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    setOffset({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  };
+
+  const onMouseUp = () => setIsDragging(false);
+
+  // Calculate board dimensions based on blocks
+  const boardBounds = useMemo(() => {
+      if (!pyramid?.blocks) return { width: 800, height: 600 };
+      
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      
+      Object.values(pyramid.blocks).forEach(b => {
+          const { x, y } = calculateCoordinates(b.u, b.v);
+          minX = Math.min(minX, x);
+          maxX = Math.max(maxX, x);
+          minY = Math.min(minY, y);
+          maxY = Math.max(maxY, y);
+      });
+
+      // Add padding
+      const padding = 200;
+      return {
+          width: Math.max(800, (maxX - minX) + padding * 2),
+          height: Math.max(600, (maxY - minY) + padding * 2),
+          centerX: (minX + maxX) / 2,
+          centerY: (minY + maxY) / 2
+      };
+  }, [pyramid]);
+
+
+  if (loading) return <div className="flex justify-center items-center h-full">Loading Board...</div>;
+  if (error) return (
+    <Alert variant="destructive" className="m-4">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>{error}</AlertDescription>
+    </Alert>
   );
+  if (!pyramid) return <div className="flex justify-center items-center h-full">Pyramid not found.</div>;
 
-  if (!pyramid) return <Text>Pyramid not found or deleted.</Text>;
-
-  // Get parents for the modal
-  const parentBlocks = selectedBlock?.parentIds?.map(id => pyramid.blocks[id]).filter(Boolean) as BlockType[] || [];
+  const getParentBlocks = (block: BlockType): BlockType[] => {
+      if (!block.parentIds) return [];
+      return block.parentIds.map(id => pyramid.blocks[id]).filter(Boolean);
+  };
 
   return (
-    <Box className="relative w-full h-[85vh] min-h-[600px] bg-surface border border-border rounded-xl shadow-inner overflow-hidden">
-      {/* Error Toast/Callout */}
-      {error && (
-        <Box className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4">
-            <Callout.Root color="red" role="alert">
-                <Callout.Icon>
-                    <AlertTriangle />
-                </Callout.Icon>
-                <Callout.Text>
-                    {error}
-                </Callout.Text>
-                <IconButton variant="ghost" color="gray" size="1" onClick={() => setError(null)} className="ml-auto">
-                    <Text size="5">×</Text>
-                </IconButton>
-            </Callout.Root>
-        </Box>
-      )}
-
-      {/* Zoom Controls */}
-      <Box className="absolute bottom-4 right-4 z-50 flex gap-2 bg-background p-2 rounded-lg shadow-md border border-border">
-        <Tooltip content="Zoom Out">
-            <IconButton variant="soft" color="gray" onClick={() => setZoom(z => Math.max(0.5, z - 0.1))}>
-                <ZoomOut size={18} />
-            </IconButton>
-        </Tooltip>
-        <Text className="flex items-center text-xs font-mono w-12 justify-center text-foreground">
-            {Math.round(zoom * 100)}%
-        </Text>
-        <Tooltip content="Zoom In">
-            <IconButton variant="soft" color="gray" onClick={() => setZoom(z => Math.min(2, z + 0.1))}>
-                <ZoomIn size={18} />
-            </IconButton>
-        </Tooltip>
-        <Tooltip content="Reset Zoom">
-            <IconButton variant="ghost" color="gray" onClick={() => setZoom(1)}>
-                <Maximize size={18} />
-            </IconButton>
-        </Tooltip>
-      </Box>
-
-      {/* Scrollable Container */}
-      <div className="w-full h-full overflow-auto">
-        <div 
-            className="relative min-w-[1000px] min-h-[1200px] transition-transform duration-200 origin-top-center"
-            style={{ 
-                transform: `scale(${zoom})`,
-                transformOrigin: '50% 100px' // Pin zoom to top center area
-            }}
-        >
-          {/* Board Center Wrapper */}
-          <div className="absolute left-1/2 top-32">
+    <div className="relative w-full h-full overflow-hidden bg-slate-50 dark:bg-slate-900 select-none">
+      {/* Toolbar */}
+      <div className="absolute top-4 right-4 z-20 flex flex-col gap-2 bg-background/80 backdrop-blur-sm p-2 rounded-lg shadow-md border">
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={handleZoomIn}>
+                        <ZoomIn size={20} />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent side="left">Zoom In</TooltipContent>
+            </Tooltip>
             
-            {/* Connection Lines */}
-            <svg className="absolute overflow-visible pointer-events-none z-0" style={{ left: 0, top: 0 }}>
-                {connections}
-            </svg>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={handleZoomOut}>
+                        <ZoomOut size={20} />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent side="left">Zoom Out</TooltipContent>
+            </Tooltip>
 
-            {/* Render Axes Labels */}
-            {Array.from({ length: 8 }).map((_, u) => {
-                const { x, y } = calculateCoordinates(u, -0.8);
-                return (
-                    <div 
-                        key={`label-u-${u}`}
-                        className="absolute text-foreground-muted font-bold text-xl flex items-center justify-center z-0"
-                        style={{
-                            left: x,
-                            top: y,
-                            width: BLOCK_SIZE,
-                            height: BLOCK_SIZE,
-                            transform: 'translate(-50%, -50%)',
-                        }}
-                    >
-                        {u + 1}
-                    </div>
-                );
-            })}
+             <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={handleResetView}>
+                        <Maximize size={20} />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent side="left">Reset View</TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+      </div>
 
-            {Array.from({ length: 8 }).map((_, v) => {
-                const { x, y } = calculateCoordinates(-0.8, v);
-                return (
-                    <div 
-                        key={`label-v-${v}`}
-                        className="absolute text-foreground-muted font-bold text-xl flex items-center justify-center z-0"
-                        style={{
-                            left: x,
-                            top: y,
-                            width: BLOCK_SIZE,
-                            height: BLOCK_SIZE,
-                            transform: 'translate(-50%, -50%)',
-                        }}
-                    >
-                        {String.fromCharCode(65 + v)}
-                    </div>
-                );
-            })}
-
-            {/* Render Blocks */}
-            {pyramid.blocks && Object.values(pyramid.blocks).map(block => (
-              <Block 
-                key={block.id} 
-                block={block} 
-                onClick={handleBlockClick}
-                isSelected={selectedBlock?.id === block.id}
-              />
-            ))}
-          </div>
+      {/* Canvas */}
+      <div 
+        className="w-full h-full cursor-move"
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
+        onMouseUp={onMouseUp}
+        onMouseLeave={onMouseUp}
+      >
+        <div 
+            style={{
+                transform: `translate(${offset.x + window.innerWidth/2}px, ${offset.y + window.innerHeight/2}px) scale(${scale})`,
+                transformOrigin: '0 0',
+                transition: isDragging ? 'none' : 'transform 0.2s ease-out'
+            }}
+            className="absolute top-0 left-0 w-0 h-0" // Centering trick
+        >
+            {/* Pyramid Container - Centered relative to the transform origin */}
+             <div className="relative">
+                {Object.values(pyramid.blocks).map((block) => (
+                    <Block 
+                        key={`${block.u}-${block.v}`} 
+                        block={block} 
+                        onClick={handleBlockClick}
+                        isSelected={selectedBlock?.u === block.u && selectedBlock?.v === block.v}
+                    />
+                ))}
+             </div>
         </div>
       </div>
 
-      <BlockModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        block={selectedBlock}
-        parents={parentBlocks}
-        allBlocks={pyramid.blocks}
-        onSave={handleSaveBlock}
-        pyramidContext={pyramid.context}
-      />
-    </Box>
+      {/* Block Editor Modal */}
+      {selectedBlock && (
+        <BlockModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          block={selectedBlock}
+          parents={getParentBlocks(selectedBlock)}
+          onSave={handleBlockModalSave}
+          pyramidContext={pyramid.context}
+          allBlocks={pyramid.blocks}
+        />
+      )}
+    </div>
   );
 };
 

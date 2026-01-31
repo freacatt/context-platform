@@ -1,5 +1,17 @@
 import React, { useState } from 'react';
-import { Dialog, Button, Flex, Text, TextField } from '@radix-ui/themes';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Plus } from 'lucide-react';
 import { createPyramid } from '../../services/pyramidService';
 import { useAuth } from '../../contexts/AuthContext';
@@ -35,44 +47,47 @@ const CreatePyramidModal: React.FC = () => {
   };
 
   return (
-    <Dialog.Root open={open} onOpenChange={setOpen}>
-      <Dialog.Trigger>
-        <Button size="2">
-          <Plus size={16} /> New Pyramid
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm">
+          <Plus className="mr-2 h-4 w-4" /> New Pyramid
         </Button>
-      </Dialog.Trigger>
+      </DialogTrigger>
 
-      <Dialog.Content aria-describedby="pyramid-desc" aria-labelledby="pyramid-title" style={{ maxWidth: 450 }}>
-        <Dialog.Title id="pyramid-title">Create New Pyramid</Dialog.Title>
-        <Dialog.Description id="pyramid-desc" size="2" mb="4">
-          Start a new problem-solving session.
-        </Dialog.Description>
+      <DialogContent className="sm:max-w-[450px]">
+        <DialogHeader>
+          <DialogTitle>Create New Pyramid</DialogTitle>
+          <DialogDescription>
+            Start a new problem-solving session.
+          </DialogDescription>
+        </DialogHeader>
 
-        <Flex direction="column" gap="3">
-          <label>
-            <Text as="div" size="2" mb="1" weight="bold">
-              Pyramid Title <Text color="red">*</Text>
-            </Text>
-            <TextField.Root
+        <div className="flex flex-col gap-4 py-4">
+          <div className="grid w-full items-center gap-1.5">
+            <Label htmlFor="title">
+              Pyramid Title <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="title"
               placeholder="e.g., Q3 Sales Strategy"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
-          </label>
-        </Flex>
+          </div>
+        </div>
 
-        <Flex gap="3" mt="4" justify="end">
-          <Dialog.Close>
-            <Button variant="soft" color="gray">
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline">
               Cancel
             </Button>
-          </Dialog.Close>
+          </DialogClose>
           <Button onClick={handleSubmit} disabled={!title.trim() || loading}>
             {loading ? 'Creating...' : 'Create Pyramid'}
           </Button>
-        </Flex>
-      </Dialog.Content>
-    </Dialog.Root>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

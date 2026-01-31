@@ -24,13 +24,13 @@ interface ToolCardProps {
 }
 
 const ToolCard: React.FC<ToolCardProps> = ({ title, description, icon: Icon, to, color, delay = 0 }) => (
-  <AnimatedCard delay={delay} className="hover:shadow-lg transition-shadow cursor-pointer border-gray-200 h-full flex flex-col">
+  <AnimatedCard delay={delay} className="hover:shadow-lg transition-shadow cursor-pointer border-border h-full flex flex-col">
     <CardHeader>
       <div className={cn("w-12 h-12 rounded-lg flex items-center justify-center mb-4", color)}>
         <AnimatedIcon icon={Icon} size={24} className="text-white" animation="scale" />
       </div>
       <CardTitle className="text-xl">{title}</CardTitle>
-      <CardDescription className="text-sm text-gray-500 line-clamp-3">
+      <CardDescription className="text-sm text-muted-foreground line-clamp-3">
         {description}
       </CardDescription>
     </CardHeader>
@@ -49,14 +49,14 @@ const Dashboard: React.FC = () => {
   
   if (loading) {
     return (
-      <div className="min-h-full flex items-center justify-center bg-gray-50">
+      <div className="min-h-full flex items-center justify-center bg-background">
         <Loading />
       </div>
     );
   }
 
   return (
-    <div className="min-h-full bg-gray-50">
+    <div className="min-h-full bg-background">
       <div className="container mx-auto p-4 pt-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
             <ToolCard 

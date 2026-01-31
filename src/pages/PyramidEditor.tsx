@@ -1,13 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Container, Heading, Text, Button, Flex, DropdownMenu } from '@radix-ui/themes';
 import PyramidBoard from '../components/Board/PyramidBoard';
-import { ArrowLeft, Download, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Download } from 'lucide-react';
 import { getPyramid, updatePyramidContextSources } from '../services/pyramidService';
 import { getContextDocument } from '../services/contextDocumentService';
 import { getProductDefinition } from '../services/productDefinitionService';
 import { exportPyramidToExcel, exportPyramidToMarkdown } from '../services/exportService';
 import { Pyramid, ContextSource } from '../types';
+
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const PyramidEditor: React.FC = () => {
   const { pyramidId } = useParams<{ pyramidId: string }>();
@@ -70,49 +77,49 @@ const PyramidEditor: React.FC = () => {
   };
 
   if (!pyramidId) {
-    return <Box>Error: Pyramid ID is missing.</Box>;
+    return <div>Error: Pyramid ID is missing.</div>;
   }
 
   return (
-    <Box className="h-full bg-gray-50">
-      <Container size="4" className="p-4 pb-2">
-        <Flex justify="between" align="center" className="mb-4">
-            <Button variant="ghost" color="gray" onClick={() => navigate('/dashboard')} className="hover:bg-gray-200">
+    <div className="h-full bg-muted/20 flex flex-col">
+      <div className="container mx-auto p-4 pb-2">
+        <div className="flex justify-between items-center mb-4">
+            <Button variant="ghost" onClick={() => navigate('/dashboard')} className="hover:bg-muted">
                 <ArrowLeft size={16} className="mr-2" /> Back to Dashboard
             </Button>
             {/* Global Context is now in Navbar */}
-        </Flex>
+        </div>
         
-        <Flex justify="between" align="center" className="mb-6">
-          <Box>
-            <Heading size="6">Pyramid Editor</Heading>
-            <Text color="gray" size="2">ID: {pyramidId}</Text>
-          </Box>
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger>
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Pyramid Editor</h1>
+            <p className="text-sm text-muted-foreground">ID: {pyramidId}</p>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button disabled={!currentPyramid} className="cursor-pointer">
-                <Download size={16} className="mr-2" /> Export <ChevronDown size={14} className="ml-1" />
+                <Download size={16} className="mr-2" /> Export
               </Button>
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Content>
-              <DropdownMenu.Item onClick={() => currentPyramid && exportPyramidToExcel(currentPyramid)}>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => currentPyramid && exportPyramidToExcel(currentPyramid)}>
                 Excel (.xlsx)
-              </DropdownMenu.Item>
-              <DropdownMenu.Item onClick={() => currentPyramid && exportPyramidToMarkdown(currentPyramid)}>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => currentPyramid && exportPyramidToMarkdown(currentPyramid)}>
                 Markdown (.md)
-              </DropdownMenu.Item>
-            </DropdownMenu.Content>
-          </DropdownMenu.Root>
-        </Flex>
-      </Container>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
       
-      <Box className="px-4 w-full relative">
+      <div className="px-4 w-full relative flex-grow">
         <PyramidBoard 
             pyramidId={pyramidId} 
             onPyramidLoaded={setCurrentPyramid} 
         />
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 

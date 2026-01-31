@@ -1,4 +1,3 @@
-@import "@radix-ui/themes/styles.css";
 @import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap');
 @tailwind base;
 @tailwind components;
@@ -10,23 +9,11 @@
   font-weight: 400;
 }
 
-.radix-themes {
-  --default-font-family: 'Ubuntu', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  --heading-font-family: 'Ubuntu', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  font-family: 'Ubuntu', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-}
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  /* Rely on Radix Theme wrapper for background/color usually, 
-     but setting defaults here ensures body matches if Theme doesn't cover everything. 
-     Note: These variables need to be defined. Since Radix defines them under .radix-themes,
-     we might need to ensure body has that class or we manually map them if we want body-level styling.
-     However, for now, we will trust the App wrapper. */
-  background-color: var(--gray-1);
-  color: var(--gray-12);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

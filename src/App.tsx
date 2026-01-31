@@ -1,4 +1,4 @@
-import { Theme } from '@radix-ui/themes';
+import { ThemeProvider } from "@/components/theme-provider"
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { GlobalProvider } from './contexts/GlobalContext';
@@ -39,7 +39,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 function App() {
   return (
-    <Theme appearance="light" accentColor="indigo" grayColor="slate" radius="medium">
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <AuthProvider>
         <GlobalProvider>
           <Router>
@@ -129,6 +129,14 @@ function App() {
                 } 
               />
               <Route 
+                path="/context-documents/:id" 
+                element={
+                  <ProtectedRoute>
+                    <ContextDocumentEditor />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
                 path="/directory/:id" 
                 element={
                   <ProtectedRoute>
@@ -204,7 +212,7 @@ function App() {
           </Router>
         </GlobalProvider>
       </AuthProvider>
-    </Theme>
+    </ThemeProvider>
   );
 }
 

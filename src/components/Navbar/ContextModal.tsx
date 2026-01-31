@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, Button, Flex, TextArea, Callout } from '@radix-ui/themes';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+  DialogClose,
+  DialogFooter
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FileText, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { getPyramid, updatePyramidContext } from '../../services/pyramidService';
@@ -47,23 +59,25 @@ const ContextModal: React.FC = () => {
   }
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={setIsOpen}>
-      <Dialog.Trigger>
-        <Button variant="ghost" color="gray" className="cursor-pointer">
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
             <FileText className="w-4 h-4 mr-2" />
             Context
         </Button>
-      </Dialog.Trigger>
+      </DialogTrigger>
 
-      <Dialog.Content style={{ maxWidth: 800 }}>
-        <Dialog.Title>Pyramid Context</Dialog.Title>
-        <Dialog.Description size="2" mb="4">
-          Define the overall context or problem statement for this pyramid. 
-          This context will be used by the AI to generate relevant questions.
-        </Dialog.Description>
+      <DialogContent className="sm:max-w-[800px]">
+        <DialogHeader>
+          <DialogTitle>Pyramid Context</DialogTitle>
+          <DialogDescription>
+            Define the overall context or problem statement for this pyramid. 
+            This context will be used by the AI to generate relevant questions.
+          </DialogDescription>
+        </DialogHeader>
 
-        <Flex direction="column" gap="3">
-          <TextArea 
+        <div className="flex flex-col gap-4 py-4">
+          <Textarea 
             placeholder="e.g., We are trying to improve the customer retention rate for our SaaS product..." 
             value={context}
             onChange={(e) => {
@@ -71,34 +85,34 @@ const ContextModal: React.FC = () => {
                 setStatus('idle');
             }}
             rows={6}
-            style={{ minHeight: '150px', resize: 'vertical' }}
+            className="min-h-[150px]"
           />
 
           {status === 'error' && (
-            <Callout.Root color="red" size="1">
-                <Callout.Icon><AlertTriangle size={16} /></Callout.Icon>
-                <Callout.Text>Failed to save context.</Callout.Text>
-            </Callout.Root>
+            <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>Failed to save context.</AlertDescription>
+            </Alert>
           )}
 
           {status === 'success' && (
-            <Callout.Root color="green" size="1">
-                <Callout.Icon><CheckCircle size={16} /></Callout.Icon>
-                <Callout.Text>Context saved successfully!</Callout.Text>
-            </Callout.Root>
+            <Alert className="border-green-500 text-green-500">
+                <CheckCircle className="h-4 w-4" />
+                <AlertDescription>Context saved successfully!</AlertDescription>
+            </Alert>
           )}
+        </div>
 
-          <Flex gap="3" mt="4" justify="end">
-            <Dialog.Close>
-              <Button variant="soft" color="gray">Cancel</Button>
-            </Dialog.Close>
-            <Button onClick={handleSave} disabled={status === 'saving'}>
+        <DialogFooter>
+           <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+           </DialogClose>
+           <Button onClick={handleSave} disabled={status === 'saving'}>
               {status === 'saving' ? 'Saving...' : 'Save Context'}
-            </Button>
-          </Flex>
-        </Flex>
-      </Dialog.Content>
-    </Dialog.Root>
+           </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

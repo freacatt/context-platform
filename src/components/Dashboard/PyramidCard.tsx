@@ -1,5 +1,13 @@
 import React from 'react';
-import { Card, Flex, Text, Button, DropdownMenu, IconButton, Box } from '@radix-ui/themes';
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { Clock, ArrowRight, Trash2, MoreVertical, Copy, Edit2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Pyramid } from '../../types';
@@ -46,52 +54,55 @@ const PyramidCard: React.FC<PyramidCardProps> = ({ pyramid, onDelete, onDuplicat
   };
 
   return (
-    <Card className="cursor-pointer relative group h-full flex flex-col backdrop-blur-md bg-surface border border-border shadow-sm hover:shadow-lg transition-all duration-300 rounded-2xl" onClick={handleOpen}>
-      <Flex direction="column" gap="3" className="h-full">
-        <Flex justify="between" align="start">
-          <Box className="flex-1 min-w-0 pr-2">
-            <Text size="5" weight="bold" className="block mb-1 truncate tracking-tight text-foreground" title={pyramid.title}>
+    <Card 
+      className="cursor-pointer relative group h-full flex flex-col bg-card border-border shadow-sm hover:shadow-lg transition-all duration-300 rounded-xl" 
+      onClick={handleOpen}
+    >
+      <CardContent className="flex flex-col gap-3 h-full p-4">
+        <div className="flex justify-between items-start">
+          <div className="flex-1 min-w-0 pr-2">
+            <h3 className="block mb-1 truncate tracking-tight text-foreground text-lg font-bold" title={pyramid.title}>
               {pyramid.title}
-            </Text>
-            <Flex align="center" gap="2">
-              <Flex align="center" gap="1">
-                <Clock size={12} className="text-foreground-muted" />
-                <Text size="1" color="gray" className="text-foreground-muted font-medium">
+            </h3>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <Clock size={12} />
+                <span className="text-xs font-medium">
                   {formatDate(pyramid.createdAt)}
-                </Text>
-              </Flex>
-            </Flex>
-          </Box>
+                </span>
+              </div>
+            </div>
+          </div>
           
-          <Box onClick={(e) => e.stopPropagation()}>
-            <DropdownMenu.Root>
-              <DropdownMenu.Trigger>
-                <IconButton variant="ghost" color="gray" size="1">
+          <div onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
                   <MoreVertical size={16} />
-                </IconButton>
-              </DropdownMenu.Trigger>
-              <DropdownMenu.Content>
-                <DropdownMenu.Item onClick={handleRename}>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleRename}>
                   <Edit2 size={14} className="mr-2" /> Rename
-                </DropdownMenu.Item>
-                <DropdownMenu.Item onClick={handleDuplicate}>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDuplicate}>
                   <Copy size={14} className="mr-2" /> Duplicate
-                </DropdownMenu.Item>
-                <DropdownMenu.Separator />
-                <DropdownMenu.Item color="red" onClick={handleDelete}>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={handleDelete}>
                   <Trash2 size={14} className="mr-2" /> Delete
-                </DropdownMenu.Item>
-              </DropdownMenu.Content>
-            </DropdownMenu.Root>
-          </Box>
-        </Flex>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
 
-        <Flex justify="end" align="center" className="mt-auto pt-2">
-          <Button variant="soft" size="1" onClick={(e) => { e.stopPropagation(); handleOpen(); }}>
-            Open <ArrowRight size={14} />
+        <div className="flex justify-end items-center mt-auto pt-2">
+          <Button variant="secondary" size="sm" onClick={(e) => { e.stopPropagation(); handleOpen(); }}>
+            Open <ArrowRight size={14} className="ml-1" />
           </Button>
-        </Flex>
-      </Flex>
+        </div>
+      </CardContent>
     </Card>
   );
 };

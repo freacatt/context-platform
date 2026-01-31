@@ -1,11 +1,29 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Box, Flex, Heading, TextField, Select, Text, Dialog, Button } from '@radix-ui/themes';
-import { Search } from 'lucide-react';
+import { Search, Plus, ListFilter } from 'lucide-react';
 import PyramidList from '../components/Dashboard/PyramidList';
 import CreatePyramidModal from '../components/Dashboard/CreatePyramidModal';
 import { getUserPyramids, deletePyramid, duplicatePyramid, renamePyramid } from '../services/pyramidService';
 import { useAuth } from '../contexts/AuthContext';
 import { Pyramid } from '../types';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 const PyramidsPage: React.FC = () => {
   const { user } = useAuth();
@@ -36,6 +54,7 @@ const PyramidsPage: React.FC = () => {
   }, [user]);
 
   const handleDelete = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this pyramid?")) return;
     try {
       await deletePyramid(id);
       setPyramids(prev => prev.filter(p => p.id !== id));
@@ -44,132 +63,105 @@ const PyramidsPage: React.FC = () => {
     }
   };
 
-  const handleDuplicate = async (id: string) => {
-    if (!user) return;
-    try {
-      await duplicatePyramid(user.uid, id);
-      fetchPyramids(); 
-    } catch (error) {
-      alert("Failed to duplicate pyramid");
-    }
-  };
-
-  const handleRename = (id: string, currentTitle: string) => {
-    setRenameTargetId(id);
-    setRenameNewTitle(currentTitle);
-    setRenameDialogOpen(true);
-  };
-
-  const confirmRename = async () => {
-    if (!renameTargetId || !renameNewTitle.trim()) return;
-    try {
-      await renamePyramid(renameTargetId, renameNewTitle);
-      setRenameDialogOpen(false);
-      fetchPyramids();
-    } catch (error) {
-      alert("Failed to rename pyramid");
-    }
-  };
-
-  // Filter and Sort Logic
   const filteredPyramids = pyramids
     .filter(p => p.title.toLowerCase().includes(searchTerm.toLowerCase()))
     .sort((a, b) => {
-      if (sortBy === 'recent') {
-        const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt || 0);
-        const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt || 0);
-        return dateB.getTime() - dateA.getTime();
-      }
-      if (sortBy === 'modified') {
-        const dateA = a.lastModified instanceof Date ? a.lastModified : new Date(a.lastModified || 0);
-        const dateB = b.lastModified instanceof Date ? b.lastModified : new Date(b.lastModified || 0);
-        return dateB.getTime() - dateA.getTime();
-      }
-      if (sortBy === 'title') {
-        return a.title.localeCompare(b.title);
-      }
-      return 0;
+      if (sortBy === 'title') return a.title.localeCompare(b.title);
+      
+      const dateA = a.lastModified instanceof Date ? a.lastModified : new Date(a.lastModified || 0);
+      const dateB = b.lastModified instanceof Date ? b.lastModified : new Date(b.lastModified || 0);
+      
+      return dateB.getTime() - dateA.getTime();
     });
 
   return (
-    <Box className="min-h-screen bg-background">
-      <Container size="4" className="p-4">
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto p-4">
         {/* Header Section */}
-        <Flex justify="between" align="center" className="mb-8 mt-6">
-          <Heading size="6" className="text-foreground">My Pyramids</Heading>
-          <CreatePyramidModal />
-        </Flex>
+        <div className="flex justify-between items-center mb-8 mt-6">
+          <h1 className="text-2xl font-bold text-foreground">My Pyramids</h1>
+          <CreatePyramidModal onCreated={fetchPyramids} />
+        </div>
 
         {/* Filter Bar */}
-        <Flex gap="4" className="mb-6 flex-col sm:flex-row">
-          <Box className="flex-grow">
-            <TextField.Root 
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="flex-grow relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input 
               placeholder="Search pyramids..." 
-              size="2"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-            >
-              <TextField.Slot>
-                <Search size={16} />
-              </TextField.Slot>
-            </TextField.Root>
-          </Box>
-          
-          <Box width={{ initial: "100%", sm: "200px" }}>
-            <Select.Root value={sortBy} onValueChange={setSortBy}>
-              <Select.Trigger className="w-full" />
-              <Select.Content>
-                <Select.Item value="recent">Recently Created</Select.Item>
-                <Select.Item value="modified">Last Modified</Select.Item>
-                <Select.Item value="title">Title (A-Z)</Select.Item>
-              </Select.Content>
-            </Select.Root>
-          </Box>
-        </Flex>
+              className="pl-8"
+            />
+          </div>
+          <div className="w-full sm:w-[200px]">
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger>
+                <div className="flex items-center gap-2">
+                    <ListFilter size={16} />
+                    <SelectValue placeholder="Sort by" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="recent">Recently Modified</SelectItem>
+                <SelectItem value="title">Title (A-Z)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
         {/* List Section */}
-        <PyramidList 
-          pyramids={filteredPyramids} 
-          loading={loading} 
-          onDelete={handleDelete}
-          onDuplicate={handleDuplicate}
-          onRename={handleRename}
-        />
+        {loading ? (
+            <p>Loading...</p>
+        ) : filteredPyramids.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground bg-card rounded-lg border border-dashed border-border">
+                <h3 className="text-lg font-bold mb-2">No pyramids found</h3>
+                <p className="text-sm">Create your first pyramid to get started!</p>
+            </div>
+        ) : (
+            <PyramidList 
+                pyramids={filteredPyramids} 
+                onDelete={handleDelete} 
+            />
+        )}
+      </div>
 
-        <Dialog.Root open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
-          <Dialog.Content style={{ maxWidth: 450 }}>
-            <Dialog.Title>Rename Pyramid</Dialog.Title>
-            <Dialog.Description size="2" mb="4">
-              Enter a new title for this pyramid.
-            </Dialog.Description>
+      <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle>Rename Pyramid</DialogTitle>
+            <DialogDescription>
+              Enter a new name for your pyramid.
+            </DialogDescription>
+          </DialogHeader>
 
-            <Flex direction="column" gap="3">
-              <label>
-                <Text as="div" size="2" mb="1" weight="bold">
-                  Title
-                </Text>
-                <TextField.Root
-                  value={renameNewTitle}
-                  onChange={(e) => setRenameNewTitle(e.target.value)}
-                  placeholder="Enter new title"
-                />
-              </label>
-            </Flex>
+          <div className="flex flex-col gap-4 py-4">
+             <Input
+                placeholder="New title"
+                value={renameNewTitle}
+                onChange={(e) => setRenameNewTitle(e.target.value)}
+              />
+          </div>
 
-            <Flex gap="3" mt="4" justify="end">
-              <Dialog.Close>
-                <Button variant="soft" color="gray">
-                  Cancel
-                </Button>
-              </Dialog.Close>
-              <Button onClick={confirmRename}>
-                Save
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">
+                Cancel
               </Button>
-            </Flex>
-          </Dialog.Content>
-        </Dialog.Root>
-      </Container>
-    </Box>
+            </DialogClose>
+            <Button onClick={async () => {
+                if(renameTargetId && renameNewTitle.trim()) {
+                    await renamePyramid(renameTargetId, renameNewTitle);
+                    setRenameDialogOpen(false);
+                    fetchPyramids();
+                }
+            }}>
+              Rename
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 

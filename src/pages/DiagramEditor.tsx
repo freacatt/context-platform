@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Dialog, Flex, Heading, IconButton } from '@radix-ui/themes';
 import ReactFlow, { Background, Controls, addEdge, Connection, Edge, Node, NodeMouseHandler, OnConnect, OnEdgesChange, OnNodesChange, Panel, ReactFlowProvider, useEdgesState, useNodesState, useReactFlow } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useParams } from 'react-router-dom';
@@ -9,6 +8,18 @@ import DiagramBlockModal from '../components/Diagram/DiagramBlockModal';
 import { Diagram, DiagramNodeData } from '../types';
 import { Plus, Pencil, Check, X, Save, Download } from 'lucide-react';
 import { fetchContextData } from '../services/contextAdapter';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 const nodeTypes = { diagramNode: DiagramNode };
 
@@ -344,7 +355,7 @@ const DiagramEditorContent: React.FC = () => {
   };
 
   return (
-    <div style={{ width: '100%', height: 'calc(100vh - 64px)' }}>
+    <div style={{ width: '100%', height: 'calc(100vh - 64px)' }} className="bg-background">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -363,57 +374,54 @@ const DiagramEditorContent: React.FC = () => {
         <Controls />
 
         <Panel position="top-left">
-          <Flex gap="3" align="center">
+          <div className="flex gap-3 items-center">
             {editingTitle ? (
-              <Flex gap="2" align="center">
-                <input
+              <div className="flex gap-2 items-center">
+                <Input
                   value={tempTitle}
                   onChange={e => setTempTitle(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleTitleSave()}
-                  style={{ height: 32, border: '1px solid #ddd', borderRadius: 6, padding: '0 8px' }}
+                  className="h-8 w-[200px]"
                 />
-                <IconButton size="1" color="green" variant="soft" onClick={handleTitleSave}>
+                <Button size="icon" variant="secondary" onClick={handleTitleSave} className="h-8 w-8 text-green-600">
                   <Check size={14} />
-                </IconButton>
-                <IconButton size="1" color="red" variant="soft" onClick={() => { setTempTitle(diagram?.title || 'Diagram'); setEditingTitle(false); }}>
+                </Button>
+                <Button size="icon" variant="secondary" onClick={() => { setTempTitle(diagram?.title || 'Diagram'); setEditingTitle(false); }} className="h-8 w-8 text-red-600">
                   <X size={14} />
-                </IconButton>
-              </Flex>
+                </Button>
+              </div>
             ) : (
-              <Flex gap="2" align="center" className="group">
-                <Heading size="4">{diagram?.title || 'Diagram'}</Heading>
-                <IconButton 
-                  size="1" 
+              <div className="flex gap-2 items-center group">
+                <h3 className="text-lg font-bold text-foreground">{diagram?.title || 'Diagram'}</h3>
+                <Button 
+                  size="icon" 
                   variant="ghost" 
-                  color="gray" 
                   onClick={() => setEditingTitle(true)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <Pencil size={12} />
-                </IconButton>
-              </Flex>
+                </Button>
+              </div>
             )}
-          </Flex>
+          </div>
         </Panel>
 
         <Panel position="top-right">
-          <Flex gap="3">
+          <div className="flex gap-3">
             <Button
               onClick={handleExportMarkdown}
-              color="blue"
-              variant="soft"
+              variant="secondary"
               disabled={isExporting}
-              className="cursor-pointer"
+              className="cursor-pointer bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50"
             >
               <Download size={16} className="mr-1" />
               {isExporting ? 'Exporting...' : 'Export MD'}
             </Button>
             <Button 
               onClick={() => save(getNodes(), getEdges())} 
-              color="green" 
-              variant="soft" 
+              variant="secondary"
               disabled={isSaving}
-              className="cursor-pointer"
+              className="cursor-pointer bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50"
             >
               <Save size={16} className="mr-1" /> 
               {isSaving ? 'Saving...' : 'Save Diagram'}
@@ -422,7 +430,7 @@ const DiagramEditorContent: React.FC = () => {
             <Button onClick={handleAddNode} className="cursor-pointer">
               <Plus size={16} className="mr-1" /> Add Block
             </Button>
-          </Flex>
+          </div>
         </Panel>
       </ReactFlow>
 
@@ -442,47 +450,49 @@ const DiagramEditorContent: React.FC = () => {
         />
       )}
 
-      <Dialog.Root open={deleteEdgeConfirmOpen} onOpenChange={setDeleteEdgeConfirmOpen}>
-        <Dialog.Content style={{ maxWidth: 450 }}>
-          <Dialog.Title>Delete Connection</Dialog.Title>
-          <Dialog.Description size="2" mb="4">
-            Are you sure you want to delete this connection?
-          </Dialog.Description>
+      <Dialog open={deleteEdgeConfirmOpen} onOpenChange={setDeleteEdgeConfirmOpen}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle>Delete Connection</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this connection?
+            </DialogDescription>
+          </DialogHeader>
 
-          <Flex gap="3" mt="4" justify="end">
-            <Dialog.Close>
-              <Button variant="soft" color="gray">
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">
                 Cancel
               </Button>
-            </Dialog.Close>
-            <Dialog.Close>
-              <Button onClick={confirmDeleteEdge} color="red">
-                Delete
-              </Button>
-            </Dialog.Close>
-          </Flex>
-        </Dialog.Content>
-      </Dialog.Root>
+            </DialogClose>
+            <Button onClick={confirmDeleteEdge} variant="destructive">
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      <Dialog.Root open={deleteNodeConfirmOpen} onOpenChange={setDeleteNodeConfirmOpen}>
-        <Dialog.Content style={{ maxWidth: 450 }}>
-          <Dialog.Title>Delete Block</Dialog.Title>
-          <Dialog.Description size="2" mb="4">
-            Are you sure you want to delete this block? This action cannot be undone and will remove all connections to this block.
-          </Dialog.Description>
+      <Dialog open={deleteNodeConfirmOpen} onOpenChange={setDeleteNodeConfirmOpen}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle>Delete Block</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this block? This action cannot be undone and will remove all connections to this block.
+            </DialogDescription>
+          </DialogHeader>
 
-          <Flex gap="3" mt="4" justify="end">
-            <Dialog.Close>
-              <Button variant="soft" color="gray">
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">
                 Cancel
               </Button>
-            </Dialog.Close>
-            <Button onClick={confirmDeleteNode} color="red">
+            </DialogClose>
+            <Button onClick={confirmDeleteNode} variant="destructive">
               Delete Block
             </Button>
-          </Flex>
-        </Dialog.Content>
-      </Dialog.Root>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

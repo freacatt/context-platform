@@ -1,5 +1,15 @@
 import React, { useState } from 'react';
-import { Dialog, Button, Flex, TextField, Callout } from '@radix-ui/themes';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Lock, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -73,75 +83,73 @@ const SetPasswordModal: React.FC<SetPasswordModalProps> = ({ isOpen, onClose }) 
   };
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <Dialog.Content style={{ maxWidth: 450 }} className="border-2 border-black shadow-none">
-        <Dialog.Title>Set/Change Password</Dialog.Title>
-        <Dialog.Description size="2" mb="4">
-          Set a password to login with your email address.
-        </Dialog.Description>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[450px]">
+        <DialogHeader>
+          <DialogTitle>Set/Change Password</DialogTitle>
+          <DialogDescription>
+            Set a password to login with your email address.
+          </DialogDescription>
+        </DialogHeader>
 
-        <Flex direction="column" gap="3">
-          <TextField.Root 
-            placeholder="New Password" 
-            type="password"
-            value={password}
-            onChange={(e) => {
-                setPassword(e.target.value);
-                setStatus('idle');
-            }}
-          >
-            <TextField.Slot>
-                <Lock size={16} />
-            </TextField.Slot>
-          </TextField.Root>
+        <div className="flex flex-col gap-4 py-4">
+          <div className="relative">
+            <Lock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="New Password" 
+              type="password"
+              value={password}
+              onChange={(e) => {
+                  setPassword(e.target.value);
+                  setStatus('idle');
+              }}
+              className="pl-9"
+            />
+          </div>
 
-          <TextField.Root 
-            placeholder="Confirm Password" 
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => {
-                setConfirmPassword(e.target.value);
-                setStatus('idle');
-            }}
-          >
-            <TextField.Slot>
-                <Lock size={16} />
-            </TextField.Slot>
-          </TextField.Root>
+          <div className="relative">
+            <Lock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Confirm Password" 
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  setStatus('idle');
+              }}
+              className="pl-9"
+            />
+          </div>
 
           {(status === 'validation_error' || status === 'save_error') && (
-            <Callout.Root color="red" size="1">
-                <Callout.Icon>
-                    <AlertTriangle size={16} />
-                </Callout.Icon>
-                <Callout.Text>
+            <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
                     {errorMsg}
-                </Callout.Text>
-            </Callout.Root>
+                </AlertDescription>
+            </Alert>
           )}
 
           {status === 'success' && (
-            <Callout.Root color="green" size="1">
-                <Callout.Icon>
-                    <CheckCircle size={16} />
-                </Callout.Icon>
-                <Callout.Text>
+            <Alert className="border-green-500 text-green-500">
+                <CheckCircle className="h-4 w-4" />
+                <AlertDescription>
                     Password updated successfully
-                </Callout.Text>
-            </Callout.Root>
+                </AlertDescription>
+            </Alert>
           )}
+        </div>
 
-          <Flex gap="3" mt="4" justify="end">
-            <Button variant="soft" color="gray" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={status === 'saving'}>
-              {status === 'saving' ? 'Saving...' : 'Set Password'}
-            </Button>
-          </Flex>
-        </Flex>
-      </Dialog.Content>
-    </Dialog.Root>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={status === 'saving'}>
+            {status === 'saving' ? 'Saving...' : 'Set Password'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 
