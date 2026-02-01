@@ -3,6 +3,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { GlobalProvider } from './contexts/GlobalContext';
 import LandingPage from './pages/LandingPage';
+import DocsPage from './pages/DocsPage';
+import AboutPage from './pages/AboutPage';
+import FeaturesPage from './pages/FeaturesPage';
 import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
 import PyramidsPage from './pages/PyramidsPage';
@@ -45,6 +48,9 @@ function App() {
           <Router>
             <Routes>
               <Route path="/" element={<LandingPage />} />
+              <Route path="/docs" element={<DocsPage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/features" element={<FeaturesPage />} />
               <Route path="/login" element={<LoginPage />} />
               
               {/* Main Dashboard (Tool Selection) */}

@@ -1,78 +1,123 @@
 import React from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { Navigate, Link } from 'react-router-dom';
-import { HyperText } from "@/components/ui/hyper-text";
-import { ChevronRight, Terminal } from 'lucide-react';
-import { AnimatedButton } from "@/components/ui/animated-button";
-import { Badge } from "@/components/ui/badge";
-import { motion } from "framer-motion";
+import PublicLayout from '@/components/Layout/PublicLayout';
+import { motion } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { ArrowRight, Box, Layers, Zap, Code, Database, Globe } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { LampContainer } from '@/components/ui/lamp';
+import { StickyScroll } from '@/components/ui/sticky-scroll-reveal';
 
 const LandingPage: React.FC = () => {
-  const { user, loading } = useAuth();
-
-  if (loading) return null; 
-  if (user) return <Navigate to="/dashboard" />;
-
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-background flex flex-col items-center justify-center">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 -z-10 h-full w-full bg-background bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:6rem_4rem]">
-        <div className="absolute bottom-0 left-0 right-0 top-0 bg-[radial-gradient(circle_500px_at_50%_200px,rgba(29,78,216,0.15),transparent)] dark:bg-[radial-gradient(circle_500px_at_50%_200px,rgba(29,78,216,0.25),transparent)]"></div>
-      </div>
+    <PublicLayout>
+      <HeroSection />
+      <StickyScrollFeaturesSection />
+    </PublicLayout>
+  );
+};
 
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="container mx-auto px-4 text-center z-10"
+const HeroSection = () => {
+  return (
+    <LampContainer>
+      <motion.div
+        initial={{ opacity: 0.5, y: 100 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{
+          delay: 0.3,
+          duration: 0.8,
+          ease: "easeInOut",
+        }}
+        className="mt-8 bg-gradient-to-br from-white to-neutral-400 py-4 bg-clip-text text-center text-4xl font-medium tracking-tight text-transparent md:text-7xl"
       >
-        {/* Badge */}
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-          className="mb-8 flex justify-center"
-        >
-          <Badge variant="outline" className="px-4 py-1.5 text-sm rounded-full bg-background/50 backdrop-blur-sm border-border shadow-sm animate-pulse text-foreground">
-            <Terminal className="mr-2 h-3.5 w-3.5" />
-            v0.1 Now Available
-          </Badge>
-        </motion.div>
-
-        {/* Hero Title */}
-        <div className="flex justify-center w-full mb-6">
-          <HyperText
-            className="text-5xl md:text-7xl font-bold tracking-tight text-foreground"
-            text="Context Platform"
-          />
-        </div>
-        
-        {/* Description */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4, duration: 0.5 }}
-        >
-          <p className="max-w-2xl mx-auto block text-muted-foreground mb-10 leading-relaxed text-lg">
-            The definitive platform for managing architectural context, complex diagrams, and decision records. 
-            Designed for engineering teams who value clarity.
-          </p>
-        </motion.div>
-
-        {/* Call to Action */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.5 }}
-        >
-          <Link to="/login">
-            <AnimatedButton size="lg" className="px-8 py-6 text-lg rounded-full shadow-xl shadow-primary/20 hover:shadow-primary/30 transition-all bg-primary text-primary-foreground hover:bg-primary/90">
-              Enter Platform <ChevronRight className="ml-2 h-5 w-5" />
-            </AnimatedButton>
-          </Link>
-        </motion.div>
-
+        Build Future-Proof <br /> Architecture
       </motion.div>
+      <motion.div
+        initial={{ opacity: 0, y: 50 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5, duration: 0.8 }}
+        className="mt-4 max-w-2xl mx-auto text-center px-4"
+      >
+        <p className="text-neutral-400 text-lg md:text-xl mb-8">
+            The minimal, futuristic platform for engineering context. 
+            Visualize complex systems with interactive precision.
+        </p>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+             <Link to="/login">
+                <Button size="lg" className="h-12 px-8 text-lg rounded-full bg-white hover:bg-neutral-200 text-black border-none shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all hover:shadow-[0_0_40px_rgba(255,255,255,0.5)]">
+                  Start Building <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+            </Link>
+            <Link to="/docs">
+                <Button size="lg" variant="outline" className="h-12 px-8 text-lg rounded-full border-neutral-700 text-neutral-300 hover:bg-neutral-800 hover:text-white">
+                  Read Documentation
+                </Button>
+            </Link>
+        </div>
+      </motion.div>
+    </LampContainer>
+  );
+};
+
+const StickyScrollFeaturesSection = () => {
+  const content = [
+    {
+      title: "Interactive Visualization",
+      description:
+        "Trace dependencies across your entire stack with intelligent, routing-aware connectors. Visualize the flow of data and control logic in real-time.",
+      content: (
+        <div className="h-full w-full bg-neutral-900 flex items-center justify-center text-white border border-neutral-800">
+          <Zap className="h-24 w-24 text-white" />
+        </div>
+      ),
+    },
+    {
+      title: "3D Architecture",
+      description:
+        "Explore your architecture in a new dimension. Rotate, zoom, and dive into modules to understand the spatial relationships of your system.",
+      content: (
+        <div className="h-full w-full bg-neutral-900 flex items-center justify-center text-white border border-neutral-800">
+          <Box className="h-24 w-24 text-white" />
+        </div>
+      ),
+    },
+    {
+      title: "Layered Context",
+      description:
+        "Switch between high-level overview and implementation details instantly. Keep your documentation and code in sync without context switching.",
+      content: (
+        <div className="h-full w-full bg-neutral-900 flex items-center justify-center text-white border border-neutral-800">
+          <Layers className="h-24 w-24 text-white" />
+        </div>
+      ),
+    },
+    {
+      title: "Code Integration",
+      description:
+        "Sync your diagrams directly with your codebase. Changes in code are reflected in your architecture diagrams automatically.",
+      content: (
+        <div className="h-full w-full bg-neutral-900 flex items-center justify-center text-white border border-neutral-800">
+          <Code className="h-24 w-24 text-white" />
+        </div>
+      ),
+    },
+     {
+      title: "Database Mapping",
+      description:
+        "Visualize schema relationships and data flows. Understand how your data is structured and accessed across different services.",
+      content: (
+        <div className="h-full w-full bg-neutral-900 flex items-center justify-center text-white border border-neutral-800">
+          <Database className="h-24 w-24 text-white" />
+        </div>
+      ),
+    },
+  ];
+  return (
+    <div className="py-20 bg-black relative z-10">
+         <div className="container px-4 mx-auto mb-12 text-center">
+            <h2 className="text-3xl md:text-5xl font-bold mb-4 text-white">Core Capabilities</h2>
+            <p className="text-neutral-400 text-lg">Everything you need to master your system's complexity.</p>
+        </div>
+      <StickyScroll content={content} />
     </div>
   );
 };
