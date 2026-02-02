@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Search, Plus, GitMerge, Trash2, Edit2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { getUserProductDefinitions, createProductDefinition, deleteProductDefinition, renameProductDefinition } from '../services/productDefinitionService';
 import { useNavigate } from 'react-router-dom';
 import { ProductDefinition } from '../types';
@@ -23,6 +24,7 @@ import {
 
 const ProductDefinitionsPage: React.FC = () => {
   const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
   const navigate = useNavigate();
   const [definitions, setDefinitions] = useState<ProductDefinition[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -41,7 +43,7 @@ const ProductDefinitionsPage: React.FC = () => {
   const fetchDefinitions = async () => {
     if (!user) return;
     try {
-      const data = await getUserProductDefinitions(user.uid);
+      const data = await getUserProductDefinitions(user.uid, currentWorkspace?.id);
       setDefinitions(data);
     } catch (error) {
       console.error("Failed to load product definitions", error);
@@ -52,13 +54,13 @@ const ProductDefinitionsPage: React.FC = () => {
 
   useEffect(() => {
     fetchDefinitions();
-  }, [user]);
+  }, [user, currentWorkspace]);
 
   const handleCreate = async () => {
       if (!user || !newTitle.trim()) return;
       setIsCreating(true);
       try {
-          const id = await createProductDefinition(user.uid, newTitle);
+          const id = await createProductDefinition(user.uid, newTitle, currentWorkspace?.id);
           setIsCreateOpen(false);
           setNewTitle('');
           // Navigate to editor

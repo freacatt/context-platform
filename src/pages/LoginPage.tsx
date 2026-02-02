@@ -8,7 +8,7 @@ const LoginPage: React.FC = () => {
   const { user, loading, error } = useAuth();
 
   if (loading) return null; // Or a spinner
-  if (user) return <Navigate to="/dashboard" />;
+  if (user) return <Navigate to="/workspaces" />;
 
   return (
     <div className="flex flex-col items-center justify-center h-screen gap-4 bg-slate-50 dark:bg-background">

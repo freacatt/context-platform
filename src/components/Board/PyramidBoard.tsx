@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { ZoomIn, ZoomOut, Maximize, AlertTriangle } from 'lucide-react';
 import { subscribeToPyramid, updatePyramidBlocks } from '../../services/pyramidService';
-import { calculateCoordinates, BLOCK_SIZE } from '../../utils/pyramidLayout';
+import { calculateCoordinates } from '../../utils/pyramidLayout';
 import Block from './Block';
 import BlockModal from './BlockModal';
 import { Pyramid, Block as BlockType } from '../../types';

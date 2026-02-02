@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Plus } from 'lucide-react';
 import { createPyramid } from '../../services/pyramidService';
 import { useAuth } from '../../contexts/AuthContext';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useNavigate } from 'react-router-dom';
 
 const CreatePyramidModal: React.FC = () => {
@@ -22,6 +23,7 @@ const CreatePyramidModal: React.FC = () => {
   const [title, setTitle] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
   const navigate = useNavigate();
 
   const handleSubmit = async () => {
@@ -29,7 +31,7 @@ const CreatePyramidModal: React.FC = () => {
     
     setLoading(true);
     try {
-      const pyramidId = await createPyramid(user.uid, title);
+      const pyramidId = await createPyramid(user.uid, title, null, currentWorkspace?.id);
       setOpen(false);
       // Reset state
       setTitle('');

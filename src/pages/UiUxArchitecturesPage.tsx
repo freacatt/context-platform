@@ -5,23 +5,25 @@ import { useAuth } from '../contexts/AuthContext';
 import { UiUxArchitecture } from '../types/uiUxArchitecture';
 import { createUiUxArchitecture, getUserUiUxArchitectures, deleteUiUxArchitecture } from '../services/uiUxArchitectureService';
 
+import { useWorkspace } from '../contexts/WorkspaceContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
 export const UiUxArchitecturesPage: React.FC = () => {
   const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
   const navigate = useNavigate();
   const [architectures, setArchitectures] = useState<UiUxArchitecture[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchArchitectures();
-  }, [user]);
+  }, [user, currentWorkspace]);
 
   const fetchArchitectures = async () => {
-    if (!user) return;
+    if (!user || !currentWorkspace) return;
     try {
-      const data = await getUserUiUxArchitectures(user.uid);
+      const data = await getUserUiUxArchitectures(user.uid, currentWorkspace.id);
       setArchitectures(data);
     } catch (error) {
       console.error("Failed to load UI/UX architectures", error);
@@ -31,8 +33,8 @@ export const UiUxArchitecturesPage: React.FC = () => {
   };
 
   const handleCreate = async () => {
-    if (!user) return;
-    const id = await createUiUxArchitecture(user.uid);
+    if (!user || !currentWorkspace) return;
+    const id = await createUiUxArchitecture(user.uid, undefined, currentWorkspace.id);
     if (id) {
       navigate(`/ui-ux-architecture/${id}`);
     }

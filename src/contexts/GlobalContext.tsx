@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
+import { useWorkspace } from './WorkspaceContext';
 import { fetchContextData, formatContextDataForAI } from '../services/contextAdapter';
-import { getUserGlobalContext, saveUserGlobalContext } from '../services/userSettingsService';
+import { getWorkspaceGlobalContext, saveWorkspaceGlobalContext } from '../services/workspaceSettingsService';
 import { ContextSource } from '../types';
 
 interface GlobalContextType {
@@ -25,35 +26,39 @@ export const useGlobalContext = () => {
 };
 
 export const GlobalProvider = ({ children }: { children: ReactNode }) => {
-  const { user, loading: authLoading } = useAuth();
+  const { loading: authLoading } = useAuth();
+  const { currentWorkspace } = useWorkspace();
   
   // State for selected context sources (array of { type, id, title })
   const [selectedSources, setSelectedSources] = useState<ContextSource[]>([]);
-  // We use initializedUserId to track which user the current selectedSources belongs to.
-  // This prevents saving one user's data to another user's profile during switching.
-  const [initializedUserId, setInitializedUserId] = useState<string | null>(null);
+  // We use initializedWorkspaceId to track which workspace the current selectedSources belongs to.
+  // This prevents saving one workspace's data to another workspace's profile during switching.
+  const [initializedWorkspaceId, setInitializedWorkspaceId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<Error | null>(null);
 
   const [aggregatedContext, setAggregatedContext] = useState("");
   const [isContextLoading, setIsContextLoading] = useState(false);
   const [isContextModalOpen, setIsContextModalOpen] = useState(false);
 
-  // Load from Firebase when user changes
+  // Load from Firebase when workspace changes
   useEffect(() => {
     if (authLoading) return;
 
-    if (!user) {
+    if (!currentWorkspace) {
       setSelectedSources([]);
-      setInitializedUserId(null);
+      setInitializedWorkspaceId(null);
       return;
     }
 
+    // Don't reload if already initialized for this workspace
+    if (initializedWorkspaceId === currentWorkspace.id) return;
+
     // Fetch from Firebase
-    console.log("GlobalContext: Fetching from Firebase for user", user.uid);
-    setInitializedUserId(null); // Reset initialization state when user changes
+    console.log("GlobalContext: Fetching from Firebase for workspace", currentWorkspace.id);
+    setInitializedWorkspaceId(null); // Reset initialization state when workspace changes
     setLoadError(null);
     
-    getUserGlobalContext(user.uid)
+    getWorkspaceGlobalContext(currentWorkspace.id)
         .then(sources => {
             console.log("GlobalContext: Fetched sources:", sources);
             if (sources) {
@@ -68,24 +73,24 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
             // We keep selectedSources as [] (default) but loadError prevents saving
         })
         .finally(() => {
-            setInitializedUserId(user.uid);
+            setInitializedWorkspaceId(currentWorkspace.id);
         });
-  }, [user, authLoading]);
+  }, [currentWorkspace, authLoading, initializedWorkspaceId]);
 
   // Save to Firebase whenever selectedSources changes
   useEffect(() => {
     // Don't save if:
     // 1. Auth is loading
-    // 2. No user
-    // 3. Not initialized for THIS user (prevents cross-user data leak or overwriting)
+    // 2. No workspace
+    // 3. Not initialized for THIS workspace (prevents cross-workspace data leak or overwriting)
     // 4. Load error occurred (prevent overwriting with empty)
-    if (authLoading || !user || initializedUserId !== user.uid || loadError) return;
+    if (authLoading || !currentWorkspace || initializedWorkspaceId !== currentWorkspace.id || loadError) return;
     
     console.log("GlobalContext: Saving sources to Firebase:", selectedSources);
     // Save to Firebase (fire and forget)
-    saveUserGlobalContext(user.uid, selectedSources)
+    saveWorkspaceGlobalContext(currentWorkspace.id, selectedSources)
         .catch(err => console.error("Failed to save global context sources", err));
-  }, [selectedSources, user, authLoading, initializedUserId, loadError]);
+  }, [selectedSources, currentWorkspace, authLoading, initializedWorkspaceId, loadError]);
 
   // Fetch and aggregate context data
   const fetchAndAggregateContext = useCallback(async (sources: ContextSource[]) => {
@@ -98,6 +103,8 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
     
     try {
         // Fetch all data in parallel
+        // Note: fetchContextData likely needs workspaceId if it fetches data dependent on workspace.
+        // Let's check fetchContextData later.
         const results = await Promise.all(sources.map(s => fetchContextData(s)));
 
         let contextText = "### GLOBAL CONTEXT SUMMARY\nThe following items are included in this context:\n";
@@ -128,10 +135,10 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
 
   // Update aggregated context when selectedSources changes
   useEffect(() => {
-      if (initializedUserId) {
+      if (initializedWorkspaceId) {
           fetchAndAggregateContext(selectedSources);
       }
-  }, [selectedSources, initializedUserId, fetchAndAggregateContext]);
+  }, [selectedSources, initializedWorkspaceId, fetchAndAggregateContext]);
 
   const refreshAggregatedContext = async () => {
       await fetchAndAggregateContext(selectedSources);

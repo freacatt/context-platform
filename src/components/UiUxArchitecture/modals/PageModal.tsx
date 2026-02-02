@@ -112,7 +112,7 @@ export const PageModal: React.FC<PageModalProps> = ({ open, onOpenChange, page, 
                 <Input 
                   value={localPage.main.route} 
                   onChange={e => handleChange(['main', 'route'], e.target.value)}
-                  placeholder="e.g., /dashboard"
+                  placeholder="e.g., /workspace/:id/dashboard"
                 />
               </div>
 

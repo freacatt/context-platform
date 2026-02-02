@@ -2,11 +2,13 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { GlobalProvider } from './contexts/GlobalContext';
+import { WorkspaceProvider } from './contexts/WorkspaceContext';
 import LandingPage from './pages/LandingPage';
 import DocsPage from './pages/DocsPage';
 import AboutPage from './pages/AboutPage';
 import FeaturesPage from './pages/FeaturesPage';
 import LoginPage from './pages/LoginPage';
+import WorkspacesPage from './pages/WorkspacesPage';
 import Dashboard from './pages/Dashboard';
 import PyramidsPage from './pages/PyramidsPage';
 import DiagramsPage from './pages/DiagramsPage';
@@ -43,25 +45,36 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <AuthProvider>
-        <GlobalProvider>
-          <Router>
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/docs" element={<DocsPage />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="/features" element={<FeaturesPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              
-              {/* Main Dashboard (Tool Selection) */}
-              <Route 
-                path="/dashboard" 
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                } 
-              />
+        <Router>
+          <AuthProvider>
+            <WorkspaceProvider>
+              <GlobalProvider>
+                <Routes>
+                  <Route path="/" element={<LandingPage />} />
+                <Route path="/docs" element={<DocsPage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/features" element={<FeaturesPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                
+                {/* Workspaces List (Default after login) */}
+                <Route 
+                  path="/workspaces" 
+                  element={
+                    <ProtectedRoute>
+                      <WorkspacesPage />
+                    </ProtectedRoute>
+                  } 
+                />
+
+                {/* Main Dashboard (Tool Selection) */}
+                <Route 
+                  path="/workspace/:workspaceId/dashboard" 
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  } 
+                />
 
               {/* Pyramid Tool Routes */}
               <Route 
@@ -214,12 +227,13 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
-            </Routes>
-          </Router>
-        </GlobalProvider>
-      </AuthProvider>
-    </ThemeProvider>
-  );
-}
+                </Routes>
+              </GlobalProvider>
+            </WorkspaceProvider>
+          </AuthProvider>
+        </Router>
+      </ThemeProvider>
+    );
+  }
 
 export default App;

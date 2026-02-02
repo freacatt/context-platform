@@ -36,6 +36,7 @@ const ProductDefinitionEditorContent: React.FC = () => {
   const { id: definitionId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
   
   const [definition, setDefinition] = useState<ProductDefinition | null>(null);
   

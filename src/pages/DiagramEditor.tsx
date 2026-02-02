@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import ReactFlow, { Background, Controls, addEdge, Connection, Edge, Node, NodeMouseHandler, OnConnect, OnEdgesChange, OnNodesChange, Panel, ReactFlowProvider, useEdgesState, useNodesState, useReactFlow } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { getDiagram, updateDiagram } from '../services/diagramService';
 import DiagramNode from '../components/Diagram/DiagramNode';
 import DiagramBlockModal from '../components/Diagram/DiagramBlockModal';
 import { Diagram, DiagramNodeData } from '../types';
-import { Plus, Pencil, Check, X, Save, Download } from 'lucide-react';
+import { Plus, Pencil, Check, X, Save, Download, ArrowLeft } from 'lucide-react';
 import { fetchContextData } from '../services/contextAdapter';
 
 import { Button } from '@/components/ui/button';
@@ -30,7 +30,9 @@ const defaultNodeData: DiagramNodeData = {
 };
 
 const DiagramEditorContent: React.FC = () => {
+  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { currentWorkspace } = useWorkspace();
   const { getNodes, getEdges } = useReactFlow();
   const [diagram, setDiagram] = useState<Diagram | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<DiagramNodeData>>([]);
@@ -374,7 +376,10 @@ const DiagramEditorContent: React.FC = () => {
         <Controls />
 
         <Panel position="top-left">
-          <div className="flex gap-3 items-center">
+          <div className="bg-background/80 backdrop-blur p-2 rounded-lg shadow border flex gap-3 items-center">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/diagrams')} className="h-8 w-8">
+              <ArrowLeft size={16} />
+            </Button>
             {editingTitle ? (
               <div className="flex gap-2 items-center">
                 <Input

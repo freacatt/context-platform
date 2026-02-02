@@ -15,8 +15,14 @@ rules_version = '2';
               get(/databases/$(database)/documents/$(collectionName)/$(docId)).data.userId == request.auth.uid; 
      } 
  
-     // Users collection 
-     match /users/{userId} { 
+     // Workspaces collection
+    match /workspaces/{workspaceId} {
+      allow create: if isOwner(request.resource.data.userId);
+      allow read, update, delete: if isOwner(resource.data.userId);
+    }
+
+    // Users collection 
+    match /users/{userId} { 
        allow read, write: if isOwner(userId); 
  
        // Chat subcollection for Global Chat 

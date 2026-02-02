@@ -1,5 +1,5 @@
 import React from 'react';
-import { calculateCoordinates } from '../../utils/pyramidLayout';
+import { calculateCoordinates, BLOCK_SIZE } from '../../utils/pyramidLayout';
 import { Bot } from 'lucide-react';
 import { Block as BlockType } from '../../types';
 
@@ -20,7 +20,7 @@ const Block: React.FC<BlockProps> = ({ block, onClick, isSelected }) => {
   return (
     <div
       onClick={() => onClick(block)}
-      className={`absolute w-12 h-12 flex items-center justify-center cursor-pointer transition-all duration-200 border-2
+      className={`absolute flex items-center justify-center cursor-pointer transition-all duration-200 border-2
         ${bgColor}
         ${isSelected ? 'border-blue-500 scale-110 z-10 shadow-lg' : 'border-black/10 hover:border-black/30 hover:scale-105 hover:z-10'}
         ${block.isAI ? 'ring-2 ring-purple-400' : ''}
@@ -28,11 +28,16 @@ const Block: React.FC<BlockProps> = ({ block, onClick, isSelected }) => {
       style={{
         left: `${x}px`,
         top: `${y}px`,
-        transform: 'translate(-50%, -50%)',
+        width: `${BLOCK_SIZE}px`,
+        height: `${BLOCK_SIZE}px`,
+        transform: 'translate(-50%, -50%) rotate(45deg)',
       }}
       title={block.content || `Block ${block.u},${block.v}`}
     >
-      <div className="flex flex-col items-center justify-center p-1 text-center w-full h-full overflow-hidden">
+      <div 
+        className="flex flex-col items-center justify-center p-1 text-center w-full h-full overflow-hidden"
+        style={{ transform: 'rotate(-45deg)' }}
+      >
         {block.isAI && (
            <Bot size={10} className="text-purple-600 absolute top-0.5 right-0.5" />
         )}

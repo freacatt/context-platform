@@ -18,6 +18,7 @@ import { TechnicalArchitecture } from '../types';
 import { TaskCard } from '../components/TechnicalTask/TaskCard';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
+import { useWorkspace } from '../contexts/WorkspaceContext';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,6 +48,7 @@ import {
 
 export const TechnicalTaskBoard: React.FC = () => {
     const { user } = useAuth();
+    const { currentWorkspace } = useWorkspace();
     const [pipelines, setPipelines] = useState<Pipeline[]>([]);
     const [tasks, setTasks] = useState<TechnicalTask[]>([]);
     const [architectures, setArchitectures] = useState<TechnicalArchitecture[]>([]);
@@ -67,19 +69,19 @@ export const TechnicalTaskBoard: React.FC = () => {
     const [renameTitle, setRenameTitle] = useState('');
 
     useEffect(() => {
-        if (user) {
+        if (user && currentWorkspace) {
             fetchData();
         }
-    }, [user]);
+    }, [user, currentWorkspace]);
 
     const fetchData = async () => {
-        if (!user) return;
+        if (!user || !currentWorkspace) return;
         setLoading(true);
         try {
             const [fetchedPipelines, fetchedTasks, fetchedArchs] = await Promise.all([
-                getPipelines(user.uid),
-                getTechnicalTasks(user.uid),
-                getUserTechnicalArchitectures(user.uid)
+                getPipelines(user.uid, currentWorkspace.id),
+                getTechnicalTasks(user.uid, currentWorkspace.id),
+                getUserTechnicalArchitectures(user.uid, currentWorkspace.id)
             ]);
             setPipelines(fetchedPipelines);
             setTasks(fetchedTasks);
@@ -92,12 +94,12 @@ export const TechnicalTaskBoard: React.FC = () => {
     };
 
     const handleCreateTask = async () => {
-        if (!user || !newTaskTitle || !selectedArch) return;
+        if (!user || !currentWorkspace || !newTaskTitle || !selectedArch) return;
         // Default to first pipeline
         const pipelineId = pipelines[0]?.id;
         if (!pipelineId) return;
 
-        const task = await createTechnicalTask(user.uid, pipelineId, newTaskTitle, newTaskType, selectedArch);
+        const task = await createTechnicalTask(user.uid, pipelineId, newTaskTitle, newTaskType, selectedArch, undefined, currentWorkspace.id);
         if (task) {
             setTasks([...tasks, task]);
             setIsCreateOpen(false);
@@ -107,8 +109,9 @@ export const TechnicalTaskBoard: React.FC = () => {
     };
 
     const handleCreatePipeline = async () => {
-        if (!user || !newPipelineTitle) return;
-        const pipeline = await createPipeline(user.uid, newPipelineTitle, pipelines.length);
+        if (!user || !currentWorkspace || !newPipelineTitle) return;
+        const order = pipelines.length;
+        const pipeline = await createPipeline(user.uid, newPipelineTitle, order, currentWorkspace.id);
         if (pipeline) {
             setPipelines([...pipelines, pipeline]);
             setIsPipelineOpen(false);

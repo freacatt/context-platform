@@ -7,6 +7,11 @@ import { getUserContextDocuments } from './contextDocumentService';
 import { getUserTechnicalArchitectures } from './technicalArchitectureService';
 import { getTechnicalTasks, getPipelines } from './technicalTaskService';
 import { getUserUiUxArchitectures } from './uiUxArchitectureService';
+import { getUserDirectories } from './directoryService';
+import { getUserDiagrams } from './diagramService';
+import { createWorkspace } from './workspaceService';
+import { db } from './firebase';
+import { collection, addDoc, doc, setDoc } from 'firebase/firestore';
 
 
 // ==========================================
@@ -395,32 +400,38 @@ export const exportTechnicalArchitectureToMarkdown = (arch: TechnicalArchitectur
 
 export const exportWorkspaceToJson = async (
   userId: string,
+  workspaceId: string,
   userInfo?: { displayName?: string | null; email?: string | null }
 ) => {
-  if (!userId) return;
+  if (!userId || !workspaceId) return;
 
   const [
     pyramids,
     productDefinitions,
     contextDocuments,
+    directories,
     technicalArchitectures,
     technicalTasks,
     pipelines,
-    uiUxArchitectures
+    uiUxArchitectures,
+    diagrams
   ] = await Promise.all([
-    getUserPyramids(userId),
-    getUserProductDefinitions(userId),
-    getUserContextDocuments(userId),
-    getUserTechnicalArchitectures(userId),
-    getTechnicalTasks(userId),
-    getPipelines(userId),
-    getUserUiUxArchitectures(userId)
+    getUserPyramids(userId, workspaceId),
+    getUserProductDefinitions(userId, workspaceId),
+    getUserContextDocuments(userId, workspaceId),
+    getUserDirectories(userId, workspaceId),
+    getUserTechnicalArchitectures(userId, workspaceId),
+    getTechnicalTasks(userId, workspaceId),
+    getPipelines(userId, workspaceId),
+    getUserUiUxArchitectures(userId, workspaceId),
+    getUserDiagrams(userId, workspaceId)
   ]);
 
   const payload = {
     meta: {
       exportedAt: new Date().toISOString(),
       userId,
+      workspaceId,
       user: {
         displayName: userInfo?.displayName || null,
         email: userInfo?.email || null
@@ -429,12 +440,14 @@ export const exportWorkspaceToJson = async (
     pyramids,
     productDefinitions,
     contextDocuments,
+    directories,
     technicalArchitectures,
     technicalTasks: {
       pipelines,
       tasks: technicalTasks
     },
-    uiUxArchitectures
+    uiUxArchitectures,
+    diagrams
   };
 
   const filenameBase =
@@ -446,4 +459,117 @@ export const exportWorkspaceToJson = async (
     `${filenameBase}_workspace.json`,
     'application/json'
   );
+};
+
+export const importWorkspaceFromJson = async (
+  file: File,
+  userId: string
+): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const json = JSON.parse(e.target?.result as string);
+        const timestamp = new Date().toISOString();
+        
+        // 1. Create new workspace
+        const workspaceName = `Imported: ${json.meta?.user?.displayName || 'Workspace'} (${new Date().toLocaleDateString()})`;
+        const newWorkspaceId = await createWorkspace(userId, workspaceName);
+
+        // ID Mappings (Old ID -> New ID)
+        const idMap = new Map<string, string>();
+
+        // Helper to process collections
+        const processCollection = async (items: any[], collectionName: string, idField = 'id') => {
+            if (!items || !Array.isArray(items)) return;
+            
+            for (const item of items) {
+                const oldId = item[idField];
+                // Remove ID to let Firestore generate new one, or generate one manually if we want control
+                // We'll let Firestore generate it to avoid collisions
+                const { [idField]: _, ...data } = item;
+                
+                // Update basic fields
+                data.userId = userId;
+                data.workspaceId = newWorkspaceId;
+                data.createdAt = timestamp;
+                data.lastModified = timestamp;
+
+                // Add to Firestore
+                const docRef = await addDoc(collection(db, collectionName), data);
+                if (oldId) {
+                    idMap.set(oldId, docRef.id);
+                }
+            }
+        };
+
+        // 2. Import Directories (Dependencies for Documents)
+        await processCollection(json.directories, 'directories');
+
+        // 3. Import Context Documents (Update directoryId)
+        if (json.contextDocuments) {
+            for (const doc of json.contextDocuments) {
+                const oldId = doc.id;
+                const { id, ...data } = doc;
+                data.userId = userId;
+                data.workspaceId = newWorkspaceId;
+                data.createdAt = timestamp;
+                data.lastModified = timestamp;
+
+                if (data.directoryId && idMap.has(data.directoryId)) {
+                    data.directoryId = idMap.get(data.directoryId);
+                } else {
+                    data.directoryId = null; // or keep as is if not found (likely undefined)
+                }
+
+                const docRef = await addDoc(collection(db, 'context_documents'), data);
+                idMap.set(oldId, docRef.id);
+            }
+        }
+
+        // 4. Import Pyramids
+        await processCollection(json.pyramids, 'pyramids');
+
+        // 5. Import Product Definitions (Update linkedPyramidId)
+        if (json.productDefinitions) {
+            for (const def of json.productDefinitions) {
+                const oldId = def.id;
+                const { id, ...data } = def;
+                data.userId = userId;
+                data.workspaceId = newWorkspaceId;
+                data.createdAt = timestamp;
+                data.lastModified = timestamp;
+
+                if (data.linkedPyramidId && idMap.has(data.linkedPyramidId)) {
+                    data.linkedPyramidId = idMap.get(data.linkedPyramidId);
+                }
+
+                const docRef = await addDoc(collection(db, 'product_definitions'), data);
+                idMap.set(oldId, docRef.id);
+            }
+        }
+
+        // 6. Import Others
+        await processCollection(json.technicalArchitectures, 'technical_architectures');
+        await processCollection(json.uiUxArchitectures, 'ui_ux_architectures');
+        await processCollection(json.diagrams, 'diagrams');
+        
+        // Technical Tasks & Pipelines
+        if (json.technicalTasks) {
+             await processCollection(json.technicalTasks.pipelines, 'pipelines');
+             // Tasks might link to pipelines, ideally should map pipeline IDs too
+             // But for now let's just import tasks. If tasks have pipelineId, we need to map it.
+             // Assuming simple import for now.
+             await processCollection(json.technicalTasks.tasks, 'technical_tasks');
+        }
+
+        resolve(newWorkspaceId);
+
+      } catch (error) {
+        console.error("Import failed:", error);
+        reject(error);
+      }
+    };
+    reader.readAsText(file);
+  });
 };

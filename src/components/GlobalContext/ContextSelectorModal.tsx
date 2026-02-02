@@ -14,6 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent } from "@/components/ui/card";
 import { BookOpen, FileText, Server, CheckSquare, Palette, ChevronDown, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { getUserPyramids } from '../../services/pyramidService';
 import { getUserProductDefinitions } from '../../services/productDefinitionService';
 import { getUserContextDocuments } from '../../services/contextDocumentService';
@@ -42,6 +43,7 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
   currentDefinitionId 
 }) => {
   const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
   const [activeTab, setActiveTab] = useState<string>("pyramids");
   const [loading, setLoading] = useState<boolean>(false);
   
@@ -73,31 +75,60 @@ const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
   useEffect(() => {
     if (isOpen && user) {
       setLoading(true);
-      Promise.all([
-        getUserPyramids(user.uid),
-        getUserProductDefinitions(user.uid),
-        getUserContextDocuments(user.uid),
-        getUserTechnicalArchitectures(user.uid),
-        getTechnicalTasks(user.uid),
-        getUserUiUxArchitectures(user.uid),
-        getUserDirectories(user.uid),
-        getUserDiagrams(user.uid)
-      ]).then(([pyramidsData, definitionsData, documentsData, architecturesData, tasksData, uiUxArchitecturesData, directoriesData, diagramsData]) => {
-        setPyramids(pyramidsData);
-        setDefinitions(definitionsData.filter(d => d.id !== currentDefinitionId));
-        setDocuments(documentsData);
-        setArchitectures(architecturesData);
-        setTasks(tasksData);
-        setUiUxArchitectures(uiUxArchitecturesData);
-        setDirectories(directoriesData.map(d => ({ id: d.id, title: d.title })));
-        setDiagrams(diagramsData);
+      const wsId = currentWorkspace?.id;
+
+      Promise.allSettled([
+        getUserPyramids(user.uid, wsId),
+        getUserProductDefinitions(user.uid, wsId),
+        getUserContextDocuments(user.uid, wsId),
+        getUserTechnicalArchitectures(user.uid, wsId),
+        getTechnicalTasks(user.uid, wsId),
+        getUserUiUxArchitectures(user.uid, wsId),
+        getUserDirectories(user.uid, wsId),
+        getUserDiagrams(user.uid, wsId)
+      ]).then((results) => {
+        const [
+          pyramidsResult,
+          definitionsResult,
+          documentsResult,
+          architecturesResult,
+          tasksResult,
+          uiUxArchitecturesResult,
+          directoriesResult,
+          diagramsResult
+        ] = results;
+
+        if (pyramidsResult.status === 'fulfilled') setPyramids(pyramidsResult.value);
+        else console.error("Failed to fetch pyramids", pyramidsResult.reason);
+
+        if (definitionsResult.status === 'fulfilled') setDefinitions(definitionsResult.value.filter(d => d.id !== currentDefinitionId));
+        else console.error("Failed to fetch definitions", definitionsResult.reason);
+
+        if (documentsResult.status === 'fulfilled') setDocuments(documentsResult.value);
+        else console.error("Failed to fetch documents", documentsResult.reason);
+
+        if (architecturesResult.status === 'fulfilled') setArchitectures(architecturesResult.value);
+        else console.error("Failed to fetch technical architectures", architecturesResult.reason);
+
+        if (tasksResult.status === 'fulfilled') setTasks(tasksResult.value);
+        else console.error("Failed to fetch technical tasks", tasksResult.reason);
+
+        if (uiUxArchitecturesResult.status === 'fulfilled') setUiUxArchitectures(uiUxArchitecturesResult.value);
+        else console.error("Failed to fetch UI/UX architectures", uiUxArchitecturesResult.reason);
+
+        if (directoriesResult.status === 'fulfilled') setDirectories(directoriesResult.value.map(d => ({ id: d.id, title: d.title })));
+        else console.error("Failed to fetch directories", directoriesResult.reason);
+
+        if (diagramsResult.status === 'fulfilled') setDiagrams(diagramsResult.value);
+        else console.error("Failed to fetch diagrams", diagramsResult.reason);
+
       }).catch(err => {
         console.error("Failed to load context sources", err);
       }).finally(() => {
         setLoading(false);
       });
     }
-  }, [isOpen, user, currentDefinitionId]);
+  }, [isOpen, user, currentDefinitionId, currentWorkspace]);
 
   const handleToggle = (type: 'contextDocument' | 'productDefinition' | 'pyramid' | 'technicalArchitecture' | 'technicalTask' | 'uiUxArchitecture' | 'directory' | 'diagram', item: { id: string, title: string }) => {
     setSelected(prev => {

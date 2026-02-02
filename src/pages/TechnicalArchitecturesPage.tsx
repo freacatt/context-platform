@@ -5,6 +5,7 @@ import { getUserTechnicalArchitectures, createTechnicalArchitecture, deleteTechn
 import { useNavigate } from 'react-router-dom';
 import { TechnicalArchitecture } from '../types';
 
+import { useWorkspace } from '../contexts/WorkspaceContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -22,6 +23,7 @@ import {
 
 export const TechnicalArchitecturesPage: React.FC = () => {
   const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
   const navigate = useNavigate();
   const [architectures, setArchitectures] = useState<TechnicalArchitecture[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -38,9 +40,9 @@ export const TechnicalArchitecturesPage: React.FC = () => {
   const [renameNewTitle, setRenameNewTitle] = useState("");
 
   const fetchArchitectures = async () => {
-    if (!user) return;
+    if (!user || !currentWorkspace) return;
     try {
-      const data = await getUserTechnicalArchitectures(user.uid);
+      const data = await getUserTechnicalArchitectures(user.uid, currentWorkspace.id);
       setArchitectures(data);
     } catch (error) {
       console.error("Failed to load technical architectures", error);
@@ -51,13 +53,13 @@ export const TechnicalArchitecturesPage: React.FC = () => {
 
   useEffect(() => {
     fetchArchitectures();
-  }, [user]);
+  }, [user, currentWorkspace]);
 
   const handleCreate = async () => {
-      if (!user || !newTitle.trim()) return;
+      if (!user || !currentWorkspace || !newTitle.trim()) return;
       setIsCreating(true);
       try {
-          const id = await createTechnicalArchitecture(user.uid, newTitle);
+          const id = await createTechnicalArchitecture(user.uid, newTitle, currentWorkspace.id);
           setIsCreateOpen(false);
           setNewTitle('');
           // Navigate to editor

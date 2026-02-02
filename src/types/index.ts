@@ -2,6 +2,14 @@ import { Block } from '../utils/pyramidLayout';
 
 export type { Block };
 
+export interface Workspace {
+  id: string;
+  userId: string; // Owner
+  name: string;
+  createdAt: Date | null;
+  lastModified: Date | null;
+}
+
 export interface ContextSource {
   id: string;
   type: 'contextDocument' | 'productDefinition' | 'pyramid' | 'technicalArchitecture' | 'technicalTask' | 'uiUxArchitecture' | 'directory' | 'diagram';
@@ -11,6 +19,7 @@ export interface ContextSource {
 export interface Pyramid {
   id: string;
   userId: string;
+  workspaceId?: string;
   title: string;
   context: string | null;
   createdAt: Date | null;
@@ -44,6 +53,7 @@ export interface ProductDefinitionNode {
 export interface ProductDefinition {
   id: string;
   userId: string;
+  workspaceId?: string;
   title: string;
   createdAt: Date | null;
   lastModified: Date | null;
@@ -71,6 +81,7 @@ export interface StoredMessage {
 export interface Conversation {
   id: string;
   userId: string;
+  workspaceId?: string;
   title: string;
   createdAt: Date | null;
   updatedAt: Date | null;
@@ -79,6 +90,7 @@ export interface Conversation {
 export interface ContextDocument {
   id: string;
   userId: string;
+  workspaceId?: string;
   title: string;
   type: string;
   content: string;
@@ -91,6 +103,7 @@ export interface ContextDocument {
 export interface Directory {
   id: string;
   userId: string;
+  workspaceId?: string;
   title: string;
   createdAt: Date | null;
   lastModified: Date | null;
@@ -99,6 +112,7 @@ export interface Directory {
 export interface UiUxArchitecture {
   id: string;
   userId: string;
+  workspaceId?: string;
   title: string;
   createdAt: Date | null;
   lastModified: Date | null;
@@ -115,6 +129,7 @@ export interface DiagramNodeData {
 export interface Diagram {
   id: string;
   userId: string;
+  workspaceId?: string;
   title: string;
   createdAt: Date | null;
   lastModified: Date | null;
@@ -124,6 +139,7 @@ export interface Diagram {
 export interface TechnicalArchitecture {
   id: string;
   userId: string;
+  workspaceId?: string;
   title: string;
   createdAt: Date | null;
   lastModified: Date | null;

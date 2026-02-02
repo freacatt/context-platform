@@ -6,6 +6,7 @@ import { getUserDirectories, createDirectory, renameDirectory, deleteDirectory }
 import { Link, useNavigate } from 'react-router-dom';
 import { ContextDocument } from '../types';
 
+import { useWorkspace } from '../contexts/WorkspaceContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -29,6 +30,7 @@ import { Label } from "@/components/ui/label";
 
 const ContextDocumentsPage: React.FC = () => {
   const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
   const navigate = useNavigate();
   const [documents, setDocuments] = useState<ContextDocument[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -49,9 +51,9 @@ const ContextDocumentsPage: React.FC = () => {
   const [renameNewTitle, setRenameNewTitle] = useState("");
 
   const fetchDocuments = async () => {
-    if (!user) return;
+    if (!user || !currentWorkspace) return;
     try {
-      const data = await getUserContextDocuments(user.uid);
+      const data = await getUserContextDocuments(user.uid, currentWorkspace.id);
       setDocuments(data);
     } catch (error) {
       console.error("Failed to load documents", error);
@@ -61,9 +63,9 @@ const ContextDocumentsPage: React.FC = () => {
   };
 
   const fetchDirectories = async () => {
-    if (!user) return;
+    if (!user || !currentWorkspace) return;
     try {
-      const data = await getUserDirectories(user.uid);
+      const data = await getUserDirectories(user.uid, currentWorkspace.id);
       setDirectories(data.map(d => ({ id: d.id, title: d.title })));
     } catch (error) {
       console.error("Failed to load directories", error);
@@ -72,17 +74,17 @@ const ContextDocumentsPage: React.FC = () => {
 
   useEffect(() => {
     fetchDocuments();
-  }, [user]);
+  }, [user, currentWorkspace]);
 
   useEffect(() => {
     fetchDirectories();
-  }, [user]);
+  }, [user, currentWorkspace]);
 
   const handleCreate = async () => {
-      if (!user || !newTitle.trim()) return;
+      if (!user || !currentWorkspace || !newTitle.trim()) return;
       setIsCreating(true);
       try {
-          const id = await createContextDocument(user.uid, newTitle, 'text');
+          const id = await createContextDocument(user.uid, newTitle, 'text', currentWorkspace.id);
           setIsCreateOpen(false);
           setNewTitle('');
           if (id) {
@@ -97,16 +99,16 @@ const ContextDocumentsPage: React.FC = () => {
   };
 
   const handleCreateDirectory = async () => {
-    if (!user || !newDirTitle.trim()) return;
+    if (!user || !currentWorkspace || !newDirTitle.trim()) return;
     setIsCreatingDir(true);
     try {
-      const id = await createDirectory(user.uid, newDirTitle.trim());
+      await createDirectory(user.uid, newDirTitle, currentWorkspace.id);
       setIsCreateDirOpen(false);
       setNewDirTitle('');
-      await fetchDirectories();
+      fetchDirectories();
     } catch (error) {
       console.error(error);
-      alert('Failed to create directory');
+      alert("Failed to create directory");
     } finally {
       setIsCreatingDir(false);
     }

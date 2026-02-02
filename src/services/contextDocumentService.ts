@@ -10,6 +10,7 @@ export const mapDocumentFromDB = (data: any, id: string): ContextDocument | null
     return {
         id: id,
         userId: data.userId || data.user_id,
+        workspaceId: data.workspaceId,
         title: data.title,
         type: data.type,
         content: data.content,
@@ -23,10 +24,15 @@ export const mapDocumentFromDB = (data: any, id: string): ContextDocument | null
 /**
  * Get all context documents for a user
  */
-export const getUserContextDocuments = async (userId: string): Promise<ContextDocument[]> => {
+export const getUserContextDocuments = async (userId: string, workspaceId?: string): Promise<ContextDocument[]> => {
   if (!userId) return [];
   try {
-    const q = query(collection(db, TABLE_NAME), where('userId', '==', userId));
+    let q;
+    if (workspaceId) {
+        q = query(collection(db, TABLE_NAME), where('workspaceId', '==', workspaceId), where('userId', '==', userId));
+    } else {
+        q = query(collection(db, TABLE_NAME), where('userId', '==', userId));
+    }
     const querySnapshot = await getDocs(q);
     
     return querySnapshot.docs.map(doc => mapDocumentFromDB(doc.data(), doc.id) as ContextDocument);
@@ -39,11 +45,12 @@ export const getUserContextDocuments = async (userId: string): Promise<ContextDo
 /**
  * Create a new context document
  */
-export const createContextDocument = async (userId: string, title: string = "New Context Document", type: string = "text"): Promise<string | null> => {
+export const createContextDocument = async (userId: string, title: string = "New Context Document", type: string = "text", workspaceId?: string): Promise<string | null> => {
   if (!userId) return null;
 
   const newDoc = {
     userId: userId,
+    workspaceId: workspaceId || null,
     title,
     type,
     content: "", 

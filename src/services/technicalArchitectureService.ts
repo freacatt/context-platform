@@ -9,8 +9,9 @@ const mapArchitectureFromDB = (data: any, id: string): TechnicalArchitecture | n
     if (!data) return null;
     return {
         id: id,
-        userId: data.userId || data.user_id,
-        title: data.title,
+    userId: data.userId || data.user_id,
+    workspaceId: data.workspaceId,
+    title: data.title,
         createdAt: (data.createdAt || data.created_at) ? new Date(data.createdAt || data.created_at) : null,
         lastModified: (data.lastModified || data.last_modified) ? new Date(data.lastModified || data.last_modified) : null,
         metadata: data.metadata,
@@ -31,11 +32,12 @@ const mapArchitectureFromDB = (data: any, id: string): TechnicalArchitecture | n
 /**
  * Create a new technical architecture with the default template
  */
-export const createTechnicalArchitecture = async (userId: string, title: string = "New Technical Architecture"): Promise<string | null> => {
+export const createTechnicalArchitecture = async (userId: string, title: string = "New Technical Architecture", workspaceId?: string): Promise<string | null> => {
   if (!userId) return null;
 
   const defaultArchitecture: Omit<TechnicalArchitecture, 'id'> = {
     userId: userId,
+    workspaceId: workspaceId || undefined,
     title,
     createdAt: new Date(),
     lastModified: new Date(),
@@ -241,9 +243,14 @@ export const createTechnicalArchitecture = async (userId: string, title: string 
 /**
  * Get all technical architectures for a user
  */
-export const getUserTechnicalArchitectures = async (userId: string): Promise<TechnicalArchitecture[]> => {
+export const getUserTechnicalArchitectures = async (userId: string, workspaceId?: string): Promise<TechnicalArchitecture[]> => {
     try {
-        const q = query(collection(db, TABLE_NAME), where("userId", "==", userId));
+        let q;
+        if (workspaceId) {
+            q = query(collection(db, TABLE_NAME), where("workspaceId", "==", workspaceId), where("userId", "==", userId));
+        } else {
+            q = query(collection(db, TABLE_NAME), where("userId", "==", userId));
+        }
         const querySnapshot = await getDocs(q);
         const results: TechnicalArchitecture[] = [];
         querySnapshot.forEach((doc) => {

@@ -26,6 +26,7 @@ const mapDiagramFromDB = (data: any, id: string): Diagram | null => {
     return {
         id: id,
         userId: data.userId,
+        workspaceId: data.workspaceId,
         title: data.title,
         createdAt: data.createdAt ? (typeof data.createdAt === 'string' ? new Date(data.createdAt) : data.createdAt.toDate()) : null,
         lastModified: data.lastModified ? (typeof data.lastModified === 'string' ? new Date(data.lastModified) : data.lastModified.toDate()) : null,
@@ -34,11 +35,12 @@ const mapDiagramFromDB = (data: any, id: string): Diagram | null => {
     };
 };
 
-export const createDiagram = async (userId: string, title: string = "New Diagram"): Promise<string | null> => {
+export const createDiagram = async (userId: string, title: string = "New Diagram", workspaceId?: string): Promise<string | null> => {
     if (!userId) return null;
 
     const defaultDiagram: Omit<Diagram, 'id'> = {
         userId: userId,
+        workspaceId: workspaceId || undefined,
         title,
         createdAt: new Date(),
         lastModified: new Date(),
@@ -62,9 +64,14 @@ export const createDiagram = async (userId: string, title: string = "New Diagram
     }
 };
 
-export const getUserDiagrams = async (userId: string): Promise<Diagram[]> => {
+export const getUserDiagrams = async (userId: string, workspaceId?: string): Promise<Diagram[]> => {
     try {
-        const q = query(collection(db, TABLE_NAME), where("userId", "==", userId));
+        let q;
+        if (workspaceId) {
+            q = query(collection(db, TABLE_NAME), where("workspaceId", "==", workspaceId), where("userId", "==", userId));
+        } else {
+            q = query(collection(db, TABLE_NAME), where("userId", "==", userId));
+        }
         const querySnapshot = await getDocs(q);
         return querySnapshot.docs.map(doc => mapDiagramFromDB(doc.data(), doc.id)!).filter(Boolean);
     } catch (e) {

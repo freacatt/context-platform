@@ -8,8 +8,9 @@ const mapArchitectureFromDB = (data: any, id: string): UiUxArchitecture | null =
     if (!data) return null;
     return {
         id: id,
-        userId: data.userId || data.user_id,
-        title: data.title,
+    userId: data.userId || data.user_id,
+    workspaceId: data.workspaceId,
+    title: data.title,
         createdAt: (data.createdAt || data.created_at) ? (typeof data.createdAt === 'string' ? data.createdAt : data.createdAt.toDate().toISOString()) : new Date().toISOString(),
         updatedAt: (data.updatedAt || data.updated_at) ? (typeof data.updatedAt === 'string' ? data.updatedAt : data.updatedAt.toDate().toISOString()) : new Date().toISOString(),
         ui_ux_architecture_metadata: data.ui_ux_architecture_metadata,
@@ -20,11 +21,12 @@ const mapArchitectureFromDB = (data: any, id: string): UiUxArchitecture | null =
     };
 };
 
-export const createUiUxArchitecture = async (userId: string, title: string = "New UI/UX Architecture"): Promise<string | null> => {
+export const createUiUxArchitecture = async (userId: string, title: string = "New UI/UX Architecture", workspaceId?: string): Promise<string | null> => {
     if (!userId) return null;
 
     const defaultArchitecture: Omit<UiUxArchitecture, 'id'> = {
         userId: userId,
+        workspaceId: workspaceId || undefined,
         title,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -71,9 +73,14 @@ export const createUiUxArchitecture = async (userId: string, title: string = "Ne
     }
 };
 
-export const getUserUiUxArchitectures = async (userId: string): Promise<UiUxArchitecture[]> => {
+export const getUserUiUxArchitectures = async (userId: string, workspaceId?: string): Promise<UiUxArchitecture[]> => {
     try {
-        const q = query(collection(db, TABLE_NAME), where("userId", "==", userId));
+        let q;
+        if (workspaceId) {
+            q = query(collection(db, TABLE_NAME), where("workspaceId", "==", workspaceId), where("userId", "==", userId));
+        } else {
+            q = query(collection(db, TABLE_NAME), where("userId", "==", userId));
+        }
         const querySnapshot = await getDocs(q);
         return querySnapshot.docs.map(doc => mapArchitectureFromDB(doc.data(), doc.id)!).filter(Boolean);
     } catch (e) {

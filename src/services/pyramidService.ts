@@ -9,6 +9,7 @@ const mapPyramidFromDB = (data: any, id: string): Pyramid | null => {
     return {
         id: id,
         userId: data.userId || data.user_id,
+        workspaceId: data.workspaceId,
         title: data.title,
         context: data.context,
         createdAt: (data.createdAt || data.created_at) ? new Date(data.createdAt || data.created_at) : null,
@@ -21,7 +22,7 @@ const mapPyramidFromDB = (data: any, id: string): Pyramid | null => {
 };
 
 // Create a new pyramid
-export const createPyramid = async (userId: string, title: string, context: string | null = null): Promise<string> => {
+export const createPyramid = async (userId: string, title: string, context: string | null = null, workspaceId?: string): Promise<string> => {
   try {
     // Create an 8x8 grid of blocks
     const blocks: Record<string, Block> = {};
@@ -34,6 +35,7 @@ export const createPyramid = async (userId: string, title: string, context: stri
 
     const pyramidData = {
       userId: userId,
+      workspaceId: workspaceId || null,
       title,
       context,
       status: 'in_progress',
@@ -88,12 +90,23 @@ export const subscribeToPyramid = (pyramidId: string, onUpdate: (pyramid: Pyrami
 };
 
 // Get all pyramids for a user
-export const getUserPyramids = async (userId: string): Promise<Pyramid[]> => {
+export const getUserPyramids = async (userId: string, workspaceId?: string): Promise<Pyramid[]> => {
     try {
-        const q = query(
-            collection(db, 'pyramids'), 
-            where('userId', '==', userId)
-        );
+        let q;
+        if (workspaceId) {
+            q = query(
+                collection(db, 'pyramids'), 
+                where('workspaceId', '==', workspaceId),
+                where('userId', '==', userId)
+            );
+        } else {
+            // Fallback for non-migrated data or specific use cases
+            q = query(
+                collection(db, 'pyramids'), 
+                where('userId', '==', userId)
+            );
+        }
+        
         const querySnapshot = await getDocs(q);
         const pyramids = querySnapshot.docs.map(doc => mapPyramidFromDB(doc.data(), doc.id)).filter((p): p is Pyramid => p !== null);
         
@@ -120,13 +133,14 @@ export const deletePyramid = async (pyramidId: string): Promise<void> => {
 };
 
 // Duplicate a pyramid
-export const duplicatePyramid = async (userId: string, pyramidId: string): Promise<string> => {
+export const duplicatePyramid = async (userId: string, pyramidId: string, workspaceId?: string): Promise<string> => {
     try {
         const originalPyramid = await getPyramid(pyramidId);
         if (!originalPyramid) throw new Error("Pyramid not found");
 
         const newPyramidData = {
             userId: userId,
+            workspaceId: workspaceId || originalPyramid.workspaceId || null,
             title: `${originalPyramid.title} (Copy)`,
             context: originalPyramid.context,
             status: originalPyramid.status,

@@ -77,7 +77,7 @@ export const fetchContextData = async (source: ContextSource): Promise<ContextDa
       case 'directory':
         const dir = await getDirectory(source.id);
         if (dir) {
-          const docs = await getDirectoryDocuments(dir.userId, dir.id);
+          const docs = await getDirectoryDocuments(dir.userId, dir.id, dir.workspaceId);
           data = { directory: dir, documents: docs };
           title = dir.title;
         }

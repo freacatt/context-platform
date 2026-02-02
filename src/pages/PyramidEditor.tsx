@@ -7,6 +7,7 @@ import { getContextDocument } from '../services/contextDocumentService';
 import { getProductDefinition } from '../services/productDefinitionService';
 import { exportPyramidToExcel, exportPyramidToMarkdown } from '../services/exportService';
 import { Pyramid, ContextSource } from '../types';
+import { useWorkspace } from '../contexts/WorkspaceContext';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -19,6 +20,7 @@ import {
 const PyramidEditor: React.FC = () => {
   const { pyramidId } = useParams<{ pyramidId: string }>();
   const navigate = useNavigate();
+  const { currentWorkspace } = useWorkspace();
   const [currentPyramid, setCurrentPyramid] = useState<Pyramid | null>(null);
   
   // Context Management
@@ -84,7 +86,7 @@ const PyramidEditor: React.FC = () => {
     <div className="h-full bg-muted/20 flex flex-col">
       <div className="container mx-auto p-4 pb-2">
         <div className="flex justify-between items-center mb-4">
-            <Button variant="ghost" onClick={() => navigate('/dashboard')} className="hover:bg-muted">
+            <Button variant="ghost" onClick={() => navigate(currentWorkspace ? `/workspace/${currentWorkspace.id}/dashboard` : '/workspaces')} className="hover:bg-muted">
                 <ArrowLeft size={16} className="mr-2" /> Back to Dashboard
             </Button>
             {/* Global Context is now in Navbar */}

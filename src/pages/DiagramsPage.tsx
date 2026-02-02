@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Search, Plus, MoreVertical, Trash2, ArrowRight, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { Diagram } from '../types';
 import { getUserDiagrams, createDiagram, deleteDiagram } from '../services/diagramService';
 
@@ -28,6 +29,7 @@ import {
 
 const DiagramsPage: React.FC = () => {
   const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
   const [diagrams, setDiagrams] = useState<Diagram[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -42,7 +44,7 @@ const DiagramsPage: React.FC = () => {
   const fetchDiagrams = async () => {
     if (!user) return;
     try {
-      const data = await getUserDiagrams(user.uid);
+      const data = await getUserDiagrams(user.uid, currentWorkspace?.id);
       setDiagrams(data);
     } catch (error) {
       console.error("Failed to load diagrams", error);
@@ -53,7 +55,7 @@ const DiagramsPage: React.FC = () => {
 
   useEffect(() => {
     fetchDiagrams();
-  }, [user]);
+  }, [user, currentWorkspace]);
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("Are you sure you want to delete this diagram?")) return;
@@ -69,7 +71,7 @@ const DiagramsPage: React.FC = () => {
     if (!user || !newTitle.trim()) return;
     setIsCreating(true);
     try {
-      const id = await createDiagram(user.uid, newTitle);
+      const id = await createDiagram(user.uid, newTitle, currentWorkspace?.id);
       if (id) {
         setCreateDialogOpen(false);
         setNewTitle("");

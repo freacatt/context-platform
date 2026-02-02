@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useLocation, Link } from "react-router-dom"
 import {
   Pyramid,
   GitMerge,
@@ -12,7 +13,8 @@ import {
   Folder,
   FileText,
   ListTodo,
-  ArrowUpCircleIcon
+  ArrowUpCircleIcon,
+  ArrowLeft
 } from "lucide-react"
 
 import { NavMain, NavItem } from "@/components/nav-main"
@@ -30,7 +32,9 @@ import {
 } from "@/components/ui/sidebar"
 import { useGlobalContext } from "@/contexts/GlobalContext"
 import { useAuth } from "@/contexts/AuthContext"
+import { useWorkspace } from "@/contexts/WorkspaceContext"
 import { Badge } from "@/components/ui/badge"
+import { WorkspaceSwitcher } from "@/components/workspace-switcher"
 
 // Services
 import { getUserPyramids } from "@/services/pyramidService"
@@ -45,38 +49,54 @@ import { getPipelines } from "@/services/technicalTaskService"
 // Types
 import { ContextDocument, Directory } from "@/types"
 
-const staticNavSecondary = [
-  {
-    title: "Global Context",
-    url: "#",
-    icon: BookOpen,
-    isAction: true,
-    actionId: "global-context"
-  },
-]
-
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user, logout } = useAuth();
   const { setIsContextModalOpen, selectedSources } = useGlobalContext();
+  const { currentWorkspace } = useWorkspace();
+  const location = useLocation();
   
-  // State for dynamic nav items
-  const [navItems, setNavItems] = React.useState<NavItem[]>([
-    { title: "Dashboard", url: "/", icon: LayoutDashboardIcon },
-    { title: "AI Assistant", url: "/ai-chat", icon: Bot },
-    { title: "Pyramid Solver", url: "/pyramids", icon: Pyramid },
-    { title: "Product Definition", url: "/product-definitions", icon: GitMerge },
-    { title: "Context & Documents", url: "/context-documents", icon: BookOpen },
-    { title: "Technical Architecture", url: "/technical-architectures", icon: Server },
-    { title: "Technical Tasks", url: "/technical-tasks", icon: CheckSquare },
-    { title: "UI/UX Architecture", url: "/ui-ux-architectures", icon: Layout },
-    { title: "Diagrams", url: "/diagrams", icon: Workflow },
-  ]);
+  // Determine if we are in "workspace mode" (not in root workspaces list)
+  const isWorkspaceMode = !!currentWorkspace && !location.pathname.endsWith('/workspaces') && location.pathname !== '/workspaces';
 
+  // State for dynamic nav items
+  const [navItems, setNavItems] = React.useState<NavItem[]>([]);
+
+  // Update nav items based on workspace context and fetched data
   React.useEffect(() => {
-    if (!user?.uid) return;
+    if (!isWorkspaceMode) {
+        // Minimal sidebar for workspaces list
+        setNavItems([
+            { title: "Workspaces", url: "/workspaces", icon: Folder },
+        ]);
+        return;
+    }
+
+    // Full sidebar for workspace context
+    const baseItems: NavItem[] = [
+      { title: "Dashboard", url: currentWorkspace ? `/workspace/${currentWorkspace.id}/dashboard` : "/workspaces", icon: LayoutDashboardIcon },
+      { title: "AI Assistant", url: "/ai-chat", icon: Bot },
+      { title: "Pyramid Solver", url: "/pyramids", icon: Pyramid },
+      { title: "Product Definition", url: "/product-definitions", icon: GitMerge },
+      { title: "Context & Documents", url: "/context-documents", icon: BookOpen },
+      { title: "Technical Architecture", url: "/technical-architectures", icon: Server },
+      { title: "Technical Tasks", url: "/technical-tasks", icon: CheckSquare },
+      { title: "UI/UX Architecture", url: "/ui-ux-architectures", icon: Layout },
+      { title: "Diagrams", url: "/diagrams", icon: Workflow },
+    ];
+    
+    setNavItems(baseItems);
+  }, [currentWorkspace, isWorkspaceMode]);
+
+  // Fetch dynamic sub-items (pyramids, docs, etc.) only when in workspace mode
+  React.useEffect(() => {
+    if (!user?.uid || !isWorkspaceMode) return;
 
     const fetchData = async () => {
+      // If in workspace mode but no workspace ID is available yet, don't fetch to avoid fetching global data
+      if (isWorkspaceMode && !currentWorkspace?.id) return;
+
       try {
+        const workspaceId = currentWorkspace?.id;
         const [
           pyramids,
           definitions,
@@ -135,7 +155,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         setNavItems([
           { 
             title: "Dashboard", 
-            url: "/", 
+            url: currentWorkspace ? `/workspace/${currentWorkspace.id}/dashboard` : "/workspaces",
             icon: LayoutDashboardIcon 
           },
           { 
@@ -217,25 +237,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     };
 
     fetchData();
-  }, [user?.uid]); // Depend on user ID
-
-  const handleAction = (actionId?: string) => {
-    if (actionId === "global-context") {
-      setIsContextModalOpen(true);
-    }
-  };
-
-  const navSecondaryItems = React.useMemo(() => {
-    return staticNavSecondary.map(item => {
-      if (item.actionId === "global-context" && selectedSources.length > 0) {
-        return {
-          ...item,
-          badge: <Badge className="bg-indigo-600 hover:bg-indigo-700 text-white border-0">{selectedSources.length}</Badge>
-        }
-      }
-      return item
-    })
-  }, [selectedSources])
+  }, [user?.uid, isWorkspaceMode, currentWorkspace?.id]); // Depend on user ID
 
   const userData = {
     name: user?.displayName || "User",
@@ -246,23 +248,39 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
-            >
-              <a href="/">
-                <ArrowUpCircleIcon className="h-5 w-5" />
-                <span className="text-base font-semibold">Context Platform</span>
-              </a>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        {isWorkspaceMode ? (
+            <WorkspaceSwitcher />
+        ) : (
+            <SidebarMenu>
+            <SidebarMenuItem>
+                <SidebarMenuButton
+                asChild
+                className="data-[slot=sidebar-menu-button]:!p-1.5"
+                >
+                <Link to="/workspaces">
+                    <ArrowUpCircleIcon className="h-5 w-5" />
+                    <span className="text-base font-semibold">Context Platform</span>
+                </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+            </SidebarMenu>
+        )}
       </SidebarHeader>
       <SidebarContent>
+        {isWorkspaceMode && (
+             <SidebarMenu className="px-2 pb-2">
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild className="text-muted-foreground hover:text-foreground">
+                        <Link to="/workspaces">
+                            <ArrowLeft className="h-4 w-4" />
+                            <span>Back to Workspaces</span>
+                        </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+             </SidebarMenu>
+        )}
         <NavMain items={navItems} />
-        <NavSecondary items={navSecondaryItems} className="mt-auto" onAction={handleAction} />
+
       </SidebarContent>
       <SidebarFooter>
         <ModeToggle />

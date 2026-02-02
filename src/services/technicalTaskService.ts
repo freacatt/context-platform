@@ -8,38 +8,93 @@ const PIPELINES_COLLECTION = 'pipelines';
 
 // --- Pipelines ---
 
-export const getPipelines = async (userId: string): Promise<Pipeline[]> => {
+export const getPipelines = async (userId: string, workspaceId?: string): Promise<Pipeline[]> => {
     if (!userId) return [];
-    // Remove orderBy to avoid composite index requirement
-    const q = query(
-        collection(db, PIPELINES_COLLECTION),
-        where('userId', '==', userId)
-    );
+    
+    let q;
+    if (workspaceId) {
+        q = query(
+            collection(db, PIPELINES_COLLECTION),
+            where('workspaceId', '==', workspaceId),
+            where('userId', '==', userId)
+        );
+    } else {
+        q = query(
+            collection(db, PIPELINES_COLLECTION),
+            where('userId', '==', userId)
+        );
+    }
+
     const snapshot = await getDocs(q);
     const pipelines = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Pipeline));
     
     // Sort in memory
     pipelines.sort((a, b) => a.order - b.order);
+
+    // Check for duplicate "Backlog" pipelines and clean them up
+    const backlogs = pipelines.filter(p => p.title === 'Backlog');
+    if (backlogs.length > 1) {
+        console.log("Found duplicate Backlog pipelines, cleaning up...");
+        try {
+            await deduplicateBacklogs(backlogs);
+        } catch (error) {
+            console.error("Error deduplicating backlogs:", error);
+            // Continue even if cleanup fails, maybe return full list or filtered?
+            // Safer to return filtered list to UI even if DB delete failed
+        }
+        // Remove deleted backlogs from the returned list (keep the first one)
+        const keptId = backlogs[0].id;
+        const deletedIds = backlogs.slice(1).map(b => b.id);
+        return pipelines.filter(p => !deletedIds.includes(p.id));
+    }
     
     // Ensure at least one pipeline exists
     if (pipelines.length === 0) {
-        // Double check to prevent race condition in strict mode
-        const qCheck = query(
-            collection(db, PIPELINES_COLLECTION),
-            where('userId', '==', userId)
-        );
-        const snapshotCheck = await getDocs(qCheck);
-        if (snapshotCheck.empty) {
-            const defaultPipeline = await createPipeline(userId, 'Backlog', 0);
-            if (defaultPipeline) return [defaultPipeline];
-        } else {
-            const existing = snapshotCheck.docs.map(doc => ({ id: doc.id, ...doc.data() } as Pipeline));
-            existing.sort((a, b) => a.order - b.order);
-            return existing;
-        }
+        // Only auto-create if we are not just querying by workspaceId which might be empty
+        // Actually, if a workspace has no pipelines, we should create a default one for it too.
+        
+        const defaultPipeline = await createPipeline(userId, 'Backlog', 0, workspaceId);
+        if (defaultPipeline) return [defaultPipeline];
     }
     
     return pipelines;
+};
+
+// Helper function to deduplicate Backlog pipelines
+const deduplicateBacklogs = async (backlogs: Pipeline[]) => {
+    if (backlogs.length <= 1) return;
+
+    const keptPipeline = backlogs[0];
+    const duplicates = backlogs.slice(1);
+    const batch = writeBatch(db);
+
+    // For each duplicate, move tasks to keptPipeline and delete duplicate
+    for (const duplicate of duplicates) {
+        // Find tasks in this duplicate pipeline
+        const tasksQuery = query(
+            collection(db, TASKS_COLLECTION),
+            where('pipelineId', '==', duplicate.id)
+        );
+        const tasksSnapshot = await getDocs(tasksQuery);
+
+        // Move tasks
+        tasksSnapshot.docs.forEach(taskDoc => {
+            batch.update(doc(db, TASKS_COLLECTION, taskDoc.id), {
+                pipelineId: keptPipeline.id
+            });
+            // Also update global task if needed? 
+            // Yes, strictly speaking, but batchUpdateTasks handles that usually.
+            // Here we just fix the reference.
+            batch.update(doc(db, GLOBAL_TASKS_COLLECTION, taskDoc.id), {
+                pipelineId: keptPipeline.id
+            }, { merge: true } as any); // merge true to ignore if missing
+        });
+
+        // Delete duplicate pipeline
+        batch.delete(doc(db, PIPELINES_COLLECTION, duplicate.id));
+    }
+
+    await batch.commit();
 };
 
 export const batchUpdatePipelines = async (pipelines: Pipeline[]) => {
@@ -66,14 +121,15 @@ export const batchUpdateTasks = async (tasks: TechnicalTask[]) => {
     await batch.commit();
 };
 
-export const createPipeline = async (userId: string, title: string, order: number): Promise<Pipeline | null> => {
+export const createPipeline = async (userId: string, title: string, order: number, workspaceId?: string): Promise<Pipeline | null> => {
     try {
         const docRef = await addDoc(collection(db, PIPELINES_COLLECTION), {
             userId,
+            workspaceId: workspaceId || null,
             title,
             order
         });
-        return { id: docRef.id, userId, title, order };
+        return { id: docRef.id, userId, workspaceId: workspaceId || undefined, title, order };
     } catch (e) {
         console.error("Error creating pipeline: ", e);
         return null;
@@ -97,50 +153,40 @@ export const deletePipeline = async (pipelineId: string): Promise<boolean> => {
     }
 };
 
-// --- Tasks ---
+// ... existing task functions ...
+export const getTechnicalTasks = async (userId: string, workspaceId?: string): Promise<TechnicalTask[]> => {
+    if (!userId) return [];
+    
+    let q;
+    if (workspaceId) {
+        q = query(
+            collection(db, TASKS_COLLECTION),
+            where('workspaceId', '==', workspaceId),
+            where('userId', '==', userId)
+        );
+    } else {
+        q = query(
+            collection(db, TASKS_COLLECTION),
+            where('userId', '==', userId)
+        );
+    }
+
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TechnicalTask));
+};
 
 export const getTechnicalTask = async (taskId: string): Promise<TechnicalTask | null> => {
     try {
         const docRef = doc(db, TASKS_COLLECTION, taskId);
         const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            return {
-                id: docSnap.id,
-                ...data,
-                createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
-                updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt)
-            } as TechnicalTask;
-        }
-        return null;
-    } catch (e: any) {
-        if (e?.code !== 'permission-denied') {
-            console.error("Error fetching technical task: ", e);
-        }
-        return null;
-    }
-};
-
-export const getTechnicalTasks = async (userId: string): Promise<TechnicalTask[]> => {
-    if (!userId) return [];
-    try {
-        const q = query(collection(db, TASKS_COLLECTION), where('userId', '==', userId));
-        const snapshot = await getDocs(q);
         
-        return snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                id: doc.id,
-                ...data,
-                createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
-                updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt)
-            } as TechnicalTask;
-        });
-    } catch (e: any) {
-        if (e?.code !== 'permission-denied') {
-            console.error("Error fetching technical tasks: ", e);
+        if (docSnap.exists()) {
+            return { id: docSnap.id, ...docSnap.data() } as TechnicalTask;
         }
-        return [];
+        return null;
+    } catch (e) {
+        console.error("Error getting technical task:", e);
+        return null;
     }
 };
 
@@ -149,56 +195,50 @@ export const createTechnicalTask = async (
     pipelineId: string, 
     title: string, 
     type: TaskType, 
-    technicalArchitectureId: string,
-    initialData?: Partial<TechnicalTaskData>
+    technicalArchitectureId: string, 
+    data?: TechnicalTaskData, 
+    workspaceId?: string
 ): Promise<TechnicalTask | null> => {
-    
-    const defaultData: TechnicalTaskData = {
-        task_metadata: {
-            task_id: `task_${Date.now()}`,
-            task_type: type,
-            parent_architecture_ref: technicalArchitectureId,
-            created_at: new Date().toISOString(),
-            priority: 'MEDIUM',
-            status: 'PENDING',
-            assigned_to: 'AI_AGENT',
-            estimated_hours: 0
-        },
-        description: { main: { title }, advanced: {} },
-        components: { main: {}, advanced: {} },
-        architecture: { main: {}, advanced: {} },
-        dependencies: { main: {}, advanced: {} },
-        unit_tests: { main: { test_framework: 'Jest', coverage_target: '90%', critical_tests: [] }, advanced: {} },
-        validation_checklist: { main: {}, advanced: { code_quality: [], documentation: [] } },
-        preservation_rules: { main: { existing_functionality_to_preserve: [], non_breaking_requirements: {} as any }, advanced: { integration_safety: {}, rollback_plan: '' } }
-    };
-
-    // Merge initialData if provided (deep merge might be better but shallow for top sections is ok for now)
-    const data = { ...defaultData, ...initialData };
-
-    const newTask: Omit<TechnicalTask, 'id'> = {
-        userId,
-        pipelineId,
-        title,
-        type,
-        technicalArchitectureId,
-        data,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        order: 0 // Should be calculated to be at top/bottom
-    };
-
     try {
-        const docRef = await addDoc(collection(db, TASKS_COLLECTION), newTask);
-        
-        // Sync to Global Tasks
-        // We include the ID in the document for easier RAG retrieval if needed
-        await setDoc(doc(db, GLOBAL_TASKS_COLLECTION, docRef.id), {
-            ...newTask,
-            id: docRef.id
-        });
+        const defaultData: any = {
+            task_metadata: {
+                task_id: "",
+                task_type: type,
+                parent_architecture_ref: technicalArchitectureId,
+                created_at: new Date().toISOString(),
+                priority: 'MEDIUM',
+                status: 'PENDING',
+                assigned_to: userId,
+                estimated_hours: 0
+            },
+            description: { main: { title }, advanced: {} },
+            components: { main: {}, advanced: {} },
+            architecture: { main: {}, advanced: {} },
+            dependencies: { main: {}, advanced: {} },
+            unit_tests: { main: {}, advanced: {} },
+            validation_checklist: { main: {}, advanced: {} },
+            preservation_rules: { main: {}, advanced: {} }
+        };
 
-        return { id: docRef.id, ...newTask };
+        const newTask: any = {
+            userId,
+            pipelineId,
+            title,
+            type,
+            technicalArchitectureId,
+            workspaceId: workspaceId || null,
+            data: data || defaultData, 
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            order: 0
+        };
+
+        const docRef = await addDoc(collection(db, TASKS_COLLECTION), newTask);
+        const task = { id: docRef.id, ...newTask };
+
+        await setDoc(doc(db, GLOBAL_TASKS_COLLECTION, docRef.id), task);
+
+        return task;
     } catch (e) {
         console.error("Error creating technical task: ", e);
         return null;
@@ -206,24 +246,24 @@ export const createTechnicalTask = async (
 };
 
 export const updateTechnicalTask = async (taskId: string, updates: Partial<TechnicalTask>): Promise<void> => {
-    const docRef = doc(db, TASKS_COLLECTION, taskId);
-    const globalDocRef = doc(db, GLOBAL_TASKS_COLLECTION, taskId);
-    
-    const updateData = { ...updates, updatedAt: new Date() };
-
-    await updateDoc(docRef, updateData);
-    // Sync to Global Tasks - use set with merge to ensure it exists
-    await setDoc(globalDocRef, updateData, { merge: true }).catch(err => {
-        console.warn(`Failed to sync global task ${taskId}`, err);
-    });
+    try {
+        const docRef = doc(db, TASKS_COLLECTION, taskId);
+        const globalRef = doc(db, GLOBAL_TASKS_COLLECTION, taskId);
+        
+        const updateData = { ...updates, updatedAt: new Date().toISOString() };
+        
+        await updateDoc(docRef, updateData);
+        await setDoc(globalRef, updateData, { merge: true });
+    } catch (e) {
+        console.error("Error updating technical task: ", e);
+        throw e;
+    }
 };
 
 export const deleteTechnicalTask = async (taskId: string): Promise<boolean> => {
     try {
         await deleteDoc(doc(db, TASKS_COLLECTION, taskId));
-        await deleteDoc(doc(db, GLOBAL_TASKS_COLLECTION, taskId)).catch(err => {
-            console.warn(`Failed to delete global task ${taskId}`, err);
-        });
+        await deleteDoc(doc(db, GLOBAL_TASKS_COLLECTION, taskId));
         return true;
     } catch (e) {
         console.error("Error deleting technical task: ", e);
@@ -231,46 +271,75 @@ export const deleteTechnicalTask = async (taskId: string): Promise<boolean> => {
     }
 };
 
-// --- Export to Markdown ---
-
 export const generateMarkdown = (task: TechnicalTask): string => {
-    const { data } = task;
-    const md: string[] = [];
-
-    md.push(`# ${data.description.main.title || task.title}`);
-    md.push(`**ID:** ${data.task_metadata.task_id} | **Type:** ${data.task_metadata.task_type} | **Priority:** ${data.task_metadata.priority}`);
-    md.push(`\n## Description`);
-    if (data.description.main.summary) md.push(data.description.main.summary);
-    if (data.description.main.bug_report) md.push(`**Bug Report:** ${data.description.main.bug_report}`);
-    if (data.description.main.acceptance_criteria?.length) {
-        md.push(`\n### Acceptance Criteria`);
-        data.description.main.acceptance_criteria.forEach(ac => md.push(`- ${ac}`));
-    }
-
-    md.push(`\n## Components`);
-    if (data.components.main.files_to_create?.length) {
-        md.push(`\n### Files to Create`);
-        data.components.main.files_to_create.forEach(f => md.push(`- **${f.file_path}** (${f.file_type}): ${f.purpose}`));
-    }
-    if (data.components.main.files_to_modify?.length) {
-        md.push(`\n### Files to Modify`);
-        data.components.main.files_to_modify.forEach(f => md.push(`- **${f.file_path}**: ${f.reason}`));
-    }
-
-    md.push(`\n## Architecture`);
-    if (data.architecture.main.design_pattern) md.push(`**Design Pattern:** ${data.architecture.main.design_pattern}`);
-    if (data.architecture.main.data_flow?.length) {
-        md.push(`\n### Data Flow`);
-        data.architecture.main.data_flow.forEach((step, i) => md.push(`${i + 1}. ${step}`));
-    }
-
-    md.push(`\n## Unit Tests`);
-    if (data.unit_tests.main.critical_tests?.length) {
-        md.push(`\n### Critical Tests`);
-        data.unit_tests.main.critical_tests.forEach(t => md.push(`- [ ] ${t}`));
-    }
-
-    // Add more sections as needed...
+    const data = task.data;
+    const meta = data.task_metadata;
+    const desc = data.description?.main || {};
     
-    return md.join('\n');
+    let md = `# ${desc.title || task.title}\n\n`;
+    
+    // Metadata
+    md += `## Metadata\n`;
+    md += `- **ID:** ${meta.task_id || task.id}\n`;
+    md += `- **Type:** ${meta.task_type}\n`;
+    md += `- **Priority:** ${meta.priority}\n`;
+    md += `- **Status:** ${meta.status}\n`;
+    md += `- **Created:** ${new Date(meta.created_at).toLocaleString()}\n`;
+    md += `- **Estimated Hours:** ${meta.estimated_hours}\n\n`;
+
+    // Description
+    md += `## Description\n`;
+    if (desc.summary) md += `### Summary\n${desc.summary}\n\n`;
+    if (desc.bug_report) md += `### Bug Report\n${desc.bug_report}\n\n`;
+    if (desc.impact) md += `### Impact\n${desc.impact}\n\n`;
+    
+    if (desc.steps_to_reproduce && desc.steps_to_reproduce.length > 0) {
+        md += `### Steps to Reproduce\n`;
+        desc.steps_to_reproduce.forEach((step: string, i: number) => {
+            md += `${i + 1}. ${step}\n`;
+        });
+        md += `\n`;
+    }
+
+    if (desc.acceptance_criteria && desc.acceptance_criteria.length > 0) {
+        md += `### Acceptance Criteria\n`;
+        desc.acceptance_criteria.forEach((criteria: string) => {
+            md += `- [ ] ${criteria}\n`;
+        });
+        md += `\n`;
+    }
+
+    // Components
+    const comps = data.components?.main || {};
+    if (comps.files_to_create && comps.files_to_create.length > 0) {
+        md += `## Files to Create\n`;
+        comps.files_to_create.forEach((file: any) => {
+            md += `### ${file.file_path}\n`;
+            md += `- **Type:** ${file.file_type}\n`;
+            md += `- **Purpose:** ${file.purpose}\n\n`;
+        });
+    }
+
+    if (comps.files_to_modify && comps.files_to_modify.length > 0) {
+        md += `## Files to Modify\n`;
+        comps.files_to_modify.forEach((file: any) => {
+            md += `### ${file.file_path}\n`;
+            md += `- **Reason:** ${file.reason}\n`;
+            md += `- **Lines:** ${file.lines_affected}\n`;
+            md += `- **Current Issue:** ${file.current_issue}\n`;
+            md += `- **Proposed Fix:** ${file.proposed_fix}\n\n`;
+        });
+    }
+
+    // Validation Checklist
+    const validation = data.validation_checklist?.main || {};
+    if (validation.checklist_items && validation.checklist_items.length > 0) {
+        md += `## Validation Checklist\n`;
+        validation.checklist_items.forEach((item: string) => {
+            md += `- [ ] ${item}\n`;
+        });
+        md += `\n`;
+    }
+
+    return md;
 };

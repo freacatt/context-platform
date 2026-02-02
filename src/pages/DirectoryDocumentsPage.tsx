@@ -5,12 +5,14 @@ import { useAuth } from '../contexts/AuthContext';
 import { getDirectory, getDirectoryDocuments } from '../services/directoryService';
 import { ContextDocument, Directory } from '../types';
 
+import { useWorkspace } from '../contexts/WorkspaceContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
 const DirectoryDocumentsPage: React.FC = () => {
   const { id: directoryId } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
   const navigate = useNavigate();
 
   const [directory, setDirectory] = useState<Directory | null>(null);
@@ -19,11 +21,11 @@ const DirectoryDocumentsPage: React.FC = () => {
 
   useEffect(() => {
     const load = async () => {
-      if (!user || !directoryId) return;
+      if (!user || !directoryId || !currentWorkspace) return;
       try {
         const dir = await getDirectory(directoryId);
         setDirectory(dir);
-        const docs = await getDirectoryDocuments(user.uid, directoryId);
+        const docs = await getDirectoryDocuments(user.uid, directoryId, currentWorkspace.id);
         setDocuments(docs);
       } catch (e) {
         console.error('Failed to load directory page', e);
@@ -32,7 +34,7 @@ const DirectoryDocumentsPage: React.FC = () => {
       }
     };
     load();
-  }, [user, directoryId]);
+  }, [user, directoryId, currentWorkspace]);
 
   return (
     <div className="h-full flex-grow bg-background">

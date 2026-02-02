@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { GitMerge, ArrowRight, BookOpen, Pyramid, LucideIcon, Server, CheckSquare, Layout, Bot } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { Link } from 'react-router-dom';
+import { useWorkspace } from '../contexts/WorkspaceContext';
+import { Link, useParams } from 'react-router-dom';
 import { AnimatedButton } from "@/components/ui/animated-button";
 import { AnimatedCard } from "@/components/ui/animated-card";
 import { AnimatedIcon } from "@/components/ui/animated-icon";
@@ -46,6 +47,17 @@ const ToolCard: React.FC<ToolCardProps> = ({ title, description, icon: Icon, to,
 
 const Dashboard: React.FC = () => {
   const { user, loading } = useAuth();
+  const { workspaceId } = useParams<{ workspaceId: string }>();
+  const { workspaces, setCurrentWorkspace, currentWorkspace } = useWorkspace();
+
+  useEffect(() => {
+    if (workspaceId && workspaces.length > 0) {
+      const workspace = workspaces.find(w => w.id === workspaceId);
+      if (workspace && (!currentWorkspace || currentWorkspace.id !== workspaceId)) {
+        setCurrentWorkspace(workspace);
+      }
+    }
+  }, [workspaceId, workspaces, currentWorkspace, setCurrentWorkspace]);
   
   if (loading) {
     return (

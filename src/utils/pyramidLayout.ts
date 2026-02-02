@@ -1,6 +1,8 @@
 export const BLOCK_SIZE = 80;
-export const SPACING_X = 113;
-export const SPACING_Y = 113;
+// Calculate spacing based on block size rotated by 45 degrees
+// The diagonal of a square is side * sqrt(2)
+export const SPACING_X = BLOCK_SIZE * Math.sqrt(2);
+export const SPACING_Y = BLOCK_SIZE * Math.sqrt(2);
 
 export interface Coordinates {
   x: number;

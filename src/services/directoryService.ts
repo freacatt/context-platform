@@ -9,16 +9,18 @@ const mapDirectoryFromDB = (data: any, id: string): Directory | null => {
   return {
     id,
     userId: data.userId || data.user_id,
+    workspaceId: data.workspaceId,
     title: data.title || '',
     createdAt: (data.createdAt || data.created_at) ? new Date(data.createdAt || data.created_at) : null,
     lastModified: (data.lastModified || data.last_modified) ? new Date(data.lastModified || data.last_modified) : null
   };
 };
 
-export const createDirectory = async (userId: string, title: string): Promise<string | null> => {
+export const createDirectory = async (userId: string, title: string, workspaceId?: string): Promise<string | null> => {
   if (!userId || !title.trim()) return null;
   const newDir = {
     userId,
+    workspaceId: workspaceId || null,
     title,
     createdAt: new Date().toISOString(),
     lastModified: new Date().toISOString()
@@ -81,16 +83,38 @@ export const getDirectory = async (id: string): Promise<Directory> => {
   return mapDirectoryFromDB(snap.data(), snap.id) as Directory;
 };
 
-export const getUserDirectories = async (userId: string): Promise<Directory[]> => {
-  const q = query(collection(db, TABLE_NAME), where('userId', '==', userId));
+export const getUserDirectories = async (userId: string, workspaceId?: string): Promise<Directory[]> => {
+  let q;
+  if (workspaceId) {
+    q = query(collection(db, TABLE_NAME), where('workspaceId', '==', workspaceId), where('userId', '==', userId));
+  } else {
+    q = query(collection(db, TABLE_NAME), where('userId', '==', userId));
+  }
   const snap = await getDocs(q);
   return snap.docs.map(d => mapDirectoryFromDB(d.data(), d.id)).filter((x): x is Directory => x !== null);
 };
 
-export const getDirectoryDocuments = async (userId: string, directoryId: string | null): Promise<ContextDocument[]> => {
-  const q = directoryId
-    ? query(collection(db, 'contextDocuments'), where('userId', '==', userId), where('directoryId', '==', directoryId))
-    : query(collection(db, 'contextDocuments'), where('userId', '==', userId), where('directoryId', '==', null));
+export const getDirectoryDocuments = async (userId: string, directoryId: string | null, workspaceId?: string): Promise<ContextDocument[]> => {
+  let q;
+  if (directoryId) {
+    // If directoryId is provided, we filter by directoryId (and optionally userId/workspaceId for security, but directoryId is usually unique enough or we trust it exists)
+    // However, for consistency and security, let's keep userId check or workspaceId check.
+    // Assuming directory belongs to workspace/user.
+    // Existing code: q = directoryId ? query(..., where('userId', ...), where('directoryId', ...)) : ...
+    
+    if (workspaceId) {
+         q = query(collection(db, 'contextDocuments'), where('workspaceId', '==', workspaceId), where('directoryId', '==', directoryId));
+    } else {
+         q = query(collection(db, 'contextDocuments'), where('userId', '==', userId), where('directoryId', '==', directoryId));
+    }
+  } else {
+    if (workspaceId) {
+         q = query(collection(db, 'contextDocuments'), where('workspaceId', '==', workspaceId), where('directoryId', '==', null));
+    } else {
+         q = query(collection(db, 'contextDocuments'), where('userId', '==', userId), where('directoryId', '==', null));
+    }
+  }
+
   const snap = await getDocs(q);
   const mapContextDocumentFromDB = (data: any, id: string): ContextDocument | null => {
     if (!data) return null;

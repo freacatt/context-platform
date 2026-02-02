@@ -314,6 +314,8 @@ export interface TechnicalTaskData {
 
 export interface Pipeline {
     id: string;
+    userId: string;
+    workspaceId?: string;
     title: string;
     order: number;
 }
@@ -322,6 +324,7 @@ export interface TechnicalTask {
     id: string;
     pipelineId: string;
     userId: string;
+    workspaceId?: string;
     title: string;
     type: TaskType;
     technicalArchitectureId: string; // Ref to specific technical architecture

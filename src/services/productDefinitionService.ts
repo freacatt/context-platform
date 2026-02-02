@@ -10,6 +10,7 @@ const mapDefinitionFromDB = (data: any, id: string): ProductDefinition | null =>
     return {
         id: id,
         userId: data.userId || data.user_id,
+        workspaceId: data.workspaceId,
         title: data.title,
         createdAt: (data.createdAt || data.created_at) ? new Date(data.createdAt || data.created_at) : null,
         lastModified: (data.lastModified || data.last_modified) ? new Date(data.lastModified || data.last_modified) : null,
@@ -22,11 +23,12 @@ const mapDefinitionFromDB = (data: any, id: string): ProductDefinition | null =>
 /**
  * Create a new product definition with the default template
  */
-export const createProductDefinition = async (userId: string, title: string = "New Product Definition"): Promise<string | null> => {
+export const createProductDefinition = async (userId: string, title: string = "New Product Definition", workspaceId?: string): Promise<string | null> => {
   if (!userId) return null;
 
   const newDoc = {
     userId: userId,
+    workspaceId: workspaceId || null,
     title,
     createdAt: new Date().toISOString(),
     lastModified: new Date().toISOString(),
@@ -192,9 +194,15 @@ export const getProductDefinition = async (id: string): Promise<ProductDefinitio
 /**
  * Get all product definitions for a user
  */
-export const getUserProductDefinitions = async (userId: string): Promise<ProductDefinition[]> => {
+export const getUserProductDefinitions = async (userId: string, workspaceId?: string): Promise<ProductDefinition[]> => {
       try {
-        const q = query(collection(db, TABLE_NAME), where('userId', '==', userId));
+        let q;
+        if (workspaceId) {
+            q = query(collection(db, TABLE_NAME), where('workspaceId', '==', workspaceId), where('userId', '==', userId));
+        } else {
+            q = query(collection(db, TABLE_NAME), where('userId', '==', userId));
+        }
+        
         const querySnapshot = await getDocs(q);
         
         const definitions = querySnapshot.docs.map(doc => mapDefinitionFromDB(doc.data(), doc.id)).filter((d): d is ProductDefinition => d !== null);

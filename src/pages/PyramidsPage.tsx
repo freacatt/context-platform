@@ -4,6 +4,7 @@ import PyramidList from '../components/Dashboard/PyramidList';
 import CreatePyramidModal from '../components/Dashboard/CreatePyramidModal';
 import { getUserPyramids, deletePyramid, duplicatePyramid, renamePyramid } from '../services/pyramidService';
 import { useAuth } from '../contexts/AuthContext';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { Pyramid } from '../types';
 
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ import {
 
 const PyramidsPage: React.FC = () => {
   const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
   const [pyramids, setPyramids] = useState<Pyramid[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -40,7 +42,7 @@ const PyramidsPage: React.FC = () => {
   const fetchPyramids = async () => {
     if (!user) return;
     try {
-      const data = await getUserPyramids(user.uid);
+      const data = await getUserPyramids(user.uid, currentWorkspace?.id);
       setPyramids(data);
     } catch (error) {
       console.error("Failed to load pyramids", error);
@@ -51,7 +53,7 @@ const PyramidsPage: React.FC = () => {
 
   useEffect(() => {
     fetchPyramids();
-  }, [user]);
+  }, [user, currentWorkspace]);
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("Are you sure you want to delete this pyramid?")) return;
