@@ -1,124 +1,273 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import PublicLayout from '@/components/Layout/PublicLayout';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Box, Layers, Zap, Code, Database, Globe } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowRight, Layers, Workflow, FileText, CheckSquare, Layout, Server, BookOpen } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { LampContainer } from '@/components/ui/lamp';
-import { StickyScroll } from '@/components/ui/sticky-scroll-reveal';
+import { Spotlight } from '@/components/ui/spotlight';
 
 const LandingPage: React.FC = () => {
   return (
     <PublicLayout>
-      <HeroSection />
-      <StickyScrollFeaturesSection />
+      <div className="relative min-h-screen bg-background text-foreground overflow-hidden selection:bg-primary/20 antialiased">
+        <Spotlight
+            className="-top-40 left-0 md:left-60 md:-top-20 text-primary/20 dark:text-white/20"
+            fill="currentColor"
+        />
+        <BackgroundGrid />
+        
+        <div className="relative z-10">
+            <HeroSection />
+            <FeaturesGrid />
+            <IntegrationsSection />
+            <CTASection />
+        </div>
+      </div>
     </PublicLayout>
   );
 };
 
+const BackgroundGrid = () => (
+  <div className="fixed inset-0 z-0 pointer-events-none">
+    <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.3)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.3)_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+  </div>
+);
+
 const HeroSection = () => {
   return (
-    <LampContainer>
+    <section className="relative pt-20 pb-32 md:pt-32 md:pb-48 px-4 flex flex-col items-center text-center">
       <motion.div
-        initial={{ opacity: 0.5, y: 100 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{
-          delay: 0.3,
-          duration: 0.8,
-          ease: "easeInOut",
-        }}
-        className="mt-8 bg-gradient-to-br from-white to-neutral-400 py-4 bg-clip-text text-center text-4xl font-medium tracking-tight text-transparent md:text-7xl"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="inline-flex items-center rounded-full border border-border bg-muted/50 px-3 py-1 text-sm font-medium text-muted-foreground backdrop-blur-sm mb-8"
       >
-        Build Future-Proof <br /> Architecture
+        <span className="flex h-2 w-2 rounded-full bg-blue-500 mr-2 animate-pulse"></span>
+        v1.0 is now live
       </motion.div>
+
+      <motion.h1
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="text-4xl md:text-7xl font-bold tracking-tight mb-6 max-w-4xl bg-clip-text text-transparent bg-gradient-to-b from-foreground to-muted-foreground"
+      >
+        Master Your <br className="hidden md:block" />
+        <span className="bg-gradient-to-r from-blue-500 to-violet-500 bg-clip-text text-transparent">Engineering Context</span>
+      </motion.h1>
+
+      <motion.p
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+        className="text-lg md:text-xl text-muted-foreground max-w-2xl mb-10 leading-relaxed"
+      >
+        The unified platform for Product Definitions, Technical Architecture, and Live Diagrams. 
+        Stop guessing. Start solving.
+      </motion.p>
+
       <motion.div
-        initial={{ opacity: 0, y: 50 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5, duration: 0.8 }}
-        className="mt-4 max-w-2xl mx-auto text-center px-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+        className="flex flex-col sm:flex-row gap-4 w-full justify-center"
       >
-        <p className="text-neutral-400 text-lg md:text-xl mb-8">
-            The minimal, futuristic platform for engineering context. 
-            Visualize complex systems with interactive precision.
-        </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-             <Link to="/login">
-                <Button size="lg" className="h-12 px-8 text-lg rounded-full bg-white hover:bg-neutral-200 text-black border-none shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all hover:shadow-[0_0_40px_rgba(255,255,255,0.5)]">
-                  Start Building <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-            </Link>
-            <Link to="/docs">
-                <Button size="lg" variant="outline" className="h-12 px-8 text-lg rounded-full border-neutral-700 text-neutral-300 hover:bg-neutral-800 hover:text-white">
-                  Read Documentation
-                </Button>
-            </Link>
-        </div>
+        <Link to="/login">
+            <Button size="lg" className="h-12 px-8 text-base rounded-full w-full sm:w-auto shadow-[0_0_20px_rgba(59,130,246,0.5)] bg-blue-600 hover:bg-blue-700 hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] border-none transition-all hover:-translate-y-1 text-white">
+            Start Building Free <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+        </Link>
+        <Link to="/docs">
+            <Button size="lg" variant="outline" className="h-12 px-8 text-base rounded-full w-full sm:w-auto bg-transparent border-border text-muted-foreground hover:bg-accent backdrop-blur-sm">
+            View Documentation
+            </Button>
+        </Link>
       </motion.div>
-    </LampContainer>
+    </section>
   );
 };
 
-const StickyScrollFeaturesSection = () => {
-  const content = [
+const FeaturesGrid = () => {
+  const features = [
     {
-      title: "Interactive Visualization",
-      description:
-        "Trace dependencies across your entire stack with intelligent, routing-aware connectors. Visualize the flow of data and control logic in real-time.",
-      content: (
-        <div className="h-full w-full bg-neutral-900 flex items-center justify-center text-white border border-neutral-800">
-          <Zap className="h-24 w-24 text-white" />
-        </div>
-      ),
+      title: "Interactive Pyramids",
+      description: "Break down complex problems into manageable hierarchies. Visualize dependencies and execution paths.",
+      icon: <Layers className="h-6 w-6 text-blue-500" />,
+      className: "md:col-span-2",
+      color: "blue"
     },
     {
-      title: "3D Architecture",
-      description:
-        "Explore your architecture in a new dimension. Rotate, zoom, and dive into modules to understand the spatial relationships of your system.",
-      content: (
-        <div className="h-full w-full bg-neutral-900 flex items-center justify-center text-white border border-neutral-800">
-          <Box className="h-24 w-24 text-white" />
-        </div>
-      ),
+      title: "Live Architecture",
+      description: "Diagrams that sync with your codebase. No more stale documentation.",
+      icon: <Workflow className="h-6 w-6 text-violet-500" />,
+      className: "md:col-span-1",
+      color: "violet"
     },
     {
-      title: "Layered Context",
-      description:
-        "Switch between high-level overview and implementation details instantly. Keep your documentation and code in sync without context switching.",
-      content: (
-        <div className="h-full w-full bg-neutral-900 flex items-center justify-center text-white border border-neutral-800">
-          <Layers className="h-24 w-24 text-white" />
-        </div>
-      ),
+      title: "Product Definitions",
+      description: "Capture the 'Why' and 'What' with structured clarity before writing code.",
+      icon: <FileText className="h-6 w-6 text-emerald-500" />,
+      className: "md:col-span-1",
+      color: "emerald"
     },
     {
-      title: "Code Integration",
-      description:
-        "Sync your diagrams directly with your codebase. Changes in code are reflected in your architecture diagrams automatically.",
-      content: (
-        <div className="h-full w-full bg-neutral-900 flex items-center justify-center text-white border border-neutral-800">
-          <Code className="h-24 w-24 text-white" />
-        </div>
-      ),
+      title: "Technical Tasks",
+      description: "Convert architecture into actionable tasks. Track progress in real-time.",
+      icon: <CheckSquare className="h-6 w-6 text-orange-500" />,
+      className: "md:col-span-2",
+      color: "orange"
     },
-     {
-      title: "Database Mapping",
-      description:
-        "Visualize schema relationships and data flows. Understand how your data is structured and accessed across different services.",
-      content: (
-        <div className="h-full w-full bg-neutral-900 flex items-center justify-center text-white border border-neutral-800">
-          <Database className="h-24 w-24 text-white" />
-        </div>
-      ),
+    {
+        title: "Technical Architecture",
+        description: "Define your stack, standards, and patterns in one central place. Ensure consistency across your team.",
+        icon: <Server className="h-6 w-6 text-cyan-500" />,
+        className: "md:col-span-2",
+        color: "cyan"
     },
+    {
+        title: "Context Documents",
+        description: "A centralized knowledge base for your engineering decisions and documentation.",
+        icon: <BookOpen className="h-6 w-6 text-yellow-500" />,
+        className: "md:col-span-1",
+        color: "yellow"
+    },
+    {
+        title: "UI/UX Architecture",
+        description: "Design systems and user flows mapped directly to implementation components.",
+        icon: <Layout className="h-6 w-6 text-pink-500" />,
+        className: "md:col-span-3",
+        color: "pink"
+      },
   ];
+
   return (
-    <div className="py-20 bg-black relative z-10">
-         <div className="container px-4 mx-auto mb-12 text-center">
-            <h2 className="text-3xl md:text-5xl font-bold mb-4 text-white">Core Capabilities</h2>
-            <p className="text-neutral-400 text-lg">Everything you need to master your system's complexity.</p>
+    <section className="container mx-auto px-4 pb-32">
+        <div className="mb-16 text-center">
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-4 text-foreground">Everything Connected</h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Stop switching between Jira, Figma, and Confluence. Context Platform brings your entire engineering context into one workspace.
+            </p>
         </div>
-      <StickyScroll content={content} />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+        {features.map((feature, index) => (
+          <FeatureCard key={index} feature={feature} index={index} />
+        ))}
+      </div>
+    </section>
+  );
+};
+
+const FeatureCard = ({ feature, index }: { feature: any, index: number }) => {
+    const [isHovered, setIsHovered] = useState(false);
+    
+    // Map color names to tailwind classes dynamically usually requires safelisting or full mapping
+    // We'll use style objects for dynamic colors to be safe or explicit mapping
+    const colorMap: Record<string, string> = {
+        blue: "rgba(59, 130, 246, 0.1)", // blue-500
+        violet: "rgba(139, 92, 246, 0.1)", // violet-500
+        emerald: "rgba(16, 185, 129, 0.1)", // emerald-500
+        orange: "rgba(249, 115, 22, 0.1)", // orange-500
+        cyan: "rgba(6, 182, 212, 0.1)", // cyan-500
+        yellow: "rgba(234, 179, 8, 0.1)", // yellow-500
+        pink: "rgba(236, 72, 153, 0.1)", // pink-500
+    };
+
+    const borderColors: Record<string, string> = {
+        blue: "rgba(59, 130, 246, 0.5)",
+        violet: "rgba(139, 92, 246, 0.5)",
+        emerald: "rgba(16, 185, 129, 0.5)",
+        orange: "rgba(249, 115, 22, 0.5)",
+        cyan: "rgba(6, 182, 212, 0.5)",
+        yellow: "rgba(234, 179, 8, 0.5)",
+        pink: "rgba(236, 72, 153, 0.5)",
+    }
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: index * 0.1 }}
+            className={feature.className}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
+            <div 
+                className={`relative h-full rounded-2xl border border-border bg-card overflow-hidden transition-all duration-300 group`}
+                style={{
+                    borderColor: isHovered ? borderColors[feature.color] : undefined
+                }}
+            >
+                {/* Grid Background inside Card */}
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--foreground)/0.05)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--foreground)/0.05)_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-50"></div>
+                
+                <div className="relative z-10 p-8 flex flex-col h-full">
+                    <div 
+                        className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-lg border border-border"
+                        style={{ backgroundColor: isHovered ? colorMap[feature.color] : 'transparent' }}
+                    >
+                        {feature.icon}
+                    </div>
+                    <h3 className="text-xl font-bold text-foreground mb-3">{feature.title}</h3>
+                    <p className="text-muted-foreground leading-relaxed flex-grow">
+                        {feature.description}
+                    </p>
+                </div>
+            </div>
+        </motion.div>
+    );
+}
+
+const IntegrationsSection = () => {
+    return (
+        <section className="py-20 border-y border-border bg-muted/30">
+            <div className="container mx-auto px-4 text-center">
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-8">
+                    Powered by Modern Tech Stack
+                </p>
+                <div className="flex flex-wrap justify-center gap-8 md:gap-16 grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all duration-500">
+                    <TechItem name="React" color="text-blue-400" />
+                    <TechItem name="TypeScript" color="text-blue-600" />
+                    <TechItem name="Firebase" color="text-yellow-500" />
+                    <TechItem name="Tailwind" color="text-cyan-400" />
+                    <TechItem name="Vite" color="text-purple-400" />
+                    <TechItem name="Framer Motion" color="text-pink-500" />
+                </div>
+            </div>
+        </section>
+    )
+}
+
+const TechItem = ({ name, color }: { name: string, color: string }) => (
+    <div className={`flex items-center gap-2 font-medium text-lg ${color}`}>
+        <div className="h-2 w-2 rounded-full bg-current" />
+        {name}
     </div>
+)
+
+const CTASection = () => {
+  return (
+    <section className="py-32 px-4 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-primary/5 pointer-events-none" />
+      <div className="container mx-auto max-w-4xl text-center relative z-10">
+        <motion.h2 
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            className="text-4xl md:text-5xl font-bold mb-6 tracking-tight text-foreground"
+        >
+          Ready to Solve Complexity?
+        </motion.h2>
+        <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
+          Join thousands of engineers who are building better software with clear context and aligned architecture.
+        </p>
+        <Link to="/login">
+            <Button size="lg" className="h-14 px-10 text-lg rounded-full shadow-[0_0_20px_rgba(59,130,246,0.5)] bg-blue-600 hover:bg-blue-700 hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] border-none transition-all hover:-translate-y-1 text-white">
+            Get Started for Free
+            </Button>
+        </Link>
+      </div>
+    </section>
   );
 };
 
