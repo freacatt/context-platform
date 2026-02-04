@@ -91,27 +91,28 @@ export const WorkspaceActions: React.FC = () => {
       {isWorkspaceMode && (
         <Button
           variant="ghost"
-          size="icon"
-          className="h-8 w-8"
+          size="sm"
+          className="gap-2 h-8"
           onClick={handleExport}
           disabled={isExporting}
           title="Export Workspace"
         >
           {isExporting ? <Loader2 className="animate-spin" size={16} /> : <Download size={16} />}
+          <span className="hidden md:inline text-sm">Export</span>
         </Button>
       )}
 
       {/* Import - Always available */}
       <Button
         variant="ghost"
-        size="icon"
-        className="h-8 w-8"
+        size="sm"
+        className="gap-2 h-8"
         onClick={handleImportClick}
         disabled={isImporting}
         title="Import Workspace"
       >
         {isImporting ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
-        <span className="sr-only">Import Workspace</span>
+        <span className="hidden md:inline text-sm">Import</span>
       </Button>
       <input 
         type="file" 

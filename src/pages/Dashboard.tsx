@@ -81,7 +81,7 @@ const Dashboard: React.FC = () => {
             />
 
             <ToolCard 
-                title="Pyramid Solver" 
+                title="Context Platform" 
                 description="Structure your problem solving with a logical pyramid approach. Break down complex issues into manageable questions and answers."
                 icon={Pyramid}
                 to="/pyramids"

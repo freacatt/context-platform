@@ -1,14 +1,14 @@
-import { db } from './firebase';
-import { collection, addDoc, getDoc, getDocs, doc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { storage } from './storage';
 import { ProductDefinition, ProductDefinitionNode } from '../types';
 
 const TABLE_NAME = 'productDefinitions';
 
 // Helper to map DB snake_case to JS camelCase
-const mapDefinitionFromDB = (data: any, id: string): ProductDefinition | null => {
+// Storage adapter returns normalized data, but let's keep this safe
+const mapDefinitionFromStorage = (data: any): ProductDefinition | null => {
     if (!data) return null;
     return {
-        id: id,
+        id: data.id,
         userId: data.userId || data.user_id,
         workspaceId: data.workspaceId,
         title: data.title,
@@ -26,7 +26,9 @@ const mapDefinitionFromDB = (data: any, id: string): ProductDefinition | null =>
 export const createProductDefinition = async (userId: string, title: string = "New Product Definition", workspaceId?: string): Promise<string | null> => {
   if (!userId) return null;
 
+  const id = storage.createId();
   const newDoc = {
+    id,
     userId: userId,
     workspaceId: workspaceId || null,
     title,
@@ -161,8 +163,8 @@ export const createProductDefinition = async (userId: string, title: string = "N
   };
 
   try {
-      const docRef = await addDoc(collection(db, TABLE_NAME), newDoc);
-      return docRef.id;
+      await storage.save(TABLE_NAME, newDoc);
+      return id;
   } catch (error) {
       console.error("Error creating product definition:", error);
       throw error;
@@ -174,14 +176,13 @@ export const createProductDefinition = async (userId: string, title: string = "N
  */
 export const getProductDefinition = async (id: string): Promise<ProductDefinition> => {
   try {
-      const docRef = doc(db, TABLE_NAME, id);
-      const docSnap = await getDoc(docRef);
+      const data = await storage.get(TABLE_NAME, id);
 
-      if (!docSnap.exists()) {
+      if (!data) {
           throw new Error("Product Definition not found");
       }
 
-      return mapDefinitionFromDB(docSnap.data(), docSnap.id) as ProductDefinition;
+      return mapDefinitionFromStorage(data) as ProductDefinition;
   } catch (error: any) {
       // Filter out permission denied errors to avoid console noise
       if (error?.code !== 'permission-denied' && !error?.message?.includes('Missing or insufficient permissions')) {
@@ -196,16 +197,9 @@ export const getProductDefinition = async (id: string): Promise<ProductDefinitio
  */
 export const getUserProductDefinitions = async (userId: string, workspaceId?: string): Promise<ProductDefinition[]> => {
       try {
-        let q;
-        if (workspaceId) {
-            q = query(collection(db, TABLE_NAME), where('workspaceId', '==', workspaceId), where('userId', '==', userId));
-        } else {
-            q = query(collection(db, TABLE_NAME), where('userId', '==', userId));
-        }
+        const results = await storage.query(TABLE_NAME, { userId, workspaceId });
         
-        const querySnapshot = await getDocs(q);
-        
-        const definitions = querySnapshot.docs.map(doc => mapDefinitionFromDB(doc.data(), doc.id)).filter((d): d is ProductDefinition => d !== null);
+        const definitions = results.map(mapDefinitionFromStorage).filter((d): d is ProductDefinition => d !== null);
         
         // Sort in memory
         return definitions.sort((a, b) => {
@@ -236,7 +230,7 @@ export const updateProductDefinitionNode = async (definitionId: string, nodeId: 
   }
 
   try {
-      await updateDoc(doc(db, TABLE_NAME, definitionId), updatePayload);
+      await storage.update(TABLE_NAME, definitionId, updatePayload);
   } catch (error) {
       console.error("Error updating product definition node:", error);
       throw error;
@@ -255,7 +249,7 @@ export const updateNodeDescription = async (definitionId: string, nodeId: string
  */
 export const deleteProductDefinition = async (id: string) => {
     try {
-        await deleteDoc(doc(db, TABLE_NAME, id));
+        await storage.delete(TABLE_NAME, id);
     } catch (error) {
         console.error("Error deleting product definition:", error);
         throw error;
@@ -267,7 +261,7 @@ export const deleteProductDefinition = async (id: string) => {
  */
 export const renameProductDefinition = async (id: string, newTitle: string): Promise<void> => {
     try {
-        await updateDoc(doc(db, TABLE_NAME, id), {
+        await storage.update(TABLE_NAME, id, {
             title: newTitle,
             lastModified: new Date().toISOString()
         });

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { auth, db } from '../services/firebase';
+import { auth } from '../services/firebase';
+import { storage } from '../services/storage';
 import { 
   User, 
   GoogleAuthProvider, 
@@ -12,13 +13,14 @@ import {
   updatePassword,
   reauthenticateWithPopup
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 
 interface AuthContextType {
   user: User | null;
+  isGuest: boolean;
   apiKey: string;
   loading: boolean;
   error: string | null;
+  loginAsGuest: () => void;
   signInWithGoogle: () => Promise<any>;
   signInWithEmail: (email: string, pass: string) => Promise<User>;
   signUpWithEmail: (email: string, pass: string) => Promise<User>;
@@ -41,22 +43,59 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isGuest, setIsGuest] = useState<boolean>(() => {
+    return localStorage.getItem('auth_isGuest') === 'true';
+  });
   const [apiKey, setApiKey] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  const GUEST_USER = {
+    uid: 'guest',
+    email: 'guest@local.dev',
+    displayName: 'Guest User',
+    emailVerified: true,
+    isAnonymous: true,
+    phoneNumber: null,
+    photoURL: null,
+    providerId: 'guest',
+    tenantId: null,
+    metadata: {
+        creationTime: new Date().toISOString(),
+        lastSignInTime: new Date().toISOString()
+    },
+    providerData: [],
+    refreshToken: '',
+    delete: async () => {},
+    getIdToken: async () => '',
+    getIdTokenResult: async () => ({} as any),
+    reload: async () => {},
+    toJSON: () => ({}),
+  } as unknown as User;
+
+  const loginAsGuest = () => {
+    setIsGuest(true);
+    setUser(GUEST_USER);
+    localStorage.setItem('auth_isGuest', 'true');
+    // Default settings for guest
+    localStorage.setItem('settings_saveLocally', 'true');
+    localStorage.setItem('settings_saveToCloud', 'false');
+  };
+
   const signInWithGoogle = async () => {
     setError(null);
+    setIsGuest(false);
+    localStorage.removeItem('auth_isGuest');
     try {
       const provider = new GoogleAuthProvider();
       const userCredential = await signInWithPopup(auth, provider);
       
       // Check if user doc exists, if not create it
-      const userDocRef = doc(db, 'users', userCredential.user.uid);
-      const userDoc = await getDoc(userDocRef);
+      const userDoc = await storage.get('users', userCredential.user.uid);
       
-      if (!userDoc.exists()) {
-        await setDoc(userDocRef, {
+      if (!userDoc) {
+        await storage.save('users', {
+          id: userCredential.user.uid,
           email: userCredential.user.email,
           apiKey: '',
           createdAt: new Date().toISOString()
@@ -88,8 +127,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       
       // Create user doc
-      const userDocRef = doc(db, 'users', userCredential.user.uid);
-      await setDoc(userDocRef, {
+      await storage.save('users', {
+        id: userCredential.user.uid,
         email: userCredential.user.email,
         apiKey: '',
         createdAt: new Date().toISOString()
@@ -154,9 +193,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updateApiKey = async (newKey: string) => {
     if (!user) return;
     try {
-        await setDoc(doc(db, 'users', user.uid), {
+        await storage.update('users', user.uid, {
             apiKey: newKey
-        }, { merge: true });
+        });
         setApiKey(newKey);
     } catch (error) {
         console.error("Error updating API key:", error);
@@ -166,6 +205,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     setApiKey('');
+    
+    // Handle guest logout
+    if (isGuest) {
+        setIsGuest(false);
+        localStorage.removeItem('auth_isGuest');
+        // We do NOT clear settings_saveLocally or local DB so data persists
+        setUser(null);
+    }
+
     try {
         await signOut(auth);
     } catch (error) {
@@ -175,13 +223,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
+      if (!currentUser && isGuest) {
+          setUser(GUEST_USER);
+      } else {
+          setUser(currentUser);
+      }
+      
       if (currentUser) {
         // Fetch API key
         try {
-            const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-            if (userDoc.exists()) {
-                const data = userDoc.data();
+            const data = await storage.get('users', currentUser.uid);
+            if (data) {
                 setApiKey(data.apiKey || data.api_key || '');
             }
         } catch (err) {
@@ -194,13 +246,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [isGuest]);
 
   const value = {
     user,
+    isGuest,
     apiKey,
     loading,
     error,
+    loginAsGuest,
     signInWithGoogle,
     signInWithEmail,
     signUpWithEmail,

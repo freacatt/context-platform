@@ -5,10 +5,10 @@ import { Navigate } from 'react-router-dom';
 import { HyperText } from "@/components/ui/hyper-text";
 
 const LoginPage: React.FC = () => {
-  const { user, loading, error } = useAuth();
+  const { user, loading, error, isGuest } = useAuth();
 
   if (loading) return null; // Or a spinner
-  if (user) return <Navigate to="/workspaces" />;
+  if (user || isGuest) return <Navigate to="/workspaces" />;
 
   return (
     <div className="flex flex-col items-center justify-center h-screen gap-4 bg-slate-50 dark:bg-background">

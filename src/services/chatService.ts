@@ -1,19 +1,14 @@
-import { db } from './firebase';
-import { collection, addDoc, getDoc, getDocs, doc, updateDoc, deleteDoc, query, where, onSnapshot, writeBatch } from 'firebase/firestore';
+import { storage } from './storage';
 import { Conversation, StoredMessage } from '../types';
 
 const CONVERSATIONS_TABLE = 'conversations';
-
-// Helper to determine subcollection name
-const getSubcollectionName = (parentCollection: string) => {
-    return parentCollection === 'conversations' ? 'messages' : 'chat';
-};
+const MESSAGES_TABLE = 'messages';
 
 // Helper to map Conversation
-const mapConversationFromDB = (data: any, id: string): Conversation | null => {
+const mapConversationFromStorage = (data: any): Conversation | null => {
   if (!data) return null;
   return {
-    id: id,
+    id: data.id,
     userId: data.userId || data.user_id, // Support both for migration
     title: data.title,
     createdAt: (data.createdAt || data.created_at) ? new Date(data.createdAt || data.created_at) : null,
@@ -22,10 +17,10 @@ const mapConversationFromDB = (data: any, id: string): Conversation | null => {
 };
 
 // Helper to map Message
-const mapMessageFromDB = (data: any, id: string): StoredMessage | null => {
+const mapMessageFromStorage = (data: any): StoredMessage | null => {
   if (!data) return null;
   return {
-    id: id,
+    id: data.id,
     userId: data.userId || data.user_id,
     role: data.role,
     content: data.content,
@@ -43,17 +38,17 @@ export const createConversation = async (userId: string, title: string = 'New Ch
   if (!userId) return null;
 
   try {
+    const id = storage.createId();
     const newDoc = {
+      id,
       userId: userId,
       title,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
     
-    const docRef = await addDoc(collection(db, CONVERSATIONS_TABLE), newDoc);
-    const docSnap = await getDoc(docRef);
-    
-    return mapConversationFromDB(docSnap.data(), docSnap.id);
+    await storage.save(CONVERSATIONS_TABLE, newDoc);
+    return mapConversationFromStorage(newDoc);
   } catch (error) {
     console.error("Error creating conversation:", error);
     throw error;
@@ -66,16 +61,9 @@ export const createConversation = async (userId: string, title: string = 'New Ch
 export const subscribeToConversations = (userId: string, callback: (conversations: Conversation[]) => void) => {
   if (!userId) return () => {};
 
-  // Note: Rules check request.auth.uid == userId, so we just need to ensure we query correctly
-  // We'll query by userId (camelCase) to match new data, but old data might be hidden if it's user_id
-  const q = query(
-      collection(db, CONVERSATIONS_TABLE), 
-      where('userId', '==', userId)
-  );
-
-  const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const conversations = querySnapshot.docs
-        .map(doc => mapConversationFromDB(doc.data(), doc.id))
+  return storage.subscribeQuery(CONVERSATIONS_TABLE, { userId }, (results) => {
+      const conversations = results
+        .map(mapConversationFromStorage)
         .filter((c): c is Conversation => c !== null)
         .sort((a, b) => {
             const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
@@ -83,13 +71,7 @@ export const subscribeToConversations = (userId: string, callback: (conversation
             return dateB - dateA; // Descending order
         });
       callback(conversations);
-  }, (error) => {
-      console.error("Error subscribing to conversations:", error);
   });
-
-  return () => {
-    unsubscribe();
-  };
 };
 
 /**
@@ -97,7 +79,7 @@ export const subscribeToConversations = (userId: string, callback: (conversation
  */
 export const updateConversationTitle = async (conversationId: string, newTitle: string): Promise<void> => {
   try {
-      await updateDoc(doc(db, CONVERSATIONS_TABLE, conversationId), { 
+      await storage.update(CONVERSATIONS_TABLE, conversationId, { 
           title: newTitle, 
           updatedAt: new Date().toISOString() 
       });
@@ -113,23 +95,14 @@ export const updateConversationTitle = async (conversationId: string, newTitle: 
 export const deleteConversation = async (conversationId: string): Promise<void> => {
     try {
         // Delete messages first
-        // Messages are in subcollection 'messages' for conversations
-        const subcollectionName = getSubcollectionName('conversations');
-        const q = query(
-            collection(db, CONVERSATIONS_TABLE, conversationId, subcollectionName)
-        );
+        // We query messages by parentId
+        const messages = await storage.query(MESSAGES_TABLE, { parentId: conversationId });
         
-        const querySnapshot = await getDocs(q);
-        const batch = writeBatch(db);
-        
-        querySnapshot.forEach((doc) => {
-            batch.delete(doc.ref);
-        });
+        const deletePromises = messages.map(msg => storage.delete(MESSAGES_TABLE, msg.id));
+        await Promise.all(deletePromises);
         
         // Delete conversation document
-        batch.delete(doc(db, CONVERSATIONS_TABLE, conversationId));
-        
-        await batch.commit();
+        await storage.delete(CONVERSATIONS_TABLE, conversationId);
     } catch (error) {
         console.error("Error deleting conversation:", error);
         throw error;
@@ -149,7 +122,9 @@ export const sendMessage = async (
 ): Promise<void> => {
     if (!userId || !parentId) return;
 
+    const id = storage.createId();
     const messageData = {
+        id,
         userId: userId,
         parentId: parentId,
         parentCollection: parentCollection,
@@ -160,12 +135,12 @@ export const sendMessage = async (
     };
 
     try {
-        const subcollectionName = getSubcollectionName(parentCollection);
-        await addDoc(collection(db, parentCollection, parentId, subcollectionName), messageData);
+        // Save message to flat 'messages' table
+        await storage.save(MESSAGES_TABLE, messageData);
 
         // If this is a conversation, update the updatedAt timestamp
         if (parentCollection === 'conversations') {
-            await updateDoc(doc(db, CONVERSATIONS_TABLE, parentId), {
+            await storage.update(CONVERSATIONS_TABLE, parentId, {
                 updatedAt: new Date().toISOString()
             });
         }
@@ -186,15 +161,15 @@ export const subscribeToChat = (
 ) => {
     if (!userId || !parentId) return () => {};
 
-    const subcollectionName = getSubcollectionName(parentCollection);
-    const q = query(
-        collection(db, parentCollection, parentId, subcollectionName),
-        where('userId', '==', userId)
-    );
+    // We filter by userId and parentId
+    const filters = {
+        userId,
+        parentId
+    };
 
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const messages = querySnapshot.docs
-            .map(doc => mapMessageFromDB(doc.data(), doc.id))
+    return storage.subscribeQuery(MESSAGES_TABLE, filters, (results) => {
+        const messages = results
+            .map(mapMessageFromStorage)
             .filter((m): m is StoredMessage => m !== null)
             .sort((a, b) => {
                 const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
@@ -206,13 +181,7 @@ export const subscribeToChat = (
         const recentMessages = messages.slice(-50);
         
         callback(recentMessages);
-    }, (error) => {
-        console.error("Error subscribing to chat:", error);
     });
-
-    return () => {
-        unsubscribe();
-    };
 };
 
 /**
@@ -222,19 +191,9 @@ export const clearChatHistory = async (userId: string, parentId: string, parentC
     if (!userId || !parentId) return;
 
     try {
-        const subcollectionName = getSubcollectionName(parentCollection);
-        const q = query(
-            collection(db, parentCollection, parentId, subcollectionName)
-        );
-        
-        const querySnapshot = await getDocs(q);
-        const batch = writeBatch(db);
-        
-        querySnapshot.forEach((doc) => {
-            batch.delete(doc.ref);
-        });
-        
-        await batch.commit();
+        const messages = await storage.query(MESSAGES_TABLE, { userId, parentId });
+        const deletePromises = messages.map(msg => storage.delete(MESSAGES_TABLE, msg.id));
+        await Promise.all(deletePromises);
     } catch (error) {
         console.error("Error clearing chat history:", error);
         throw error;

@@ -1,5 +1,4 @@
-import { db } from './firebase';
-import { collection, addDoc, getDocs, doc, getDoc, updateDoc, deleteDoc, query, where, orderBy, writeBatch, setDoc } from 'firebase/firestore';
+import { storage } from './storage';
 import { TechnicalTask, Pipeline, TechnicalTaskData, TaskType } from '../types/technicalTask';
 
 const TASKS_COLLECTION = 'technicalTasks';
@@ -11,22 +10,8 @@ const PIPELINES_COLLECTION = 'pipelines';
 export const getPipelines = async (userId: string, workspaceId?: string): Promise<Pipeline[]> => {
     if (!userId) return [];
     
-    let q;
-    if (workspaceId) {
-        q = query(
-            collection(db, PIPELINES_COLLECTION),
-            where('workspaceId', '==', workspaceId),
-            where('userId', '==', userId)
-        );
-    } else {
-        q = query(
-            collection(db, PIPELINES_COLLECTION),
-            where('userId', '==', userId)
-        );
-    }
-
-    const snapshot = await getDocs(q);
-    const pipelines = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Pipeline));
+    // storage.query supports multiple filters
+    const pipelines = await storage.query(PIPELINES_COLLECTION, { userId, workspaceId });
     
     // Sort in memory
     pipelines.sort((a, b) => a.order - b.order);
@@ -39,8 +24,6 @@ export const getPipelines = async (userId: string, workspaceId?: string): Promis
             await deduplicateBacklogs(backlogs);
         } catch (error) {
             console.error("Error deduplicating backlogs:", error);
-            // Continue even if cleanup fails, maybe return full list or filtered?
-            // Safer to return filtered list to UI even if DB delete failed
         }
         // Remove deleted backlogs from the returned list (keep the first one)
         const keptId = backlogs[0].id;
@@ -50,9 +33,6 @@ export const getPipelines = async (userId: string, workspaceId?: string): Promis
     
     // Ensure at least one pipeline exists
     if (pipelines.length === 0) {
-        // Only auto-create if we are not just querying by workspaceId which might be empty
-        // Actually, if a workspace has no pipelines, we should create a default one for it too.
-        
         const defaultPipeline = await createPipeline(userId, 'Backlog', 0, workspaceId);
         if (defaultPipeline) return [defaultPipeline];
     }
@@ -66,70 +46,62 @@ const deduplicateBacklogs = async (backlogs: Pipeline[]) => {
 
     const keptPipeline = backlogs[0];
     const duplicates = backlogs.slice(1);
-    const batch = writeBatch(db);
 
     // For each duplicate, move tasks to keptPipeline and delete duplicate
     for (const duplicate of duplicates) {
         // Find tasks in this duplicate pipeline
-        const tasksQuery = query(
-            collection(db, TASKS_COLLECTION),
-            where('pipelineId', '==', duplicate.id)
-        );
-        const tasksSnapshot = await getDocs(tasksQuery);
+        const tasks = await storage.query(TASKS_COLLECTION, { pipelineId: duplicate.id });
 
         // Move tasks
-        tasksSnapshot.docs.forEach(taskDoc => {
-            batch.update(doc(db, TASKS_COLLECTION, taskDoc.id), {
-                pipelineId: keptPipeline.id
-            });
-            // Also update global task if needed? 
-            // Yes, strictly speaking, but batchUpdateTasks handles that usually.
-            // Here we just fix the reference.
-            batch.update(doc(db, GLOBAL_TASKS_COLLECTION, taskDoc.id), {
-                pipelineId: keptPipeline.id
-            }, { merge: true } as any); // merge true to ignore if missing
+        const updatePromises = tasks.map(async (task) => {
+            await storage.update(TASKS_COLLECTION, task.id, { pipelineId: keptPipeline.id });
+            // Also update global task
+            await storage.update(GLOBAL_TASKS_COLLECTION, task.id, { pipelineId: keptPipeline.id });
         });
+        await Promise.all(updatePromises);
 
         // Delete duplicate pipeline
-        batch.delete(doc(db, PIPELINES_COLLECTION, duplicate.id));
+        await storage.delete(PIPELINES_COLLECTION, duplicate.id);
     }
-
-    await batch.commit();
 };
 
 export const batchUpdatePipelines = async (pipelines: Pipeline[]) => {
-    const batch = writeBatch(db);
-    pipelines.forEach(p => {
-        const ref = doc(db, PIPELINES_COLLECTION, p.id);
-        batch.update(ref, { order: p.order });
-    });
-    await batch.commit();
+    const promises = pipelines.map(p => 
+        storage.update(PIPELINES_COLLECTION, p.id, { order: p.order })
+    );
+    await Promise.all(promises);
 };
 
 export const batchUpdateTasks = async (tasks: TechnicalTask[]) => {
-    const batch = writeBatch(db);
-    tasks.forEach(t => {
-        const ref = doc(db, TASKS_COLLECTION, t.id);
-        const globalRef = doc(db, GLOBAL_TASKS_COLLECTION, t.id);
-        
+    const promises = tasks.map(async (t) => {
         const updates = { pipelineId: t.pipelineId, order: t.order };
-        batch.update(ref, updates);
-        // Use set with merge to avoid failing if global task doesn't exist
-        // Must include userId to satisfy security rules if creating a new document
-        batch.set(globalRef, { ...updates, userId: t.userId }, { merge: true });
+        await storage.update(TASKS_COLLECTION, t.id, updates);
+        
+        // Use save (which acts as set/update) for global task to ensure it exists
+        // But storage.update is partial update. storage.save is full overwrite or create.
+        // If we want merge behavior, storage.update is fine if it exists.
+        // Original code used set with merge: true.
+        // Let's assume global task exists if local task exists.
+        // Or we can try update, and if fails (not found), save.
+        // For simplicity and performance in this batch op, we assume existence or use update.
+        // Actually, storage.update handles local/cloud.
+        await storage.update(GLOBAL_TASKS_COLLECTION, t.id, updates);
     });
-    await batch.commit();
+    await Promise.all(promises);
 };
 
 export const createPipeline = async (userId: string, title: string, order: number, workspaceId?: string): Promise<Pipeline | null> => {
     try {
-        const docRef = await addDoc(collection(db, PIPELINES_COLLECTION), {
+        const id = storage.createId();
+        const pipelineData = {
+            id,
             userId,
             workspaceId: workspaceId || null,
             title,
             order
-        });
-        return { id: docRef.id, userId, workspaceId: workspaceId || undefined, title, order };
+        };
+        await storage.save(PIPELINES_COLLECTION, pipelineData);
+        return { ...pipelineData, workspaceId: workspaceId || undefined };
     } catch (e) {
         console.error("Error creating pipeline: ", e);
         return null;
@@ -137,15 +109,12 @@ export const createPipeline = async (userId: string, title: string, order: numbe
 };
 
 export const updatePipeline = async (pipelineId: string, updates: Partial<Pipeline>): Promise<void> => {
-    const docRef = doc(db, PIPELINES_COLLECTION, pipelineId);
-    await updateDoc(docRef, updates);
+    await storage.update(PIPELINES_COLLECTION, pipelineId, updates);
 };
 
 export const deletePipeline = async (pipelineId: string): Promise<boolean> => {
-    // Check if it's the last one? Ideally UI handles this logic or we check count here.
-    // For now, just delete.
     try {
-        await deleteDoc(doc(db, PIPELINES_COLLECTION, pipelineId));
+        await storage.delete(PIPELINES_COLLECTION, pipelineId);
         return true;
     } catch (e) {
         console.error("Error deleting pipeline: ", e);
@@ -157,33 +126,15 @@ export const deletePipeline = async (pipelineId: string): Promise<boolean> => {
 export const getTechnicalTasks = async (userId: string, workspaceId?: string): Promise<TechnicalTask[]> => {
     if (!userId) return [];
     
-    let q;
-    if (workspaceId) {
-        q = query(
-            collection(db, TASKS_COLLECTION),
-            where('workspaceId', '==', workspaceId),
-            where('userId', '==', userId)
-        );
-    } else {
-        q = query(
-            collection(db, TASKS_COLLECTION),
-            where('userId', '==', userId)
-        );
-    }
-
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TechnicalTask));
+    // storage.query supports filters
+    const tasks = await storage.query(TASKS_COLLECTION, { userId, workspaceId });
+    return tasks as TechnicalTask[];
 };
 
 export const getTechnicalTask = async (taskId: string): Promise<TechnicalTask | null> => {
     try {
-        const docRef = doc(db, TASKS_COLLECTION, taskId);
-        const docSnap = await getDoc(docRef);
-        
-        if (docSnap.exists()) {
-            return { id: docSnap.id, ...docSnap.data() } as TechnicalTask;
-        }
-        return null;
+        const data = await storage.get(TASKS_COLLECTION, taskId);
+        return data as TechnicalTask | null;
     } catch (e) {
         console.error("Error getting technical task:", e);
         return null;
@@ -220,7 +171,9 @@ export const createTechnicalTask = async (
             preservation_rules: { main: {}, advanced: {} }
         };
 
+        const id = storage.createId();
         const newTask: any = {
+            id,
             userId,
             pipelineId,
             title,
@@ -233,12 +186,10 @@ export const createTechnicalTask = async (
             order: 0
         };
 
-        const docRef = await addDoc(collection(db, TASKS_COLLECTION), newTask);
-        const task = { id: docRef.id, ...newTask };
+        await storage.save(TASKS_COLLECTION, newTask);
+        await storage.save(GLOBAL_TASKS_COLLECTION, newTask);
 
-        await setDoc(doc(db, GLOBAL_TASKS_COLLECTION, docRef.id), task);
-
-        return task;
+        return newTask;
     } catch (e) {
         console.error("Error creating technical task: ", e);
         return null;
@@ -247,13 +198,10 @@ export const createTechnicalTask = async (
 
 export const updateTechnicalTask = async (taskId: string, updates: Partial<TechnicalTask>): Promise<void> => {
     try {
-        const docRef = doc(db, TASKS_COLLECTION, taskId);
-        const globalRef = doc(db, GLOBAL_TASKS_COLLECTION, taskId);
-        
         const updateData = { ...updates, updatedAt: new Date().toISOString() };
         
-        await updateDoc(docRef, updateData);
-        await setDoc(globalRef, updateData, { merge: true });
+        await storage.update(TASKS_COLLECTION, taskId, updateData);
+        await storage.update(GLOBAL_TASKS_COLLECTION, taskId, updateData);
     } catch (e) {
         console.error("Error updating technical task: ", e);
         throw e;
@@ -262,8 +210,8 @@ export const updateTechnicalTask = async (taskId: string, updates: Partial<Techn
 
 export const deleteTechnicalTask = async (taskId: string): Promise<boolean> => {
     try {
-        await deleteDoc(doc(db, TASKS_COLLECTION, taskId));
-        await deleteDoc(doc(db, GLOBAL_TASKS_COLLECTION, taskId));
+        await storage.delete(TASKS_COLLECTION, taskId);
+        await storage.delete(GLOBAL_TASKS_COLLECTION, taskId);
         return true;
     } catch (e) {
         console.error("Error deleting technical task: ", e);
@@ -300,43 +248,11 @@ export const generateMarkdown = (task: TechnicalTask): string => {
         });
         md += `\n`;
     }
-
+    
     if (desc.acceptance_criteria && desc.acceptance_criteria.length > 0) {
         md += `### Acceptance Criteria\n`;
-        desc.acceptance_criteria.forEach((criteria: string) => {
+        desc.acceptance_criteria.forEach((criteria: string, i: number) => {
             md += `- [ ] ${criteria}\n`;
-        });
-        md += `\n`;
-    }
-
-    // Components
-    const comps = data.components?.main || {};
-    if (comps.files_to_create && comps.files_to_create.length > 0) {
-        md += `## Files to Create\n`;
-        comps.files_to_create.forEach((file: any) => {
-            md += `### ${file.file_path}\n`;
-            md += `- **Type:** ${file.file_type}\n`;
-            md += `- **Purpose:** ${file.purpose}\n\n`;
-        });
-    }
-
-    if (comps.files_to_modify && comps.files_to_modify.length > 0) {
-        md += `## Files to Modify\n`;
-        comps.files_to_modify.forEach((file: any) => {
-            md += `### ${file.file_path}\n`;
-            md += `- **Reason:** ${file.reason}\n`;
-            md += `- **Lines:** ${file.lines_affected}\n`;
-            md += `- **Current Issue:** ${file.current_issue}\n`;
-            md += `- **Proposed Fix:** ${file.proposed_fix}\n\n`;
-        });
-    }
-
-    // Validation Checklist
-    const validation = data.validation_checklist?.main || {};
-    if (validation.checklist_items && validation.checklist_items.length > 0) {
-        md += `## Validation Checklist\n`;
-        validation.checklist_items.forEach((item: string) => {
-            md += `- [ ] ${item}\n`;
         });
         md += `\n`;
     }

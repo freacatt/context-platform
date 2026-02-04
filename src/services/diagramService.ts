@@ -1,35 +1,14 @@
-import { db } from './firebase';
-import { collection, addDoc, getDoc, getDocs, doc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { storage } from './storage';
 import { Diagram } from '../types';
 
-const TABLE_NAME = 'diagrams';
-
-// Helper to remove undefined values from objects (Firestore doesn't like them)
-const sanitizeData = (data: any): any => {
-    if (Array.isArray(data)) {
-        return data.map(item => sanitizeData(item));
-    } else if (data !== null && typeof data === 'object') {
-        const newObj: any = {};
-        Object.keys(data).forEach(key => {
-            const value = data[key];
-            if (value !== undefined) {
-                newObj[key] = sanitizeData(value);
-            }
-        });
-        return newObj;
-    }
-    return data;
-};
-
-const mapDiagramFromDB = (data: any, id: string): Diagram | null => {
-    if (!data) return null;
+const mapDiagramFromStorage = (data: any): Diagram => {
     return {
-        id: id,
+        id: data.id,
         userId: data.userId,
         workspaceId: data.workspaceId,
         title: data.title,
-        createdAt: data.createdAt ? (typeof data.createdAt === 'string' ? new Date(data.createdAt) : data.createdAt.toDate()) : null,
-        lastModified: data.lastModified ? (typeof data.lastModified === 'string' ? new Date(data.lastModified) : data.lastModified.toDate()) : null,
+        createdAt: data.createdAt ? (typeof data.createdAt === 'string' ? new Date(data.createdAt) : new Date(data.createdAt.seconds * 1000)) : null,
+        lastModified: data.lastModified ? (typeof data.lastModified === 'string' ? new Date(data.lastModified) : new Date(data.lastModified.seconds * 1000)) : null,
         nodes: data.nodes || [],
         edges: data.edges || []
     };
@@ -38,26 +17,21 @@ const mapDiagramFromDB = (data: any, id: string): Diagram | null => {
 export const createDiagram = async (userId: string, title: string = "New Diagram", workspaceId?: string): Promise<string | null> => {
     if (!userId) return null;
 
-    const defaultDiagram: Omit<Diagram, 'id'> = {
+    const id = storage.createId();
+    const diagramData = {
+        id,
         userId: userId,
         workspaceId: workspaceId || undefined,
         title,
-        createdAt: new Date(),
-        lastModified: new Date(),
+        createdAt: new Date().toISOString(),
+        lastModified: new Date().toISOString(),
         nodes: [],
         edges: []
     };
 
     try {
-        // Convert dates to strings for Firestore if needed, or let SDK handle it. 
-        // Using serverTimestamp() is better but let's stick to simple Date objects for now or ISO strings.
-        // The mapping above handles both.
-        const docRef = await addDoc(collection(db, TABLE_NAME), {
-            ...defaultDiagram,
-            createdAt: defaultDiagram.createdAt?.toISOString(),
-            lastModified: defaultDiagram.lastModified?.toISOString()
-        });
-        return docRef.id;
+        await storage.save('diagrams', diagramData);
+        return id;
     } catch (e) {
         console.error("Error creating diagram: ", e);
         return null;
@@ -66,14 +40,8 @@ export const createDiagram = async (userId: string, title: string = "New Diagram
 
 export const getUserDiagrams = async (userId: string, workspaceId?: string): Promise<Diagram[]> => {
     try {
-        let q;
-        if (workspaceId) {
-            q = query(collection(db, TABLE_NAME), where("workspaceId", "==", workspaceId), where("userId", "==", userId));
-        } else {
-            q = query(collection(db, TABLE_NAME), where("userId", "==", userId));
-        }
-        const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(doc => mapDiagramFromDB(doc.data(), doc.id)!).filter(Boolean);
+        const results = await storage.query('diagrams', { userId, workspaceId });
+        return results.map(mapDiagramFromStorage);
     } catch (e) {
         console.error("Error fetching diagrams: ", e);
         return [];
@@ -82,10 +50,9 @@ export const getUserDiagrams = async (userId: string, workspaceId?: string): Pro
 
 export const getDiagram = async (id: string): Promise<Diagram | null> => {
     try {
-        const docRef = doc(db, TABLE_NAME, id);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-            return mapDiagramFromDB(docSnap.data(), docSnap.id);
+        const data = await storage.get('diagrams', id);
+        if (data) {
+            return mapDiagramFromStorage(data);
         }
         return null;
     } catch (e: any) {
@@ -98,16 +65,8 @@ export const getDiagram = async (id: string): Promise<Diagram | null> => {
 
 export const updateDiagram = async (id: string, updates: Partial<Diagram>): Promise<boolean> => {
     try {
-        const docRef = doc(db, TABLE_NAME, id);
-        
-        // Exclude id from updates if present
-        const { id: _, ...dataToUpdate } = updates as any;
-        
-        // Sanitize data to remove undefined values before saving to Firestore
-        const sanitizedData = sanitizeData(dataToUpdate);
-        
-        await updateDoc(docRef, {
-            ...sanitizedData,
+        await storage.update('diagrams', id, {
+            ...updates,
             lastModified: new Date().toISOString()
         });
         return true;
@@ -119,8 +78,7 @@ export const updateDiagram = async (id: string, updates: Partial<Diagram>): Prom
 
 export const deleteDiagram = async (id: string): Promise<boolean> => {
     try {
-        const docRef = doc(db, TABLE_NAME, id);
-        await deleteDoc(docRef);
+        await storage.delete('diagrams', id);
         return true;
     } catch (e) {
         console.error("Error deleting diagram: ", e);

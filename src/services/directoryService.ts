@@ -1,13 +1,12 @@
-import { db } from './firebase';
-import { collection, addDoc, getDoc, getDocs, doc, updateDoc, deleteDoc, query, where, writeBatch } from 'firebase/firestore';
+import { storage } from './storage';
 import { Directory, ContextDocument } from '../types';
 
 const TABLE_NAME = 'directories';
 
-const mapDirectoryFromDB = (data: any, id: string): Directory | null => {
+const mapDirectoryFromStorage = (data: any): Directory | null => {
   if (!data) return null;
   return {
-    id,
+    id: data.id,
     userId: data.userId || data.user_id,
     workspaceId: data.workspaceId,
     title: data.title || '',
@@ -18,21 +17,25 @@ const mapDirectoryFromDB = (data: any, id: string): Directory | null => {
 
 export const createDirectory = async (userId: string, title: string, workspaceId?: string): Promise<string | null> => {
   if (!userId || !title.trim()) return null;
+  
+  const id = storage.createId();
   const newDir = {
+    id,
     userId,
     workspaceId: workspaceId || null,
     title,
     createdAt: new Date().toISOString(),
     lastModified: new Date().toISOString()
   };
-  const ref = await addDoc(collection(db, TABLE_NAME), newDir);
-  return ref.id;
+  
+  await storage.save(TABLE_NAME, newDir);
+  return id;
 };
 
 export const renameDirectory = async (id: string, newTitle: string): Promise<void> => {
   console.log(`Renaming directory ${id} to "${newTitle}"`);
   try {
-    await updateDoc(doc(db, TABLE_NAME, id), {
+    await storage.update(TABLE_NAME, id, {
       title: newTitle,
       lastModified: new Date().toISOString()
     });
@@ -46,29 +49,28 @@ export const renameDirectory = async (id: string, newTitle: string): Promise<voi
 export const deleteDirectory = async (id: string, userId: string): Promise<void> => {
   console.log(`Deleting directory ${id} for user ${userId}`);
   try {
-    const batch = writeBatch(db);
-
     // 1. Find all documents in this directory belonging to the user
-    const q = query(
-      collection(db, 'contextDocuments'), 
-      where('directoryId', '==', id),
-      where('userId', '==', userId)
-    );
-    const snapshot = await getDocs(q);
-
-    // 2. Update them to have no directory
-    snapshot.docs.forEach(docSnap => {
-      batch.update(doc(db, 'contextDocuments', docSnap.id), { 
-        directoryId: null,
-        lastModified: new Date().toISOString()
-      });
+    // storage.query supports multiple filters
+    const documents = await storage.query('contextDocuments', { 
+      directoryId: id, 
+      userId: userId 
     });
 
-    // 3. Delete the directory
-    batch.delete(doc(db, TABLE_NAME, id));
+    // 2. Update them to have no directory
+    // Storage adapter doesn't support batch update in the same way Firestore does,
+    // so we execute them in parallel.
+    const updatePromises = documents.map(doc => 
+      storage.update('contextDocuments', doc.id, { 
+        directoryId: null,
+        lastModified: new Date().toISOString()
+      })
+    );
+    
+    await Promise.all(updatePromises);
 
-    // 4. Commit
-    await batch.commit();
+    // 3. Delete the directory
+    await storage.delete(TABLE_NAME, id);
+
     console.log(`Successfully deleted directory ${id}`);
   } catch (error) {
     console.error(`Error deleting directory ${id}:`, error);
@@ -77,50 +79,40 @@ export const deleteDirectory = async (id: string, userId: string): Promise<void>
 };
 
 export const getDirectory = async (id: string): Promise<Directory> => {
-  const ref = doc(db, TABLE_NAME, id);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) throw new Error('Directory not found');
-  return mapDirectoryFromDB(snap.data(), snap.id) as Directory;
+  const data = await storage.get(TABLE_NAME, id);
+  if (!data) throw new Error('Directory not found');
+  return mapDirectoryFromStorage(data) as Directory;
 };
 
 export const getUserDirectories = async (userId: string, workspaceId?: string): Promise<Directory[]> => {
-  let q;
+  const filters: Record<string, any> = { userId };
   if (workspaceId) {
-    q = query(collection(db, TABLE_NAME), where('workspaceId', '==', workspaceId), where('userId', '==', userId));
-  } else {
-    q = query(collection(db, TABLE_NAME), where('userId', '==', userId));
+    filters.workspaceId = workspaceId;
   }
-  const snap = await getDocs(q);
-  return snap.docs.map(d => mapDirectoryFromDB(d.data(), d.id)).filter((x): x is Directory => x !== null);
+  
+  const results = await storage.query(TABLE_NAME, filters);
+  return results.map(mapDirectoryFromStorage).filter((x): x is Directory => x !== null);
 };
 
 export const getDirectoryDocuments = async (userId: string, directoryId: string | null, workspaceId?: string): Promise<ContextDocument[]> => {
-  let q;
-  if (directoryId) {
-    // If directoryId is provided, we filter by directoryId (and optionally userId/workspaceId for security, but directoryId is usually unique enough or we trust it exists)
-    // However, for consistency and security, let's keep userId check or workspaceId check.
-    // Assuming directory belongs to workspace/user.
-    // Existing code: q = directoryId ? query(..., where('userId', ...), where('directoryId', ...)) : ...
-    
-    if (workspaceId) {
-         q = query(collection(db, 'contextDocuments'), where('workspaceId', '==', workspaceId), where('directoryId', '==', directoryId));
-    } else {
-         q = query(collection(db, 'contextDocuments'), where('userId', '==', userId), where('directoryId', '==', directoryId));
-    }
-  } else {
-    if (workspaceId) {
-         q = query(collection(db, 'contextDocuments'), where('workspaceId', '==', workspaceId), where('directoryId', '==', null));
-    } else {
-         q = query(collection(db, 'contextDocuments'), where('userId', '==', userId), where('directoryId', '==', null));
-    }
+  const filters: Record<string, any> = { userId };
+  if (workspaceId) {
+    filters.workspaceId = workspaceId;
   }
+  filters.directoryId = directoryId || null; // null matches null in storage query (assuming implementation handles null)
+  
+  // Note: Firestore 'null' query works. 
+  // For localDB (Dexie), ensure that we store null explicitly or handle undefined.
+  // storage.query implementation in storage.ts uses strict equality ===, so it should match null if stored as null.
+  
+  const results = await storage.query('contextDocuments', filters);
 
-  const snap = await getDocs(q);
-  const mapContextDocumentFromDB = (data: any, id: string): ContextDocument | null => {
+  const mapContextDocumentFromStorage = (data: any): ContextDocument | null => {
     if (!data) return null;
     return {
-      id,
+      id: data.id,
       userId: data.userId || data.user_id,
+      workspaceId: data.workspaceId,
       title: data.title,
       type: data.type,
       content: data.content,
@@ -130,5 +122,6 @@ export const getDirectoryDocuments = async (userId: string, directoryId: string 
       directoryId: data.directoryId || data.directory_id || null
     };
   };
-  return snap.docs.map(d => mapContextDocumentFromDB(d.data(), d.id)).filter((x): x is ContextDocument => x !== null);
+  
+  return results.map(mapContextDocumentFromStorage).filter((x): x is ContextDocument => x !== null);
 };

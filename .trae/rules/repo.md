@@ -1,56 +1,47 @@
-# Repo Instructions — context-platform
+# Repository Instructions — Pyramid Solver
 
-## High-level architecture
-- Pages (`src/pages/`):
-  - Route-level orchestration only.
-  - No business logic.
-- Components (`src/components/`):
-  - Pure UI + minimal state.
-- Services (`src/services/`):
-  - AI (Anthropic), Firebase, persistence, side effects.
-- Hooks (`src/hooks/`):
-  - Reusable stateful logic.
-- Types (`src/types/`):
-  - Central source of truth for data contracts.
+## Project Structure
+```
+src/
+├── components/     # UI components (Shadcn UI, shared)
+├── hooks/          # Custom React hooks
+├── lib/            # Utilities (utils.ts)
+├── pages/          # Route components
+├── services/       # Business logic & Data Adapter
+│   ├── storage.ts  # MAIN DATA ADAPTER (Local + Cloud)
+│   ├── localDB.ts  # Dexie configuration
+│   ├── firebase.ts # Firebase configuration
+│   └── ...         # Domain services
+├── types/          # TypeScript definitions
+└── App.tsx         # Main entry point
+```
 
-## Testing strategy
-### Unit / functionality tests
-- Target:
-  - services/
-  - hooks/
-  - pure utility logic
-- Focus:
-  - inputs → outputs
-  - error handling
-  - edge cases
-- Avoid:
-  - DOM rendering
-  - network calls (mock them)
+## Storage Strategy (The "Data Adapter")
+This project uses a unique **Dual-Storage Strategy**. 
+- **Guest Users**: Data is saved **ONLY** to LocalDB (Dexie).
+- **Auth Users**: Data can be saved to **BOTH** LocalDB and Firestore (configurable via Settings).
+- **Synchronization**: The `storage` service handles syncing from Cloud to Local on read.
 
-### UI tests
-- Target:
-  - pages/
-  - critical user flows
-- Validate:
-  - visible behavior
-  - user interaction
-  - integration of components
-- Avoid:
-  - snapshot-only tests
-  - internal state assertions
+### Key Files
+- `src/services/storage.ts`: The unified API for data access.
+- `src/services/localDB.ts`: Dexie schema definitions.
+- `firestore.rules`: Security rules for Cloud storage.
 
-## Commands (must be verified in package.json)
-- Dev: npm run dev
-- Test: npm test (likely Vitest)
-- Build: npm run build
-- Deploy: npm run deploy
+## Commands
+- **Dev Server**: `npm run dev`
+- **Build**: `npm run build`
+- **Deploy**: `npm run deploy` (Deploys to Firebase Hosting)
+- **Lint**: `npm run lint`
 
-## Security & secrets
-- Anthropic API key is user-provided via UI and stored in Firestore.
-- Never hardcode or log secrets.
-- No secrets in commits or tests.
+## Security & Secrets
+- **API Keys**: Stored in `.env` (Firebase config, etc.).
+- **User Data**: Secured via Firestore Rules (`firestore.rules`).
+- **Anthropic Key**: User-provided, stored securely in Firestore (never hardcoded).
 
-## UI consistency
-- Prefer existing Tailwind patterns.
-- Reuse Radix / UI primitives where available.
-- New components must be composable and reusable.
+## Creating New Features
+When creating a new feature (e.g., "Product Definition"):
+1. **Define Types**: Add interface to `src/types/`.
+2. **Update LocalDB**: Add table to `src/services/localDB.ts`.
+3. **Update Firestore Rules**: Add match block to `firestore.rules`.
+4. **Create Service**: Create `src/services/myFeatureService.ts` using `storage` adapter.
+5. **Build UI**: Create components and pages.

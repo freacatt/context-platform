@@ -30,10 +30,10 @@ import AiChatPage from './pages/AiChatPage';
 import AuthenticatedLayout from './components/Layout/AuthenticatedLayout';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, isGuest } = useAuth();
   
   if (loading) return null; // Or a loading spinner
-  if (!user) return <Navigate to="/" />;
+  if (!user && !isGuest) return <Navigate to="/login" />;
   
   return (
     <AuthenticatedLayout>

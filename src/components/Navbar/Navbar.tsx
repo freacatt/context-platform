@@ -119,10 +119,12 @@ const Navbar: React.FC = () => {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setIsPasswordModalOpen(true)}>
-                  <Lock className="mr-2 h-4 w-4" />
-                  <span>Set Password</span>
-                </DropdownMenuItem>
+                {!isGuest && (
+                    <DropdownMenuItem onClick={() => setIsPasswordModalOpen(true)}>
+                    <Lock className="mr-2 h-4 w-4" />
+                    <span>Set Password</span>
+                    </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={logout} className="text-red-600 focus:text-red-600">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>

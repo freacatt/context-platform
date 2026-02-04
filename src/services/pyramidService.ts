@@ -1,13 +1,12 @@
-import { db } from './firebase';
-import { collection, addDoc, getDoc, getDocs, doc, updateDoc, deleteDoc, query, where, onSnapshot } from 'firebase/firestore';
+import { storage } from './storage';
 import { createBlock, Block } from '../utils/pyramidLayout';
 import { Pyramid } from '../types';
 
-// Helper to map DB snake_case to JS camelCase
-const mapPyramidFromDB = (data: any, id: string): Pyramid | null => {
-    if (!data) return null;
+// Helper to map DB data to Pyramid type
+// Storage adapter returns { ...data, id }
+const mapPyramidFromStorage = (data: any): Pyramid => {
     return {
-        id: id,
+        id: data.id,
         userId: data.userId || data.user_id,
         workspaceId: data.workspaceId,
         title: data.title,
@@ -21,9 +20,7 @@ const mapPyramidFromDB = (data: any, id: string): Pyramid | null => {
     };
 };
 
-// Create a new pyramid
 export const createPyramid = async (userId: string, title: string, context: string | null = null, workspaceId?: string): Promise<string> => {
-  try {
     // Create an 8x8 grid of blocks
     const blocks: Record<string, Block> = {};
     for (let u = 0; u < 8; u++) {
@@ -33,7 +30,9 @@ export const createPyramid = async (userId: string, title: string, context: stri
       }
     }
 
+    const id = storage.createId();
     const pyramidData = {
+      id,
       userId: userId,
       workspaceId: workspaceId || null,
       title,
@@ -45,168 +44,92 @@ export const createPyramid = async (userId: string, title: string, context: stri
       lastModified: new Date().toISOString()
     };
 
-    const docRef = await addDoc(collection(db, 'pyramids'), pyramidData);
-    return docRef.id;
-  } catch (error) {
-    console.error("Error creating pyramid: ", error);
-    throw error;
-  }
+    await storage.save('pyramids', pyramidData);
+    return id;
 };
 
-// Get a single pyramid
 export const getPyramid = async (pyramidId: string): Promise<Pyramid | null> => {
-  try {
-    const docRef = doc(db, 'pyramids', pyramidId);
-    const docSnap = await getDoc(docRef);
+    const data = await storage.get('pyramids', pyramidId);
     
-    if (!docSnap.exists()) {
-        throw new Error("Pyramid not found");
-    }
-
-    return mapPyramidFromDB(docSnap.data(), docSnap.id);
-  } catch (error: any) {
-    if (error?.code !== 'permission-denied') {
-        console.error("Error fetching pyramid: ", error);
-    }
-    throw error;
-  }
+    // Original threw "Pyramid not found". I'll keep consistency.
+    if (!data) throw new Error("Pyramid not found");
+    
+    return mapPyramidFromStorage(data);
 };
 
-// Subscribe to pyramid updates
 export const subscribeToPyramid = (pyramidId: string, onUpdate: (pyramid: Pyramid | null) => void) => {
-  const unsubscribe = onSnapshot(doc(db, 'pyramids', pyramidId), (doc) => {
-    if (doc.exists()) {
-        onUpdate(mapPyramidFromDB(doc.data(), doc.id));
-    } else {
-        onUpdate(null);
-    }
-  }, (error) => {
-    console.error("Error subscribing to pyramid:", error);
-  });
-
-  return () => {
-    unsubscribe();
-  };
-};
-
-// Get all pyramids for a user
-export const getUserPyramids = async (userId: string, workspaceId?: string): Promise<Pyramid[]> => {
-    try {
-        let q;
-        if (workspaceId) {
-            q = query(
-                collection(db, 'pyramids'), 
-                where('workspaceId', '==', workspaceId),
-                where('userId', '==', userId)
-            );
+    return storage.subscribe('pyramids', pyramidId, (data) => {
+        if (data) {
+            onUpdate(mapPyramidFromStorage(data));
         } else {
-            // Fallback for non-migrated data or specific use cases
-            q = query(
-                collection(db, 'pyramids'), 
-                where('userId', '==', userId)
-            );
+            onUpdate(null);
         }
-        
-        const querySnapshot = await getDocs(q);
-        const pyramids = querySnapshot.docs.map(doc => mapPyramidFromDB(doc.data(), doc.id)).filter((p): p is Pyramid => p !== null);
-        
-        // Sort in memory
-        return pyramids.sort((a, b) => {
-            const dateA = a.lastModified ? new Date(a.lastModified).getTime() : 0;
-            const dateB = b.lastModified ? new Date(b.lastModified).getTime() : 0;
-            return dateB - dateA;
-        });
-    } catch (error) {
-        console.error("Error fetching user pyramids:", error);
-        throw error;
-    }
+    });
 };
 
-// Delete a pyramid
+export const getUserPyramids = async (userId: string, workspaceId?: string): Promise<Pyramid[]> => {
+    const results = await storage.query('pyramids', { userId, workspaceId });
+    
+    const pyramids = results.map(mapPyramidFromStorage);
+    
+    return pyramids.sort((a, b) => {
+        const dateA = a.lastModified ? new Date(a.lastModified).getTime() : 0;
+        const dateB = b.lastModified ? new Date(b.lastModified).getTime() : 0;
+        return dateB - dateA;
+    });
+};
+
 export const deletePyramid = async (pyramidId: string): Promise<void> => {
-    try {
-        await deleteDoc(doc(db, 'pyramids', pyramidId));
-    } catch (error) {
-        console.error("Error deleting pyramid:", error);
-        throw error;
-    }
+    await storage.delete('pyramids', pyramidId);
 };
 
-// Duplicate a pyramid
 export const duplicatePyramid = async (userId: string, pyramidId: string, workspaceId?: string): Promise<string> => {
-    try {
-        const originalPyramid = await getPyramid(pyramidId);
-        if (!originalPyramid) throw new Error("Pyramid not found");
+    const originalPyramid = await getPyramid(pyramidId);
+    if (!originalPyramid) throw new Error("Pyramid not found");
 
-        const newPyramidData = {
-            userId: userId,
-            workspaceId: workspaceId || originalPyramid.workspaceId || null,
-            title: `${originalPyramid.title} (Copy)`,
-            context: originalPyramid.context,
-            status: originalPyramid.status,
-            blocks: originalPyramid.blocks,
-            connections: originalPyramid.connections,
-            contextSources: originalPyramid.contextSources,
-            createdAt: new Date().toISOString(),
-            lastModified: new Date().toISOString()
-        };
+    const id = storage.createId();
+    const newPyramidData = {
+        id,
+        userId: userId,
+        workspaceId: workspaceId || originalPyramid.workspaceId || null,
+        title: `${originalPyramid.title} (Copy)`,
+        context: originalPyramid.context,
+        status: originalPyramid.status,
+        blocks: originalPyramid.blocks,
+        connections: originalPyramid.connections,
+        contextSources: originalPyramid.contextSources,
+        createdAt: new Date().toISOString(),
+        lastModified: new Date().toISOString()
+    };
 
-        const docRef = await addDoc(collection(db, 'pyramids'), newPyramidData);
-        return docRef.id;
-    } catch (error) {
-        console.error("Error duplicating pyramid:", error);
-        throw error;
-    }
+    await storage.save('pyramids', newPyramidData);
+    return id;
 };
 
-// Rename a pyramid
 export const renamePyramid = async (pyramidId: string, newTitle: string): Promise<void> => {
-    try {
-        await updateDoc(doc(db, 'pyramids', pyramidId), {
-            title: newTitle,
-            lastModified: new Date().toISOString()
-        });
-    } catch (error) {
-        console.error("Error renaming pyramid:", error);
-        throw error;
-    }
+    await storage.update('pyramids', pyramidId, {
+        title: newTitle,
+        lastModified: new Date().toISOString()
+    });
 };
 
-// Update pyramid context sources
 export const updatePyramidContextSources = async (pyramidId: string, contextSources: any[]): Promise<void> => {
-    try {
-        await updateDoc(doc(db, 'pyramids', pyramidId), {
-            contextSources: contextSources,
-            lastModified: new Date().toISOString()
-        });
-    } catch (error) {
-        console.error("Error updating pyramid context sources:", error);
-        throw error;
-    }
+    await storage.update('pyramids', pyramidId, {
+        contextSources: contextSources,
+        lastModified: new Date().toISOString()
+    });
 };
 
-// Update pyramid blocks
 export const updatePyramidBlocks = async (pyramidId: string, blocks: Record<string, Block>): Promise<void> => {
-    try {
-        await updateDoc(doc(db, 'pyramids', pyramidId), {
-            blocks: blocks,
-            lastModified: new Date().toISOString()
-        });
-    } catch (error) {
-        console.error("Error updating pyramid blocks:", error);
-        throw error;
-    }
+    await storage.update('pyramids', pyramidId, {
+        blocks: blocks,
+        lastModified: new Date().toISOString()
+    });
 };
 
-// Update pyramid context
 export const updatePyramidContext = async (pyramidId: string, context: string): Promise<void> => {
-    try {
-        await updateDoc(doc(db, 'pyramids', pyramidId), {
-            context: context,
-            lastModified: new Date().toISOString()
-        });
-    } catch (error) {
-        console.error("Error updating pyramid context:", error);
-        throw error;
-    }
+    await storage.update('pyramids', pyramidId, {
+        context: context,
+        lastModified: new Date().toISOString()
+    });
 };

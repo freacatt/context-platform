@@ -1,23 +1,22 @@
-import { db } from './firebase';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { storage } from './storage';
 import { ContextSource } from '../types';
 
-interface GlobalContextSettings {
-    selectedSources: ContextSource[];
-}
-
-const USERS_COLLECTION = 'users';
+const SETTINGS_COLLECTION = 'userSettings';
 
 export const saveUserGlobalContext = async (userId: string, selectedSources: ContextSource[]): Promise<void> => {
     try {
-        const userRef = doc(db, USERS_COLLECTION, userId);
+        // We need to preserve existing settings if any
+        const existingSettings = await storage.get(SETTINGS_COLLECTION, userId) || {};
         
-        // We use setDoc with merge: true to avoid overwriting other user data if it exists
-        // or create the document if it doesn't exist.
-        await setDoc(userRef, {
+        const newSettings = {
+            ...existingSettings,
+            id: userId,
+            userId: userId,
             globalContextSources: selectedSources,
-            lastUpdated: new Date()
-        }, { merge: true });
+            lastUpdated: new Date().toISOString()
+        };
+
+        await storage.save(SETTINGS_COLLECTION, newSettings);
     } catch (error) {
         console.error("Error saving user global context:", error);
         throw error;
@@ -26,15 +25,13 @@ export const saveUserGlobalContext = async (userId: string, selectedSources: Con
 
 export const getUserGlobalContext = async (userId: string): Promise<ContextSource[] | null> => {
     try {
-        const userRef = doc(db, USERS_COLLECTION, userId);
-        const userSnap = await getDoc(userRef);
+        const data = await storage.get(SETTINGS_COLLECTION, userId);
 
-        if (userSnap.exists()) {
-            const data = userSnap.data();
+        if (data && data.globalContextSources) {
             console.log("getUserGlobalContext: Data found:", data.globalContextSources);
-            return (data.globalContextSources as ContextSource[]) || null;
+            return data.globalContextSources as ContextSource[];
         } else {
-            console.log("getUserGlobalContext: User document not found");
+            console.log("getUserGlobalContext: User settings not found or no global context");
             return null;
         }
     } catch (error) {

@@ -29,6 +29,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import SetPasswordModal from "./Navbar/SetPasswordModal"
+import { useAuth } from "@/contexts/AuthContext"
 
 export function NavUser({
   user,
@@ -42,6 +43,7 @@ export function NavUser({
   logout: () => Promise<void>
 }) {
   const { isMobile } = useSidebar()
+  const { isGuest } = useAuth()
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false)
 
   return (
@@ -88,16 +90,20 @@ export function NavUser({
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuGroup>
-                <DropdownMenuItem 
-                  onClick={() => setIsPasswordModalOpen(true)}
-                  className="cursor-pointer"
-                >
-                  <LockIcon className="mr-2 h-4 w-4" />
-                  Change Password
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-              <DropdownMenuSeparator />
+              {!isGuest && (
+                <>
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem 
+                      onClick={() => setIsPasswordModalOpen(true)}
+                      className="cursor-pointer"
+                    >
+                      <LockIcon className="mr-2 h-4 w-4" />
+                      Change Password
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                </>
+              )}
               <DropdownMenuItem onClick={logout} className="cursor-pointer">
                 <LogOutIcon className="mr-2 h-4 w-4" />
                 Log out

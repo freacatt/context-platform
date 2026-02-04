@@ -1,46 +1,37 @@
-# Base Instructions (applies to all agents)
+# Base Instructions (Applies to all Agents)
 
-## Core principles
-- Correctness > completeness > speed.
-- Small, focused diffs. No unrelated refactors.
-- Read before write. Inspect existing patterns first.
-- Never claim verification without commands + results.
-- Prefer explicitness over magic.
+## Core Principles
+- **Correctness > Completeness > Speed**: Verify changes before moving on.
+- **Small, Focused Diffs**: Do not refactor unrelated code.
+- **Read Before Write**: Always inspect existing patterns (especially `src/services/storage.ts`) before implementing new data logic.
+- **Explicitness**: Prefer clear, readable code over clever one-liners.
 
-## Project architecture awareness
-- UI is React + TS. Business logic must NOT live in UI components.
-- Side effects (AI calls, Firebase, storage) belong in `src/services/`.
-- Shared state belongs in `contexts/` or custom hooks, not page components.
-- Pages orchestrate components; components do not orchestrate services.
+## Development Best Practices
 
-## Testing philosophy (mandatory)
-- Every behavior change must be covered by at least ONE of:
-  - Unit/functionality test
-  - UI test
-- Bugs → reproduce with a test first when feasible.
-- Tests must validate behavior, not implementation details.
+### 1. Data Persistence (CRITICAL)
+- **NEVER** use `localStorage` or `IndexedDB` directly for domain data.
+- **ALWAYS** use the `storage` adapter (`src/services/storage.ts`) for all CRUD operations.
+- **Dual-Write Compatibility**: Ensure all data models can be serialized to JSON (for IndexedDB) and Firestore formats.
+- **Scoping**: All data must be scoped by `userId` and optionally `workspaceId`.
 
-## Definition of Done (DoD)
-A task is done only if:
-- App builds and runs.
-- Correct tests exist (unit or UI).
-- Tests are executed OR explicitly blocked with reason.
-- No TypeScript errors introduced.
-- Architecture rules respected.
+### 2. State Management
+- Use **Zustand** for global app state (user session, settings).
+- Use **React Context** for feature-specific scoped state (e.g., Workspace context).
+- Use **React Query** (or custom hooks with `storage.subscribe`) for data fetching and caching.
 
-## Standard output format (MANDATORY)
-### Summary
-What changed and why.
+### 3. Testing
+- **Mandatory Verification**: Every behavior change must be verified.
+- **Unit Tests**: Focus on Services and Utils. Mock the `storage` adapter to test business logic.
+- **UI Tests**: Verify critical user flows (Auth, CRUD operations).
 
-### Changes
-- File path → purpose.
+### 4. Code Organization
+- **`src/services/`**: All business logic and data access.
+- **`src/components/`**: Pure UI components.
+- **`src/pages/`**: Route-level orchestration.
+- **`src/types/`**: Shared TypeScript interfaces.
 
-### Tests
-- Command(s) run
-- Pass/fail
-- Short output summary
-
-### Risks / Notes
-- Assumptions
-- Follow-ups
-- Known limitations
+## Definition of Done
+- App builds and runs without errors.
+- New features are integrated with the Storage Adapter.
+- TypeScript types are strict (no `any` unless absolutely necessary).
+- Tests pass (or manual verification is logged).

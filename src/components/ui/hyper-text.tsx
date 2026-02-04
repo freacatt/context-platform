@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion, Variants } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 
 import { cn } from "@/lib/utils";
 
@@ -68,17 +68,15 @@ export function HyperText({
       className="flex scale-100 cursor-default overflow-hidden py-2"
       onMouseEnter={triggerAnimation}
     >
-      <AnimatePresence mode="wait">
-        {displayText.map((letter, i) => (
-          <motion.h1
-            key={i}
-            className={cn("font-mono", letter === " " ? "w-3" : "", className)}
-            {...framerProps}
-          >
-            {letter}
-          </motion.h1>
-        ))}
-      </AnimatePresence>
+      {displayText.map((letter, i) => (
+        <motion.h1
+          key={i}
+          className={cn("font-mono", letter === " " ? "w-3" : "", className)}
+          {...framerProps}
+        >
+          {letter}
+        </motion.h1>
+      ))}
     </div>
   );
 }

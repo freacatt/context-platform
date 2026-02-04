@@ -1,14 +1,13 @@
-import { db } from './firebase';
-import { collection, addDoc, getDoc, getDocs, doc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { storage } from './storage';
 import { ContextDocument } from '../types';
 
 const TABLE_NAME = 'contextDocuments';
 
-// Helper to map DB snake_case to JS camelCase
-export const mapDocumentFromDB = (data: any, id: string): ContextDocument | null => {
+// Helper to map storage data to JS object
+export const mapDocumentFromStorage = (data: any): ContextDocument | null => {
     if (!data) return null;
     return {
-        id: id,
+        id: data.id,
         userId: data.userId || data.user_id,
         workspaceId: data.workspaceId,
         title: data.title,
@@ -27,15 +26,13 @@ export const mapDocumentFromDB = (data: any, id: string): ContextDocument | null
 export const getUserContextDocuments = async (userId: string, workspaceId?: string): Promise<ContextDocument[]> => {
   if (!userId) return [];
   try {
-    let q;
+    const filters: Record<string, any> = { userId };
     if (workspaceId) {
-        q = query(collection(db, TABLE_NAME), where('workspaceId', '==', workspaceId), where('userId', '==', userId));
-    } else {
-        q = query(collection(db, TABLE_NAME), where('userId', '==', userId));
+        filters.workspaceId = workspaceId;
     }
-    const querySnapshot = await getDocs(q);
     
-    return querySnapshot.docs.map(doc => mapDocumentFromDB(doc.data(), doc.id) as ContextDocument);
+    const results = await storage.query(TABLE_NAME, filters);
+    return results.map(mapDocumentFromStorage).filter((doc): doc is ContextDocument => doc !== null);
   } catch (error) {
       console.error("Error fetching documents:", error);
       throw error;
@@ -48,7 +45,9 @@ export const getUserContextDocuments = async (userId: string, workspaceId?: stri
 export const createContextDocument = async (userId: string, title: string = "New Context Document", type: string = "text", workspaceId?: string): Promise<string | null> => {
   if (!userId) return null;
 
+  const id = storage.createId();
   const newDoc = {
+    id,
     userId: userId,
     workspaceId: workspaceId || null,
     title,
@@ -61,8 +60,8 @@ export const createContextDocument = async (userId: string, title: string = "New
   };
 
   try {
-      const docRef = await addDoc(collection(db, TABLE_NAME), newDoc);
-      return docRef.id;
+      await storage.save(TABLE_NAME, newDoc);
+      return id;
   } catch (error) {
       console.error("Error creating document:", error);
       throw error;
@@ -74,16 +73,15 @@ export const createContextDocument = async (userId: string, title: string = "New
  */
 export const getContextDocument = async (id: string): Promise<ContextDocument> => {
   try {
-      const docRef = doc(db, TABLE_NAME, id);
-      const docSnap = await getDoc(docRef);
+      const data = await storage.get(TABLE_NAME, id);
 
-      if (!docSnap.exists()) {
+      if (!data) {
           throw new Error("Document not found");
       }
 
-      return mapDocumentFromDB(docSnap.data(), docSnap.id) as ContextDocument;
+      return mapDocumentFromStorage(data) as ContextDocument;
   } catch (error: any) {
-      if (error?.code !== 'permission-denied') {
+      if (error?.code !== 'permission-denied' && !error?.message?.includes('Missing or insufficient permissions')) {
           console.error("Error fetching document:", error);
       }
       throw error;
@@ -94,7 +92,7 @@ export const getContextDocument = async (id: string): Promise<ContextDocument> =
  * Update a context document
  */
 export const updateContextDocument = async (id: string, data: Partial<ContextDocument>) => {
-  // Map partial update data to snake_case
+  // Map partial update data
   const updateData: any = {};
   if (data.title !== undefined) updateData.title = data.title;
   if (data.content !== undefined) updateData.content = data.content;
@@ -105,7 +103,7 @@ export const updateContextDocument = async (id: string, data: Partial<ContextDoc
   updateData.lastModified = new Date().toISOString();
 
   try {
-      await updateDoc(doc(db, TABLE_NAME, id), updateData);
+      await storage.update(TABLE_NAME, id, updateData);
   } catch (error) {
       console.error("Error updating document:", error);
       throw error;
@@ -117,7 +115,7 @@ export const updateContextDocument = async (id: string, data: Partial<ContextDoc
  */
 export const deleteContextDocument = async (id: string): Promise<void> => {
   try {
-      await deleteDoc(doc(db, TABLE_NAME, id));
+      await storage.delete(TABLE_NAME, id);
   } catch (error) {
       console.error("Error deleting document:", error);
       throw error;
@@ -129,7 +127,7 @@ export const deleteContextDocument = async (id: string): Promise<void> => {
  */
 export const renameContextDocument = async (id: string, newTitle: string): Promise<void> => {
     try {
-        await updateDoc(doc(db, TABLE_NAME, id), {
+        await storage.update(TABLE_NAME, id, {
             title: newTitle,
             lastModified: new Date().toISOString()
         });
@@ -141,7 +139,7 @@ export const renameContextDocument = async (id: string, newTitle: string): Promi
 
 export const assignContextDocumentToDirectory = async (id: string, directoryId: string | null): Promise<void> => {
   try {
-    await updateDoc(doc(db, TABLE_NAME, id), {
+    await storage.update(TABLE_NAME, id, {
       directoryId: directoryId || null,
       lastModified: new Date().toISOString()
     });

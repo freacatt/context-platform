@@ -10,8 +10,7 @@ import { getUserUiUxArchitectures } from './uiUxArchitectureService';
 import { getUserDirectories } from './directoryService';
 import { getUserDiagrams } from './diagramService';
 import { createWorkspace } from './workspaceService';
-import { db } from './firebase';
-import { collection, addDoc, doc, setDoc } from 'firebase/firestore';
+import { storage } from './storage';
 
 
 // ==========================================
@@ -485,8 +484,7 @@ export const importWorkspaceFromJson = async (
             
             for (const item of items) {
                 const oldId = item[idField];
-                // Remove ID to let Firestore generate new one, or generate one manually if we want control
-                // We'll let Firestore generate it to avoid collisions
+                // Remove ID to let us generate new one
                 const { [idField]: _, ...data } = item;
                 
                 // Update basic fields
@@ -495,10 +493,13 @@ export const importWorkspaceFromJson = async (
                 data.createdAt = timestamp;
                 data.lastModified = timestamp;
 
-                // Add to Firestore
-                const docRef = await addDoc(collection(db, collectionName), data);
+                // Add to Storage
+                const newId = storage.createId();
+                const newData = { ...data, id: newId };
+                await storage.save(collectionName, newData);
+                
                 if (oldId) {
-                    idMap.set(oldId, docRef.id);
+                    idMap.set(oldId, newId);
                 }
             }
         };
@@ -522,8 +523,10 @@ export const importWorkspaceFromJson = async (
                     data.directoryId = null; // or keep as is if not found (likely undefined)
                 }
 
-                const docRef = await addDoc(collection(db, 'context_documents'), data);
-                idMap.set(oldId, docRef.id);
+                const newId = storage.createId();
+                const newData = { ...data, id: newId };
+                await storage.save('contextDocuments', newData);
+                idMap.set(oldId, newId);
             }
         }
 
@@ -544,14 +547,16 @@ export const importWorkspaceFromJson = async (
                     data.linkedPyramidId = idMap.get(data.linkedPyramidId);
                 }
 
-                const docRef = await addDoc(collection(db, 'product_definitions'), data);
-                idMap.set(oldId, docRef.id);
+                const newId = storage.createId();
+                const newData = { ...data, id: newId };
+                await storage.save('productDefinitions', newData);
+                idMap.set(oldId, newId);
             }
         }
 
         // 6. Import Others
-        await processCollection(json.technicalArchitectures, 'technical_architectures');
-        await processCollection(json.uiUxArchitectures, 'ui_ux_architectures');
+        await processCollection(json.technicalArchitectures, 'technicalArchitectures');
+        await processCollection(json.uiUxArchitectures, 'uiUxArchitectures');
         
         // Handle Diagrams specially to remap context sources
         if (json.diagrams) {
@@ -578,8 +583,10 @@ export const importWorkspaceFromJson = async (
                      });
                  }
 
-                 const docRef = await addDoc(collection(db, 'diagrams'), data);
-                 idMap.set(oldId, docRef.id);
+                 const newId = storage.createId();
+                 const newData = { ...data, id: newId };
+                 await storage.save('diagrams', newData);
+                 idMap.set(oldId, newId);
             }
         }
         
@@ -612,13 +619,15 @@ export const importWorkspaceFromJson = async (
                          data.data.task_metadata.parent_architecture_ref = idMap.get(data.data.task_metadata.parent_architecture_ref);
                      }
 
-                     const docRef = await addDoc(collection(db, 'technical_tasks'), data);
-                     idMap.set(oldId, docRef.id);
+                     const newId = storage.createId();
+                     const newData = { ...data, id: newId };
+                     await storage.save('technicalTasks', newData);
+                     idMap.set(oldId, newId);
                  }
              }
         }
 
-        resolve(newWorkspaceId);
+        resolve(newWorkspaceId || '');
 
       } catch (error) {
         console.error("Import failed:", error);

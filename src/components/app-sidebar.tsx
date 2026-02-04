@@ -14,7 +14,8 @@ import {
   FileText,
   ListTodo,
   ArrowUpCircleIcon,
-  ArrowLeft
+  ArrowLeft,
+  Database
 } from "lucide-react"
 
 import { NavMain, NavItem } from "@/components/nav-main"
@@ -35,6 +36,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useWorkspace } from "@/contexts/WorkspaceContext"
 import { Badge } from "@/components/ui/badge"
 import { WorkspaceSwitcher } from "@/components/workspace-switcher"
+import { StorageSettingsDialog } from "@/components/storage-settings-dialog"
 
 // Services
 import { getUserPyramids } from "@/services/pyramidService"
@@ -259,7 +261,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 >
                 <Link to="/workspaces">
                     <ArrowUpCircleIcon className="h-5 w-5" />
-                    <span className="text-base font-semibold">Context Platform</span>
+                    <span className="truncate font-semibold">Context Platform</span>
                 </Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>
@@ -284,6 +286,23 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
       <SidebarFooter>
         <ModeToggle />
+        <SidebarMenu>
+          <SidebarMenuItem>
+             <StorageSettingsDialog 
+               trigger={
+                 <SidebarMenuButton size="lg" tooltip="Data Settings">
+                   <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                     <Database className="size-4" />
+                   </div>
+                   <div className="grid flex-1 text-left text-sm leading-tight">
+                     <span className="truncate font-semibold">Data Settings</span>
+                     <span className="truncate text-xs text-muted-foreground">Storage & Export</span>
+                   </div>
+                 </SidebarMenuButton>
+               } 
+             />
+          </SidebarMenuItem>
+        </SidebarMenu>
         <NavUser user={userData} logout={logout} />
       </SidebarFooter>
     </Sidebar>
