@@ -12,8 +12,8 @@ dist
 dist-ssr
 *.local
 .env
-
-
+mcp-gateway/service-account.json
+mcp-gateway/service-account-key.json
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

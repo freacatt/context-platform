@@ -35,6 +35,7 @@ export class LocalDB extends Dexie {
   pipelines!: Table<Pipeline>;
   technicalArchitectures!: Table<TechnicalArchitecture>;
   globalTasks!: Table<TechnicalTask>;
+  workspace_mcp_settings!: Table<{ id: string, userId: string, workspaceId: string, [key: string]: any }>;
 
   constructor() {
     super('ContextPlatformDB');
@@ -64,6 +65,10 @@ export class LocalDB extends Dexie {
 
     this.version(3).stores({
         users: 'id, email'
+    });
+
+    this.version(4).stores({
+        workspace_mcp_settings: 'id, userId, workspaceId'
     });
   }
 

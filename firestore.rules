@@ -95,6 +95,12 @@ rules_version = '2';
       allow read, update, delete: if isOwner(resource.data.userId);
     }
 
+    // Workspace MCP Settings collection
+    match /workspace_mcp_settings/{settingId} {
+      allow create: if isOwner(request.resource.data.userId);
+      allow read, update, delete: if isOwner(resource.data.userId);
+    }
+
     // Global Tasks collection
     match /globalTasks/{taskId} {
       allow create: if isOwner(request.resource.data.userId);

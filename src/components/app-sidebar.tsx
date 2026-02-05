@@ -38,6 +38,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext"
 import { Badge } from "@/components/ui/badge"
 import { WorkspaceSwitcher } from "@/components/workspace-switcher"
 import { StorageSettingsDialog } from "@/components/storage-settings-dialog"
+import { McpAccessModal } from "@/components/McpAccess/McpAccessModal"
 
 // Services
 import { getUserPyramids } from "@/services/pyramidService"
@@ -63,6 +64,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   // State for dynamic nav items
   const [navItems, setNavItems] = React.useState<NavItem[]>([]);
+  const [isMcpModalOpen, setIsMcpModalOpen] = React.useState(false);
 
   // Update nav items based on workspace context and fetched data
   React.useEffect(() => {
@@ -305,6 +307,23 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          {isWorkspaceMode && (
+            <SidebarMenuItem>
+                <SidebarMenuButton 
+                size="lg" 
+                onClick={() => setIsMcpModalOpen(true)}
+                tooltip="MCP Access"
+                >
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-900 dark:text-emerald-300">
+                    <Server className="size-4" />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">MCP Access</span>
+                    <span className="truncate text-xs text-muted-foreground">Connect AI Agents</span>
+                </div>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
              <StorageSettingsDialog 
                trigger={
@@ -323,6 +342,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
         <NavUser user={userData} logout={logout} />
       </SidebarFooter>
+      <McpAccessModal isOpen={isMcpModalOpen} onClose={() => setIsMcpModalOpen(false)} />
     </Sidebar>
   )
 }
