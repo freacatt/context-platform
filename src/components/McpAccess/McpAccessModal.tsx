@@ -62,10 +62,10 @@ export const McpAccessModal: React.FC<McpAccessModalProps> = ({ isOpen, onClose 
             
             <div className="flex-1 overflow-y-auto mt-4 pr-2">
                 <TabsContent value="connect" className="mt-0">
-                <ConnectTab settings={settings} onUpdate={setSettings} />
+                  <ConnectTab settings={settings} onUpdate={setSettings} />
                 </TabsContent>
                 <TabsContent value="configure" className="mt-0">
-                <ConfigureTab settings={settings} onUpdate={setSettings} />
+                  <ConfigureTab settings={settings} onUpdate={setSettings} />
                 </TabsContent>
             </div>
           </Tabs>

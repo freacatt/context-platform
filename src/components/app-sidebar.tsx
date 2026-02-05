@@ -16,7 +16,8 @@ import {
   ArrowUpCircleIcon,
   ArrowLeft,
   Database,
-  Globe
+  Globe,
+  Download
 } from "lucide-react"
 
 import { NavMain, NavItem } from "@/components/nav-main"
@@ -39,6 +40,7 @@ import { Badge } from "@/components/ui/badge"
 import { WorkspaceSwitcher } from "@/components/workspace-switcher"
 import { StorageSettingsDialog } from "@/components/storage-settings-dialog"
 import { McpAccessModal } from "@/components/McpAccess/McpAccessModal"
+import { LocalMcpExportModal } from "@/components/LocalMcpExport/LocalMcpExportModal"
 
 // Services
 import { getUserPyramids } from "@/services/pyramidService"
@@ -65,6 +67,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // State for dynamic nav items
   const [navItems, setNavItems] = React.useState<NavItem[]>([]);
   const [isMcpModalOpen, setIsMcpModalOpen] = React.useState(false);
+  const [isLocalMcpModalOpen, setIsLocalMcpModalOpen] = React.useState(false);
 
   // Update nav items based on workspace context and fetched data
   React.useEffect(() => {
@@ -324,6 +327,23 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </SidebarMenuButton>
             </SidebarMenuItem>
           )}
+          {isWorkspaceMode && (
+            <SidebarMenuItem>
+                <SidebarMenuButton 
+                size="lg" 
+                onClick={() => setIsLocalMcpModalOpen(true)}
+                tooltip="Export Local MCP"
+                >
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300">
+                    <Download className="size-4" />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">Local MCP Server</span>
+                    <span className="truncate text-xs text-muted-foreground">Export Standalone</span>
+                </div>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
              <StorageSettingsDialog 
                trigger={
@@ -343,6 +363,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavUser user={userData} logout={logout} />
       </SidebarFooter>
       <McpAccessModal isOpen={isMcpModalOpen} onClose={() => setIsMcpModalOpen(false)} />
+      <LocalMcpExportModal isOpen={isLocalMcpModalOpen} onClose={() => setIsLocalMcpModalOpen(false)} />
     </Sidebar>
   )
 }
