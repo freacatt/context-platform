@@ -13,7 +13,6 @@ import {
   Folder,
   FileText,
   ListTodo,
-  ArrowUpCircleIcon,
   ArrowLeft,
   Database,
   Globe,
@@ -21,7 +20,6 @@ import {
 } from "lucide-react"
 
 import { NavMain, NavItem } from "@/components/nav-main"
-import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
 import { ModeToggle } from "@/components/mode-toggle"
 import {
@@ -36,7 +34,6 @@ import {
 import { useGlobalContext } from "@/contexts/GlobalContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { useWorkspace } from "@/contexts/WorkspaceContext"
-import { Badge } from "@/components/ui/badge"
 import { WorkspaceSwitcher } from "@/components/workspace-switcher"
 import { StorageSettingsDialog } from "@/components/storage-settings-dialog"
 import { McpAccessModal } from "@/components/McpAccess/McpAccessModal"
@@ -53,17 +50,13 @@ import { getUserDiagrams } from "@/services/diagramService"
 import { getPipelines } from "@/services/technicalTaskService"
 
 // Types
-import { ContextDocument, Directory } from "@/types"
+import { NavItem as NavItemType } from "@/components/nav-main" // Ensure correct type import if needed, assuming NavItem matches
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function WorkspaceSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user, logout } = useAuth();
   const { setIsContextModalOpen, selectedSources } = useGlobalContext();
   const { currentWorkspace } = useWorkspace();
-  const location = useLocation();
   
-  // Determine if we are in "workspace mode" (not in root workspaces list)
-  const isWorkspaceMode = !!currentWorkspace && !location.pathname.endsWith('/workspaces') && location.pathname !== '/workspaces';
-
   // State for dynamic nav items
   const [navItems, setNavItems] = React.useState<NavItem[]>([]);
   const [isMcpModalOpen, setIsMcpModalOpen] = React.useState(false);
@@ -71,14 +64,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   // Update nav items based on workspace context and fetched data
   React.useEffect(() => {
-    if (!isWorkspaceMode) {
-        // Minimal sidebar for workspaces list
-        setNavItems([
-            { title: "Workspaces", url: "/workspaces", icon: Folder },
-        ]);
-        return;
-    }
-
     // Full sidebar for workspace context
     const baseItems: NavItem[] = [
       { title: "Dashboard", url: currentWorkspace ? `/workspace/${currentWorkspace.id}/dashboard` : "/workspaces", icon: LayoutDashboardIcon },
@@ -93,16 +78,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     ];
     
     setNavItems(baseItems);
-  }, [currentWorkspace, isWorkspaceMode]);
+  }, [currentWorkspace]);
 
-  // Fetch dynamic sub-items (pyramids, docs, etc.) only when in workspace mode
+  // Fetch dynamic sub-items (pyramids, docs, etc.)
   React.useEffect(() => {
-    if (!user?.uid || !isWorkspaceMode) return;
+    if (!user?.uid || !currentWorkspace?.id) return;
 
     const fetchData = async () => {
-      // If in workspace mode but no workspace ID is available yet, don't fetch to avoid fetching global data
-      if (isWorkspaceMode && !currentWorkspace?.id) return;
-
       try {
         const workspaceId = currentWorkspace?.id;
         const [
@@ -213,7 +195,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             icon: CheckSquare,
             items: pipelines.map(p => ({
               title: p.title,
-              url: `/technical-tasks?pipeline=${p.id}`, // Just linking to main page with filter? Or just main page.
+              url: `/technical-tasks?pipeline=${p.id}`,
               icon: ListTodo
             }))
           },
@@ -245,7 +227,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     };
 
     fetchData();
-  }, [user?.uid, isWorkspaceMode, currentWorkspace?.id]); // Depend on user ID
+  }, [user?.uid, currentWorkspace?.id]);
 
   const userData = {
     name: user?.displayName || "User",
@@ -256,37 +238,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
-        {isWorkspaceMode ? (
-            <WorkspaceSwitcher />
-        ) : (
-            <SidebarMenu>
-            <SidebarMenuItem>
-                <SidebarMenuButton
-                asChild
-                className="data-[slot=sidebar-menu-button]:!p-1.5"
-                >
-                <Link to="/workspaces">
-                    <ArrowUpCircleIcon className="h-5 w-5" />
-                    <span className="truncate font-semibold">Context Platform</span>
-                </Link>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-            </SidebarMenu>
-        )}
+        <WorkspaceSwitcher />
       </SidebarHeader>
       <SidebarContent>
-        {isWorkspaceMode && (
-             <SidebarMenu className="px-2 pb-2">
-                <SidebarMenuItem>
-                    <SidebarMenuButton asChild className="text-muted-foreground hover:text-foreground">
-                        <Link to="/workspaces">
-                            <ArrowLeft className="h-4 w-4" />
-                            <span>Back to Workspaces</span>
-                        </Link>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-             </SidebarMenu>
-        )}
+        <SidebarMenu className="px-2 pb-2">
+            <SidebarMenuItem>
+                <SidebarMenuButton asChild className="text-muted-foreground hover:text-foreground">
+                    <Link to="/workspaces">
+                        <ArrowLeft className="h-4 w-4" />
+                        <span>Back to Workspaces</span>
+                    </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+        </SidebarMenu>
         <NavMain items={navItems} />
 
       </SidebarContent>
@@ -310,40 +274,36 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          {isWorkspaceMode && (
-            <SidebarMenuItem>
-                <SidebarMenuButton 
-                size="lg" 
-                onClick={() => setIsMcpModalOpen(true)}
-                tooltip="MCP Access"
-                >
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-900 dark:text-emerald-300">
-                    <Server className="size-4" />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">MCP Access</span>
-                    <span className="truncate text-xs text-muted-foreground">Connect AI Agents</span>
-                </div>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-          )}
-          {isWorkspaceMode && (
-            <SidebarMenuItem>
-                <SidebarMenuButton 
-                size="lg" 
-                onClick={() => setIsLocalMcpModalOpen(true)}
-                tooltip="Export Local MCP"
-                >
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300">
-                    <Download className="size-4" />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">Local MCP Server</span>
-                    <span className="truncate text-xs text-muted-foreground">Export Standalone</span>
-                </div>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-          )}
+          <SidebarMenuItem>
+            <SidebarMenuButton 
+            size="lg" 
+            onClick={() => setIsMcpModalOpen(true)}
+            tooltip="MCP Access"
+            >
+            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-900 dark:text-emerald-300">
+                <Server className="size-4" />
+            </div>
+            <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-semibold">MCP Access</span>
+                <span className="truncate text-xs text-muted-foreground">Connect AI Agents</span>
+            </div>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton 
+            size="lg" 
+            onClick={() => setIsLocalMcpModalOpen(true)}
+            tooltip="Export Local MCP"
+            >
+            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300">
+                <Download className="size-4" />
+            </div>
+            <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-semibold">Local MCP Server</span>
+                <span className="truncate text-xs text-muted-foreground">Export Standalone</span>
+            </div>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
              <StorageSettingsDialog 
                trigger={

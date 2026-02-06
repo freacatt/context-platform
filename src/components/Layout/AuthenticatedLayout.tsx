@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { AppSidebar } from "@/components/app-sidebar"
+import { useLocation } from 'react-router-dom';
+import { WorkspaceSidebar } from "@/components/workspace-sidebar"
+import { WorkspacesListSidebar } from "@/components/workspaces-list-sidebar"
 import {
   SidebarInset,
   SidebarProvider,
@@ -12,6 +14,7 @@ import SyncModal from "../Navbar/SyncModal"
 import { useSyncStore } from "../../services/syncStore"
 import { Button } from "@/components/ui/button"
 import { RefreshCw } from "lucide-react"
+import { useWorkspace } from "@/contexts/WorkspaceContext"
 
 interface AuthenticatedLayoutProps {
   children: React.ReactNode;
@@ -20,10 +23,15 @@ interface AuthenticatedLayoutProps {
 const AuthenticatedLayout: React.FC<AuthenticatedLayoutProps> = ({ children }) => {
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
   const { isSyncing } = useSyncStore();
+  const { currentWorkspace } = useWorkspace();
+  const location = useLocation();
+
+  // Determine if we are in "workspace mode" (not in root workspaces list)
+  const isWorkspaceMode = !!currentWorkspace && !location.pathname.endsWith('/workspaces') && location.pathname !== '/workspaces';
 
   return (
     <SidebarProvider>
-      <AppSidebar />
+      {isWorkspaceMode ? <WorkspaceSidebar /> : <WorkspacesListSidebar />}
       <SidebarInset>
         <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-sidebar/95 backdrop-blur supports-[backdrop-filter]:bg-sidebar/60">
           <SidebarTrigger className="-ml-1" />
