@@ -44,6 +44,21 @@ Business logic and data access are encapsulated in **Services** (`src/services/`
 - **Layouts**: Page layouts handle common structures (headers, sidebars).
 - **Hooks**: Custom hooks (`src/hooks/`) encapsulate stateful logic and service subscriptions.
 
+### 5. Test Driven Architecture
+We follow a **Test Driven Development (TDD)** approach for critical business logic and complex features.
+- **Process**: Write the test first -> Watch it fail -> Implement the logic -> Watch it pass -> Refactor.
+- **Testing Pyramid**:
+  - **Unit Tests**: Focus on Services (`src/services/`) and Utils. Mock the `storage` adapter.
+  - **Component Tests**: Verify UI behavior and interactions.
+  - **E2E Tests**: Critical user flows only.
+- **File Organization**:
+  - All tests must reside in the `src/test/` directory.
+  - Mirror the source structure or organize by App/Feature within `src/test/`.
+  - Example: `src/services/authentication/auth.ts` -> `src/test/services/authentication/auth.test.ts`.
+- **Exclusions**:
+  - Do not write tests for configuration or rule files in `.trae/`.
+- **Tooling**: Vitest for unit/component tests.
+
 ## Data Flow
 1. **User Action**: User interacts with UI (e.g., "Save Architecture").
 2. **Component**: Calls a Service method (e.g., `saveArchitecture`).
@@ -56,4 +71,4 @@ Business logic and data access are encapsulated in **Services** (`src/services/`
 
 ## Scalability & Extensibility
 - **New Features**: When adding a new feature (e.g., "Product Definition"), create a new Service that utilizes the existing `storage` adapter.
-- **Data Models**: Define TypeScript interfaces in `src/types/` and ensure they are compatible with both storage engines.
+- **Data Models**: Define TypeScript interfaces in `src/types/`. **CRITICAL**: Each data object must have its own separate file in `src/types/` (e.g., `src/types/project.ts`). Do not dump types into `index.ts`. Ensure models are compatible with both storage engines.
