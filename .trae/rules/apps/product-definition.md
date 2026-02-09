@@ -1,3 +1,6 @@
+---
+alwaysApply: false
+---
 # Product Definition Rules
 
 ## Data Structure

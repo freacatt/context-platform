@@ -1,3 +1,6 @@
+---
+alwaysApply: false
+---
 # Technical Architecture Rules
 
 ## Data Structure

@@ -1,3 +1,6 @@
+---
+alwaysApply: false
+---
 # Diagrams Rules
 
 ## Data Structure

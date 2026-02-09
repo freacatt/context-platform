@@ -1,3 +1,6 @@
+---
+alwaysApply: false
+---
 # Context Documents Rules
 
 ## Data Structure

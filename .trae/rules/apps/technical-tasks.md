@@ -1,3 +1,6 @@
+---
+alwaysApply: false
+---
 # Technical Tasks Rules
 
 ## Data Structure

@@ -1,3 +1,6 @@
+---
+alwaysApply: false
+---
 # UI/UX Architecture Rules
 
 ## Data Structure

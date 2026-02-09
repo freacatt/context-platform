@@ -1,3 +1,6 @@
+---
+alwaysApply: false
+---
 # Pyramid Solver Rules
 
 ## Data Structure
