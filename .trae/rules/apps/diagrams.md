@@ -1,6 +1,7 @@
 ---
 alwaysApply: false
 category: "Problem Solving, Thinking and Planning"
+primaryColorClass: "bg-rose-600"
 ---
 # Diagrams Rules
 

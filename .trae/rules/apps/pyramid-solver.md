@@ -1,6 +1,7 @@
 ---
 alwaysApply: false
 category: "Problem Solving, Thinking and Planning"
+primaryColorClass: "bg-indigo-600"
 ---
 # Pyramid Solver Rules
 

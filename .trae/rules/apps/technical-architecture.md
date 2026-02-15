@@ -1,6 +1,7 @@
 ---
 alwaysApply: false
 category: "Technical"
+primaryColorClass: "bg-purple-600"
 ---
 # Technical Architecture Rules
 

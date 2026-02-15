@@ -13,9 +13,17 @@ type Props = {
   to: string;
   icon?: LucideIcon;
   colorClass?: string;
+  buttonColorClass?: string;
 };
 
-export const AppCard3D: React.FC<Props> = ({ title, description, to, icon, colorClass = "bg-primary" }) => {
+export const AppCard3D: React.FC<Props> = ({
+  title,
+  description,
+  to,
+  icon,
+  colorClass = "bg-primary",
+  buttonColorClass,
+}) => {
   const Line = ({ className = "" }) => (
     <div
       className={cn(
@@ -58,7 +66,13 @@ export const AppCard3D: React.FC<Props> = ({ title, description, to, icon, color
         </CardHeader>
         <CardContent className="pt-0 mt-auto">
           <Link to={to} className="w-full block">
-            <AnimatedButton variant="secondary" className="w-full justify-between group">
+            <AnimatedButton
+              variant="secondary"
+              className={cn(
+                "w-full justify-between group backdrop-blur-md border border-white/10 dark:border-white/5",
+                buttonColorClass ?? "bg-background/60 hover:bg-background/80"
+              )}
+            >
               Open App <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </AnimatedButton>
           </Link>

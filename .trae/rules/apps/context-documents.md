@@ -1,6 +1,7 @@
 ---
 alwaysApply: false
 category: "Knowledge Base"
+primaryColorClass: "bg-amber-600"
 ---
 # Context Documents Rules
 

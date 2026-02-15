@@ -1,6 +1,7 @@
 ---
 alwaysApply: false
 category: "Product design & Management"
+primaryColorClass: "bg-pink-600"
 ---
 # UI/UX Architecture Rules
 

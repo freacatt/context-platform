@@ -1,6 +1,7 @@
 ---
 alwaysApply: false
 category: "Product design & Management"
+primaryColorClass: "bg-teal-600"
 ---
 # Product Definition Rules
 

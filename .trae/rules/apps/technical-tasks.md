@@ -1,6 +1,7 @@
 ---
 alwaysApply: false
 category: "Technical"
+primaryColorClass: "bg-blue-600"
 ---
 # Technical Tasks Rules
 

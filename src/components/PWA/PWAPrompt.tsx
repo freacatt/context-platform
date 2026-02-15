@@ -73,7 +73,7 @@ export const PWAPrompt: React.FC = () => {
           initial={{ opacity: 0, y: 50, scale: 0.9 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 50, scale: 0.9 }}
-          className="fixed bottom-4 right-4 z-50 max-w-sm w-full bg-card border shadow-lg rounded-xl p-4 md:max-w-md"
+          className="fixed inset-x-4 bottom-4 z-50 mx-auto w-auto max-w-sm rounded-2xl border border-border/60 bg-background/80 shadow-lg backdrop-blur-xl md:bottom-6 md:inset-x-auto md:right-6 md:mx-0 md:w-full md:max-w-md"
         >
           <button 
             onClick={handleClose}
@@ -82,13 +82,15 @@ export const PWAPrompt: React.FC = () => {
             <X size={18} />
           </button>
           
-          <div className="flex items-start gap-4 pr-6">
-            <div className="bg-primary/10 p-2 rounded-lg text-primary mt-1">
+          <div className="flex items-start gap-3 px-4 py-4 pr-8 md:px-5 md:py-5">
+            <div className="mt-1 rounded-xl bg-primary/10 p-2.5 text-primary">
               <Download size={24} />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-base mb-1">Install App</h3>
-              <p className="text-sm text-muted-foreground mb-4">
+              <h3 className="mb-1 text-base font-semibold leading-snug">
+                Install App
+              </h3>
+              <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
                 Install our app for a better experience, offline access, and faster performance.
               </p>
               

@@ -44,6 +44,7 @@ const Dashboard: React.FC = () => {
               to="/ai-chat"
               icon={Bot}
               colorClass="bg-violet-600"
+              buttonColorClass="bg-violet-500/25 hover:bg-violet-500/35"
             />
           </div>
         </section>
@@ -60,6 +61,7 @@ const Dashboard: React.FC = () => {
               to="/pyramids"
               icon={Pyramid}
               colorClass="bg-indigo-600"
+              buttonColorClass="bg-indigo-500/25 hover:bg-indigo-500/35"
             />
             <AppCard3D 
               title="Diagrams" 
@@ -67,6 +69,7 @@ const Dashboard: React.FC = () => {
               to="/diagrams"
               icon={Workflow}
               colorClass="bg-rose-600"
+              buttonColorClass="bg-rose-500/25 hover:bg-rose-500/35"
             />
           </div>
         </section>
@@ -83,6 +86,7 @@ const Dashboard: React.FC = () => {
               to="/product-definitions"
               icon={GitMerge}
               colorClass="bg-teal-600"
+              buttonColorClass="bg-teal-500/25 hover:bg-teal-500/35"
             />
             <AppCard3D 
               title="UI/UX Architecture" 
@@ -90,6 +94,7 @@ const Dashboard: React.FC = () => {
               to="/ui-ux-architectures"
               icon={Layout}
               colorClass="bg-pink-600"
+              buttonColorClass="bg-pink-500/25 hover:bg-pink-500/35"
             />
           </div>
         </section>
@@ -106,6 +111,7 @@ const Dashboard: React.FC = () => {
               to="/context-documents"
               icon={BookOpen}
               colorClass="bg-amber-600"
+              buttonColorClass="bg-amber-500/25 hover:bg-amber-500/35"
             />
           </div>
         </section>
@@ -122,6 +128,7 @@ const Dashboard: React.FC = () => {
               to="/technical-architectures"
               icon={Server}
               colorClass="bg-purple-600"
+              buttonColorClass="bg-purple-500/25 hover:bg-purple-500/35"
             />
             <AppCard3D 
               title="Technical Tasks" 
@@ -129,6 +136,7 @@ const Dashboard: React.FC = () => {
               to="/technical-tasks"
               icon={CheckSquare}
               colorClass="bg-blue-600"
+              buttonColorClass="bg-blue-500/25 hover:bg-blue-500/35"
             />
           </div>
         </section>
