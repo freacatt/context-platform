@@ -1,4 +1,5 @@
 import { ThemeProvider } from "@/components/theme-provider"
+import { GlobalShaderOverlay } from "@/components/ui/global-shader-overlay"
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { GlobalProvider } from './contexts/GlobalContext';
@@ -54,6 +55,7 @@ function App() {
             <WorkspaceProvider>
               <GlobalProvider>
                 <PWAProvider>
+                <GlobalShaderOverlay />
                 <Routes>
                   <Route path="/" element={<LandingPage />} />
                 <Route path="/docs" element={<DocsPage />} />
