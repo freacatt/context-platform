@@ -42,7 +42,6 @@ const Dashboard: React.FC = () => {
               title="AI Assistant" 
               description="Chat with the AI assistant to get help with your project, generate ideas, or analyze your data."
               to="/ai-chat"
-              preset="lowpoly-bot"
               icon={Bot}
               colorClass="bg-violet-600"
             />
@@ -59,7 +58,6 @@ const Dashboard: React.FC = () => {
               title="Pyramid Solver" 
               description="Structure your problem solving with a logical pyramid approach. Break down complex issues into manageable questions and answers."
               to="/pyramids"
-              preset="pyramid"
               icon={Pyramid}
               colorClass="bg-indigo-600"
             />
@@ -67,7 +65,6 @@ const Dashboard: React.FC = () => {
               title="Diagrams" 
               description="Create and manage visual diagrams to illustrate system flows, architectures, and processes."
               to="/diagrams"
-              preset="nodes-graph"
               icon={Workflow}
               colorClass="bg-rose-600"
             />
@@ -84,7 +81,6 @@ const Dashboard: React.FC = () => {
               title="Product Definition" 
               description="Define your product using the structured mindmap. Detail problems, appetites, solutions, and risks in a structured graph."
               to="/product-definitions"
-              preset="workshop-tools"
               icon={GitMerge}
               colorClass="bg-teal-600"
             />
@@ -92,7 +88,6 @@ const Dashboard: React.FC = () => {
               title="UI/UX Architecture" 
               description="Design your application's visual structure, theme, and navigation flow using a visual node editor."
               to="/ui-ux-architectures"
-              preset="picture-frame"
               icon={Layout}
               colorClass="bg-pink-600"
             />
@@ -109,7 +104,6 @@ const Dashboard: React.FC = () => {
               title="Context &amp; Documents" 
               description="Create and manage knowledge base documents. Use them as context for your product definitions and problem solving."
               to="/context-documents"
-              preset="old-book"
               icon={BookOpen}
               colorClass="bg-amber-600"
             />
@@ -126,7 +120,6 @@ const Dashboard: React.FC = () => {
               title="Technical Architecture"
               description="Define the full technical architecture of your application. Specify system layers, technology stack, and engineering standards."
               to="/technical-architectures"
-              preset="airplane"
               icon={Server}
               colorClass="bg-purple-600"
             />
@@ -134,7 +127,6 @@ const Dashboard: React.FC = () => {
               title="Technical Tasks" 
               description="Manage implementation tasks and bug fixes. Link tasks to technical architecture and track progress in pipelines."
               to="/technical-tasks"
-              preset="technician"
               icon={CheckSquare}
               colorClass="bg-blue-600"
             />
