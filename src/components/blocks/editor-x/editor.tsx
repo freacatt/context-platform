@@ -7,6 +7,7 @@ import { EditorState, SerializedEditorState } from "lexical"
 
 import { editorTheme } from "@/components/editor/themes/editor-theme"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
 
 import { nodes } from "./nodes"
 import { Plugins } from "./plugins"
@@ -25,14 +26,16 @@ export function Editor({
   editorSerializedState,
   onChange,
   onSerializedChange,
+  className,
 }: {
   editorState?: EditorState
   editorSerializedState?: SerializedEditorState
   onChange?: (editorState: EditorState) => void
   onSerializedChange?: (editorSerializedState: SerializedEditorState) => void
+  className?: string
 }) {
   return (
-    <div className="bg-background overflow-hidden rounded-lg border shadow">
+    <div className={cn("bg-background overflow-hidden rounded-lg border shadow", className)}>
       <LexicalComposer
         initialConfig={{
           ...editorConfig,

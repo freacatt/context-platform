@@ -8,6 +8,7 @@ export interface ProductDefinitionNode {
   question?: string;
   parent?: string;
   children?: string[];
+  contextSources?: ContextSource[];
 }
 
 export interface ProductDefinition {

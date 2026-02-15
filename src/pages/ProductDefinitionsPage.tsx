@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Plus, GitMerge, Trash2, Edit2 } from 'lucide-react';
+import { Search, Plus, GitMerge, Trash2, Edit2, FileText, Sparkles, SquareDashed } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { getUserProductDefinitions, createProductDefinition, deleteProductDefinition, renameProductDefinition } from '../services/productDefinitionService';
@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
   DialogContent,
@@ -23,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 
 import { DeleteConfirmDialog } from '@/components/ui/delete-confirm-dialog';
+import { PRODUCT_DEFINITION_TEMPLATES, DEFAULT_PRODUCT_DEFINITION_TEMPLATE_ID, SHAPE_UP_METHOD_TEMPLATE_ID } from '../services/productDefinitionTemplates';
 
 const ProductDefinitionsPage: React.FC = () => {
   const { user } = useAuth();
@@ -36,6 +38,37 @@ const ProductDefinitionsPage: React.FC = () => {
   const [isCreateOpen, setIsCreateOpen] = useState<boolean>(false);
   const [newTitle, setNewTitle] = useState<string>('');
   const [isCreating, setIsCreating] = useState<boolean>(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(DEFAULT_PRODUCT_DEFINITION_TEMPLATE_ID);
+
+  const groupedTemplates = PRODUCT_DEFINITION_TEMPLATES.reduce<Record<string, typeof PRODUCT_DEFINITION_TEMPLATES>>((acc, tpl) => {
+    if (!acc[tpl.category]) acc[tpl.category] = [];
+    acc[tpl.category].push(tpl);
+    return acc;
+  }, {});
+
+  const renderTemplateLogo = (templateId: string) => {
+    if (templateId === SHAPE_UP_METHOD_TEMPLATE_ID) {
+      return (
+        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-orange-500 via-pink-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shadow-md">
+          SU
+        </div>
+      );
+    }
+
+    if (templateId === DEFAULT_PRODUCT_DEFINITION_TEMPLATE_ID) {
+      return (
+        <div className="h-10 w-10 rounded-xl bg-sky-600/10 flex items-center justify-center text-sky-700">
+          <FileText size={18} />
+        </div>
+      );
+    }
+
+    return (
+      <div className="h-10 w-10 rounded-xl border border-dashed border-slate-400 flex items-center justify-center text-slate-500">
+        <SquareDashed size={18} />
+      </div>
+    );
+  };
 
   // Rename State
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
@@ -64,20 +97,25 @@ const ProductDefinitionsPage: React.FC = () => {
   }, [user, currentWorkspace]);
 
   const handleCreate = async () => {
-      if (!user || !newTitle.trim()) return;
-      setIsCreating(true);
-      try {
-          const id = await createProductDefinition(user.uid, newTitle, currentWorkspace?.id);
-          setIsCreateOpen(false);
-          setNewTitle('');
-          // Navigate to editor
-          navigate(`/product-definition/${id}`);
-      } catch (error) {
-          console.error(error);
-          alert("Failed to create definition");
-      } finally {
-          setIsCreating(false);
-      }
+    if (!user || !newTitle.trim()) return;
+    setIsCreating(true);
+    try {
+      const id = await createProductDefinition(
+        user.uid,
+        newTitle,
+        currentWorkspace?.id,
+        selectedTemplateId,
+      );
+      setIsCreateOpen(false);
+      setNewTitle('');
+      setSelectedTemplateId(DEFAULT_PRODUCT_DEFINITION_TEMPLATE_ID);
+      navigate(`/product-definition/${id}`);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to create definition");
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const handleDelete = (id: string, title: string, e: React.MouseEvent) => {
@@ -137,24 +175,97 @@ const ProductDefinitionsPage: React.FC = () => {
                     <Plus size={16} className="mr-2" /> New Definition
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[450px]">
+            <DialogContent className="sm:max-w-[900px] max-h-[90vh]">
                 <DialogHeader>
                     <DialogTitle>Create New Product Definition</DialogTitle>
                     <DialogDescription>
-                        Enter a title for your new product definition workspace.
+                        Name your workspace and choose a starting template.
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="flex flex-col gap-4 py-4">
-                    <div className="flex flex-col gap-2">
-                        <Label htmlFor="create-title">Title</Label>
-                        <Input
-                            id="create-title"
-                            placeholder="e.g. Mobile App Redesign"
-                            value={newTitle}
-                            onChange={(e) => setNewTitle(e.target.value)}
-                        />
+                <div className="flex flex-col gap-6 py-4">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="create-title">Title</Label>
+                    <Input
+                      id="create-title"
+                      placeholder="e.g. Mobile App Redesign"
+                      value={newTitle}
+                      onChange={(e) => setNewTitle(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">Template</span>
+                        <span className="text-xs text-muted-foreground">
+                          Pick a structure to start from. You can always change content later.
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Sparkles size={14} className="text-amber-500" />
+                        <span>Recommended: Classic or Shape Up</span>
+                      </div>
                     </div>
+
+                    <ScrollArea className="max-h-[360px] rounded-xl border border-border/40 bg-background/40 p-3">
+                      <div className="flex flex-col gap-4">
+                        {Object.entries(groupedTemplates).map(([category, templates]) => (
+                          <div key={category} className="flex flex-col gap-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                {category}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {templates.map((tpl) => {
+                                const isSelected = tpl.id === selectedTemplateId;
+                                return (
+                                  <button
+                                    type="button"
+                                    key={tpl.id}
+                                    onClick={() => setSelectedTemplateId(tpl.id)}
+                                    className={`text-left rounded-2xl border transition-all hover:border-teal-500 hover:shadow-md bg-background/80 backdrop-blur-lg w-full ${
+                                      isSelected ? 'border-teal-600 ring-2 ring-teal-500/40' : 'border-border'
+                                    }`}
+                                  >
+                                    <div className="px-4 py-4 flex flex-col gap-3 h-full min-h-[150px]">
+                                      <div className="flex items-start gap-3">
+                                        {renderTemplateLogo(tpl.id)}
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center gap-2">
+                                            <span className="font-medium text-sm truncate">{tpl.name}</span>
+                                            {tpl.id === DEFAULT_PRODUCT_DEFINITION_TEMPLATE_ID && (
+                                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 uppercase tracking-wide">
+                                                Default
+                                              </Badge>
+                                            )}
+                                            {tpl.id === SHAPE_UP_METHOD_TEMPLATE_ID && (
+                                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 uppercase tracking-wide">
+                                                Shape Up
+                                              </Badge>
+                                            )}
+                                          </div>
+                                          {tpl.tagline && (
+                                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                                              {tpl.tagline}
+                                            </p>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <p className="text-xs text-slate-500 line-clamp-3">
+                                        {tpl.description}
+                                      </p>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </div>
                 </div>
 
                 <DialogFooter>

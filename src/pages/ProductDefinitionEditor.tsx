@@ -10,10 +10,10 @@ import ReactFlow, {
   Edge
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { ArrowLeft, Download } from 'lucide-react';
+import { ArrowLeft, Download, Paperclip } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '../contexts/WorkspaceContext';
-import { getProductDefinition, updateNodeDescription } from '../services/productDefinitionService';
+import { getProductDefinition, updateProductDefinitionNode } from '../services/productDefinitionService';
 import { exportProductDefinitionToExcel, exportProductDefinitionToMarkdown } from '../services/exportService';
 import TopicEditModal from '../components/ProductDefinition/TopicEditModal';
 import { ProductDefinition, ProductDefinitionNode } from '../types';
@@ -80,21 +80,23 @@ const ProductDefinitionEditorContent: React.FC = () => {
         // Styling Logic
         const isAnswered = node.description && node.description.trim().length > 0;
         const isRoot = nodeId === 'root';
+        const hasAttachments = Array.isArray((node as any).contextSources) && (node as any).contextSources.length > 0;
         
         let style: React.CSSProperties = { 
-            width: 180,
+            width: 220,
             padding: '10px',
             borderRadius: '8px',
             fontSize: '12px',
-            textAlign: 'center',
+            textAlign: 'left',
             background: 'white',
             border: isAnswered ? '2px solid #10b981' : '1px solid #94a3b8',
             boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'stretch',
             justifyContent: 'center',
-            minHeight: '50px',
-            color: 'black'
+            minHeight: '70px',
+            color: 'black',
+            overflow: 'hidden'
         };
 
         if (isRoot) {
@@ -114,13 +116,93 @@ const ProductDefinitionEditorContent: React.FC = () => {
              style.color = '#064e3b';
         }
 
-        const label = (isAnswered && !isRoot) ? `✅ ${node.label}` : node.label;
+        let descriptionPreview: string | undefined;
+        if (!isRoot && node.description) {
+            const trimmed = node.description.trim();
+            if (trimmed.length > 0) {
+                const limit = 80;
+                descriptionPreview =
+                    trimmed.length > limit
+                        ? `${trimmed.slice(0, limit)}…`
+                        : trimmed;
+            }
+        }
+
+        const labelNode = (
+            <div
+                style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    textAlign: 'left',
+                    width: '100%',
+                }}
+            >
+                <div
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        width: '100%',
+                        marginBottom: descriptionPreview ? 4 : 0,
+                    }}
+                >
+                    <div
+                        style={{
+                            fontWeight: isRoot ? 'bold' : 600,
+                            fontSize: isRoot ? 14 : 12,
+                            whiteSpace: 'nowrap',
+                            textOverflow: 'ellipsis',
+                            overflow: 'hidden',
+                            flex: 1,
+                            marginRight: 4,
+                        }}
+                    >
+                        {!isRoot && isAnswered ? '✅ ' : ''}
+                        {node.label}
+                    </div>
+                    {!isRoot && hasAttachments && (
+                        <div
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                marginLeft: 4,
+                                padding: '2px 4px',
+                                borderRadius: 999,
+                                backgroundColor: '#e0f2fe',
+                                color: '#0369a1',
+                                fontSize: 9,
+                                fontWeight: 600,
+                            }}
+                            title="Has attachments"
+                        >
+                            📎
+                        </div>
+                    )}
+                </div>
+                {!isRoot && descriptionPreview && (
+                    <div
+                        style={{
+                            fontSize: 11,
+                            color: isAnswered ? '#047857' : '#64748b',
+                            lineHeight: 1.3,
+                            maxHeight: 34,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                        }}
+                    >
+                        {descriptionPreview}
+                    </div>
+                )}
+            </div>
+        );
 
         newNodes.push({
             id: nodeId,
             type: isRoot ? 'input' : 'default',
             position: { x, y },
-            data: { label },
+            data: { label: labelNode },
             style
         });
 
@@ -160,7 +242,7 @@ const ProductDefinitionEditorContent: React.FC = () => {
         id: 'root',
         type: 'input',
         position: { x: 0, y: 0 },
-        data: { label: rootNode.label },
+        data: { label: rootNode.label, isRoot: true },
         style: {
             background: '#3E63DD',
             color: 'white',
@@ -230,21 +312,33 @@ const ProductDefinitionEditorContent: React.FC = () => {
     }
   }, [definition]);
 
-  const handleSaveDescription = async (nodeId: string, newDescription: string) => {
+  const handleSaveDescription = async (
+    nodeId: string,
+    newDescription: string,
+    newAttachments: any[],
+  ) => {
     if (!definition || !definitionId) return;
 
     // Update local state
     const updatedData = { ...definition.data };
     if (updatedData[nodeId]) {
-        updatedData[nodeId].description = newDescription;
+        updatedData[nodeId] = {
+          ...updatedData[nodeId],
+          description: newDescription,
+          // @ts-expect-error older data may not have contextSources
+          contextSources: newAttachments,
+        };
         const newDef = { ...definition, data: updatedData };
         setDefinition(newDef);
         
         // Re-generate graph to update styles
         generateGraph(updatedData);
         
-        // Update Database
-        await updateNodeDescription(definitionId, nodeId, newDescription);
+        await updateProductDefinitionNode(definitionId, nodeId, {
+          description: newDescription,
+          // @ts-expect-error partial update
+          contextSources: newAttachments,
+        });
     }
   };
 
@@ -296,6 +390,7 @@ const ProductDefinitionEditorContent: React.FC = () => {
           onEdgesChange={onEdgesChange}
           onNodeClick={onNodeClick}
           fitView
+          fitViewOptions={{ padding: 0.3 }}
           attributionPosition="bottom-left"
         >
           <Controls />

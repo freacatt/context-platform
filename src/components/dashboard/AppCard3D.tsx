@@ -44,7 +44,7 @@ export const AppCard3D: React.FC<Props> = ({
   return (
     <div className="relative">
       <Lines />
-      <Card className="w-full border-none shadow-none bg-card/60 backdrop-blur rounded-xl overflow-hidden h-full flex flex-col">
+      <Card className="w-full border-none shadow-none bg-card backdrop-blur-none rounded-xl overflow-hidden h-full flex flex-col">
         <div className="p-4">
           <div
             className={cn(
