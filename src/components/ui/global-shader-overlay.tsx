@@ -27,6 +27,13 @@ export const GlobalShaderOverlay = ({ className }: GlobalShaderOverlayProps) => 
           }}
         />
         <div
+          className="absolute -top-[10%] right-[-15%] h-[65%] w-[55%] blur-3xl"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.8) 0%, rgba(56, 189, 248, 0) 55%)",
+          }}
+        />
+        <div
           className="absolute bottom-[-25%] right-[-20%] h-[90%] w-[140%] blur-3xl"
           style={{
             backgroundImage:
@@ -58,6 +65,13 @@ export const GlobalShaderOverlay = ({ className }: GlobalShaderOverlayProps) => 
           }}
         />
         <div
+          className="absolute -top-[5%] right-[-20%] h-[70%] w-[60%] blur-3xl"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.8) 0%, rgba(56, 189, 248, 0) 60%)",
+          }}
+        />
+        <div
           className="absolute inset-[8%] blur-3xl"
           style={{
             backgroundImage:
@@ -74,7 +88,7 @@ export const GlobalShaderOverlay = ({ className }: GlobalShaderOverlayProps) => 
       </div>
 
       <div
-        className="pointer-events-none absolute inset-0 opacity-25 mix-blend-overlay"
+        className="pointer-events-none absolute inset-0 opacity-30 dark:opacity-40 mix-blend-overlay"
         style={{
           backgroundImage: `url(${NOISE_TEXTURE_DATA_URL})`,
         }}
