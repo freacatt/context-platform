@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+pydantic
+sqlalchemy
+psycopg2-binary
+firebase-admin
+qdrant-client
+langchain-core
+langchain-openai
+langchain-anthropic
+langchain-google-genai
+python-dotenv

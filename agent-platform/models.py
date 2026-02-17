@@ -5,7 +5,7 @@ from sqlalchemy import Column, DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from .db import Base
+from db import Base
 
 
 class User(Base):
@@ -99,4 +99,3 @@ class WorkspaceIndexStatus(Base):
     last_error = Column(Text, nullable=True)
 
     workspace = relationship("Workspace", back_populates="index_status")
-

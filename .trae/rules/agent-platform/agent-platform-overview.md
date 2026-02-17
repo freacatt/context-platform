@@ -257,11 +257,32 @@ Responsibilities:
 - Usage logging  
 - Conversation persistence  
 
+Modules:
+
+- Auth boundary (`auth.py`)  
+- Control-plane models and DB (`models.py`, `db.py`, `deps.py`)  
+- Policy and permissions (`policy_engine.py`, `usage_tracker.py`)  
+- App services and access control (`app_services.py`)  
+- Agent orchestration (`agents.py`, LangChain-based GM and domain agents)  
+- RAG and vector store wiring (`rag_service.py`, `qdrant_client_adapter.py`)  
+- HTTP API routers (`api/workspaces.py`, `api/conversations.py`, `api/apps.py`)  
+
 Hard Constraints:
 
 - No long-lived in-memory state  
 - No direct Firestore access by agents  
 - All critical actions logged  
+- All app access goes through the app service layer and Policy Engine  
+
+App Service and permission API:
+
+- Internal app services live in `agent-platform/app_services.py`.  
+- They expose per-app capabilities for a given `(firebase_uid, workspace_id)` pair.  
+- Public HTTP endpoints under `/apps` provide:
+  - `GET /apps`: list of registered apps  
+  - `GET /apps/workspaces/{workspace_id}/permissions`: all app permissions for a workspace  
+  - `GET /apps/workspaces/{workspace_id}/{app_id}/permissions`: permissions for a single app  
+- These endpoints are the canonical way for the SPA and agents to discover which apps are enabled and what operations are allowed.
 
 ---
 

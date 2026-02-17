@@ -1,5 +1,6 @@
 import { sendMessage, subscribeToChat, createConversation } from './chatService';
 import { sendGlobalChatMessage, sendProductDefinitionChatMessage } from './anthropic';
+import { agentDirectAgentCall } from './agentPlatformClient';
 import { StoredMessage, ChatMessage, ProductDefinition } from '../types';
 
 export class AIService {
@@ -95,7 +96,6 @@ export class AIService {
   ): Promise<string> {
     if (!apiKey) throw new Error("API Key is missing");
 
-    // 1. Save user message
     await sendMessage(
       userId,
       conversationId,
@@ -105,13 +105,11 @@ export class AIService {
       'conversations'
     );
 
-    // 2. Prepare history for AI (convert StoredMessage to ChatMessage)
     const historyForApi: ChatMessage[] = history.map(msg => {
       let contentStr = '';
       if (typeof msg.content === 'string') {
         contentStr = msg.content;
       } else if (Array.isArray(msg.content)) {
-        // Handle legacy/complex content structure if any
         contentStr = (msg.content as any[]).map((c: any) => c.text || '').join('');
       }
       return {
@@ -120,18 +118,31 @@ export class AIService {
       };
     });
 
-    // 3. Call AI
-    // We pass historyForApi which contains PREVIOUS messages. 
-    // The current userMessage is passed as a separate argument to sendGlobalChatMessage.
-    const aiResponse = await sendGlobalChatMessage(
-      apiKey,
-      globalContext,
-      historyForApi, 
-      userMessage,
-      currentPageContext
-    );
+    let aiResponse: string;
+    if (globalContext && import.meta.env.VITE_AGENT_SERVER_URL) {
+      const workspaceId = history[0]?.metadata?.workspaceId || "";
+      if (!workspaceId) {
+        aiResponse = await sendGlobalChatMessage(
+          apiKey,
+          globalContext,
+          historyForApi,
+          userMessage,
+          currentPageContext
+        );
+      } else {
+        const result = await agentDirectAgentCall(workspaceId, userMessage);
+        aiResponse = result.output;
+      }
+    } else {
+      aiResponse = await sendGlobalChatMessage(
+        apiKey,
+        globalContext,
+        historyForApi,
+        userMessage,
+        currentPageContext
+      );
+    }
 
-    // 4. Save AI response
     if (aiResponse) {
       await sendMessage(
         userId,
