@@ -1,5 +1,6 @@
 ---
-alwaysApply: true
+alwaysApply: false
+description: Defines how the React UI interacts with the Agent Orchestration Server, including authentication requirements, agent selection modes, permission-driven behavior, and conversation UX.
 ---
 # Agent Platform UI Overview
 
@@ -23,6 +24,8 @@ This document defines how the React SPA interacts with the Agent Server and its 
   - A direct agent to talk to in **Direct Agent Mode**.  
   - A GM-orchestrated entry point in **GM-Orchestrated Mode**.  
 - The selected agent and mode determine which server endpoint the UI calls and how responses are rendered.
+- For each workspace, the UI must treat the **GM agent** as the default orchestrator and may offer additional workspace-local agents that the user has created.  
+- Agent pickers and menus must only list agents that belong to the currently active workspace; agents are never shared across workspaces.
 
 ## 4. Permissions and Apps
 
@@ -39,4 +42,3 @@ This document defines how the React SPA interacts with the Agent Server and its 
   - Streaming or incremental updates when supported by the API.  
   - Showing status (loading, in-progress, failed) for agent calls.  
 - The server remains the source of truth for conversation state and agent execution.
-

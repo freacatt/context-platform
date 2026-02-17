@@ -1,5 +1,6 @@
 ---
 alwaysApply: false
+description: Step-by-step implementation roadmap for the Agent Platform, covering repository boundaries, auth, control-plane data model, workspace lifecycle, data plane wiring, core server modules, interaction modes, SPA integration, and multi-tenant security checks.
 ---
 # Agent Platform Implementation Phases
 

@@ -1,3 +1,7 @@
+---
+alwaysApply: false
+description: Architectural overview of the multi-tenant Agent Platform, covering identity rules, control-plane and data-plane separation (PostgreSQL, Firestore, Qdrant), the FastAPI Agent Server modules, and how the React SPA integrates with them.
+---
 # 1. Overview
 
 This document describes the complete technical architecture of the Context Platform — a multi-agent AI orchestration system deployed on **:contentReference[oaicite:0]{index=0}** and integrated with **:contentReference[oaicite:1]{index=1}**.

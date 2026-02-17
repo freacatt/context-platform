@@ -1,5 +1,6 @@
 ---
-alwaysApply: true
+alwaysApply: false
+description: Defines how 3D assets must be created and integrated into the app: file locations and naming, modern visual style guidelines, geometry and material requirements, lighting setup, viewport behavior, fallbacks when models are missing, and a QA checklist for consistency.
 ---
 # 3D Objects — Design & Implementation Rules
 
