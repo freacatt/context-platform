@@ -1,6 +1,6 @@
----
 alwaysApply: false
-description: Step-by-step implementation roadmap for the Agent Platform, covering repository boundaries, auth, control-plane data model, workspace lifecycle, data plane wiring, core server modules, interaction modes, SPA integration, and multi-tenant security checks.
+applyMode: intelligence
+description: Step-by-step implementation roadmap for the Agent Platform backend, including repo boundaries and SPA integration.
 ---
 # Agent Platform Implementation Phases
 
@@ -12,7 +12,7 @@ Each phase aligns with the architecture and rules defined in `agent-platform-ove
 ## ✅ Phase 1: Establish Repository Boundaries
 
 - Implement the Agent Orchestration Server as a FastAPI modular monolith under the `agent-platform/` directory.  
-- Keep the React 19 + TypeScript SPA in `src/` as a pure client that only communicates with the Agent Server via authenticated HTTP/JSON APIs.  
+- Keep the React 19 + TypeScript SPA in `app/src/` as a pure client that only communicates with the Agent Server via authenticated HTTP/JSON APIs.  
 - Ensure the frontend never connects directly to PostgreSQL, Qdrant, or any other control-plane infrastructure.
 
 ---

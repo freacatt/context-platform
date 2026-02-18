@@ -1,6 +1,6 @@
----
 alwaysApply: false
-description: Architectural overview of the multi-tenant Agent Platform, covering identity rules, control-plane and data-plane separation (PostgreSQL, Firestore, Qdrant), the FastAPI Agent Server modules, and how the React SPA integrates with them.
+applyMode: intelligence
+description: Architectural overview of the multi-tenant Agent Platform backend and its integration with the frontend app.
 ---
 # 1. Overview
 
@@ -31,8 +31,8 @@ The system is:
 - It integrates with **Firebase Authentication** on the client and uses a dual-storage data layer (Dexie.js + Firestore) via the `storage` adapter described in `.trae/rules/data-layer.md`.  
 - It does not contain the Agent Server (FastAPI), PostgreSQL control-plane database, or Qdrant vector store by default; those are external services that this client communicates with via APIs.  
 - Guest vs authenticated behavior in this repo maps to the **Guest Mode** and **Workspace** concepts described below, but all persistence in this codebase goes through the `storage` adapter rather than direct database access.  
-- The `agent-platform/` directory at the repo root is reserved for the Agent Orchestration Server implementation described in this document. All backend logic for agents, orchestration, and control-plane integration will live there.  
-- The React SPA in `src/` interacts with the Agent Server only over authenticated network APIs (e.g., HTTP/JSON). The frontend never bypasses the Agent Server to talk directly to PostgreSQL, Qdrant, or other control-plane infrastructure.  
+- The `agent-platform/` directory at the repo root is reserved for the Agent Orchestration Server implementation described in this document. All backend logic for agents, orchestration, and control-plane integration lives there, organized into clear subpackages (`core/` for DB and settings, `ai/` for LLM + vector store, `services/` for domain services, `api/` for FastAPI routers, `migrations/` for database migrations).  
+- The React SPA in `app/src/` interacts with the Agent Server only over authenticated network APIs (e.g., HTTP/JSON). The frontend never bypasses the Agent Server to talk directly to PostgreSQL, Qdrant, or other control-plane infrastructure.  
 
 ---
 
@@ -47,12 +47,12 @@ Agent Server (FastAPI - Modular Monolith)
 ┌────────────────────────────────────┐
 │ Core Modules                       │
 │                                    │
-│ - General Manager (GM)               │
-│ - Domain Agents                      │
-│ - RAG Service                        │
-│ - Policy Engine                      │
-│ - Usage Tracker                      │
-│ - Conversation Manager               │
+│ - General Manager (GM)             │
+│ - Domain Agents                    │
+│ - RAG Service                      │
+│ - Policy Engine                    │
+│ - Usage Tracker                    │
+│ - Conversation Manager             │
 └────────────────────────────────────┘
 ↓
 ┌───────────────┬──────────────────┬──────────────┬──────────────┐
@@ -60,6 +60,39 @@ Agent Server (FastAPI - Modular Monolith)
 │ (Control DB)  │ (Vector DB)      │ (Workspace)  │ (External)   │
 └───────────────┴──────────────────┴──────────────┴──────────────┘
 
+
+---
+
+# 2.1 Agent Platform Package Layout
+
+At the Python package level, the Agent Server is structured as:
+
+- `core/` – Shared settings, SQLAlchemy engine/session, and ORM models.  
+- `ai/` – LLM/chat and embeddings configuration plus RAG + vector store helpers.  
+- `services/` – Domain services for auth, policy, app registry, conversations, and usage.  
+- `api/` – FastAPI routers that expose HTTP/JSON endpoints.  
+- `migrations/` – Placeholder for Alembic or other migration tooling.  
+
+Top-level modules like `config.py`, `db.py`, `models.py`, `deps.py`, `agents.py`, `app_services.py`, `policy_engine.py`, `conversation_manager.py`, `usage_tracker.py`, `ai_models.py`, `rag_service.py`, and `qdrant_client_adapter.py` are thin compatibility shims that re-export from the new subpackages. New code must import from the structured packages (`core`, `ai`, `services`, `api`) instead of these legacy shims.
+
+---
+
+# 2.2 Documentation Maintenance Rule (Agent Platform)
+
+For any change to the Agent Platform backend (code under `agent-platform/`), the following must be kept in sync as part of the same change:
+
+- `agent-platform/README.md` – updated to reflect the current directory structure, key modules, and local run instructions.  
+- `.trae/rules/agent-platform/agent-platform-overview.md` – updated when architecture, control‑plane/data‑plane responsibilities, or boundaries change.  
+- `.trae/rules/agent-platform/agent-platform-phases.md` – updated when implementation phases, rollout steps, or security rules change.  
+
+Definition of done for Agent Platform changes:
+
+- Code compiles and server boots.  
+- API behavior is verified (happy path + at least two edge cases).  
+- The three documentation artifacts above are reviewed and updated where needed.  
+- Any new modules, directories, or external dependencies are briefly described in `agent-platform/README.md`.  
+
+This rule keeps the architectural documentation trustworthy and prevents the Python server from drifting away from the documented design.
 
 ---
 

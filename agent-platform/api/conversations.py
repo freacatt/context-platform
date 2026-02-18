@@ -4,12 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from agents import EchoAgent, GeneralManager
-from auth import AuthedUser, get_current_user
-from conversation_manager import ConversationManager
-from deps import get_db
-from policy_engine import PermissionError, PolicyEngine
-from usage_tracker import UsageTracker
+from services.agents import EchoAgent, GeneralManager
+from services.auth import AuthedUser, get_current_user
+from services.conversation_manager import ConversationManager
+from core.deps import get_db
+from services.policy_engine import PermissionError, PolicyEngine
+from services.usage_tracker import UsageTracker
 
 
 router = APIRouter(prefix="/conversations", tags=["conversations"])
@@ -159,4 +159,3 @@ def gm_task(
         details=None,
     )
     return GMTaskResponse(output=output)
-

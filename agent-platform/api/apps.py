@@ -4,10 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app_services import AppId, AppPermission, get_workspace_app_permissions, list_registered_apps
-from auth import AuthedUser, get_current_user
-from deps import get_db
-from policy_engine import PermissionError
+from services.app_services import AppId, AppPermission, get_workspace_app_permissions, list_registered_apps
+from services.auth import AuthedUser, get_current_user
+from core.deps import get_db
+from services.policy_engine import PermissionError
 
 
 router = APIRouter(prefix="/apps", tags=["apps"])
@@ -82,4 +82,3 @@ def get_app_permissions(
                 reason=p.reason,
             )
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="App not found")
-

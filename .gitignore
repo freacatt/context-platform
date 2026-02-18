@@ -25,3 +25,4 @@ mcp-gateway/service-account-key.json
 *.sln
 *.sw?
 .vercel
+venv

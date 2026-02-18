@@ -1,6 +1,6 @@
----
 alwaysApply: false
-description: Defines how the React UI interacts with the Agent Orchestration Server, including authentication requirements, agent selection modes, permission-driven behavior, and conversation UX.
+applyMode: intelligence
+description: Defines how the frontend app UI interacts with the Agent Orchestration Server, including authentication, agent selection, permissions, and conversation UX.
 ---
 # Agent Platform UI Overview
 
@@ -10,7 +10,8 @@ This document defines how the React SPA interacts with the Agent Server and its 
 
 - All files in `.trae/rules/agent-platform/` describe the **server-side Agent Orchestration Server**.  
 - All files in `.trae/rules/agent-platform-ui/` describe the **UI-side behavior** for interacting with that server from the front-end app.  
-- Concrete UI components and hooks live in `src/` and must follow the rules in this document.
+- This ruleset forms the **bridge layer** between the Agent Platform backend and the React SPA, defining the integration contract (endpoints, auth, and UX expectations).
+- Concrete UI components and hooks live in `app/src/` and must follow the rules in this document.
 
 ## 2. Core Interaction Model
 

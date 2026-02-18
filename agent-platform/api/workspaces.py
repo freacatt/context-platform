@@ -5,9 +5,9 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from auth import AuthedUser, get_current_user
-from deps import get_db
-from models import User, Workspace, WorkspaceIndexStatus
+from services.auth import AuthedUser, get_current_user
+from core.deps import get_db
+from core.models import User, Workspace, WorkspaceIndexStatus
 
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
@@ -44,4 +44,3 @@ def create_workspace(
     db.commit()
     db.refresh(workspace)
     return WorkspaceResponse(id=workspace.id, name=workspace.name)
-

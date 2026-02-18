@@ -38,21 +38,46 @@ The layout is now flattened:
 ```text
 agent-platform/
   main.py
-  auth.py
-  config.py
-  db.py
-  models.py
-  deps.py
-  agents.py
-  policy_engine.py
-  usage_tracker.py
-  conversation_manager.py
-  rag_service.py
-  qdrant_client_adapter.py
+  config.py              # Legacy entrypoint re-exporting core.config
+  db.py                  # Legacy entrypoint re-exporting core.db
+  models.py              # Legacy entrypoint re-exporting core.models
+  deps.py                # Legacy entrypoint re-exporting core.deps
+  agents.py              # Legacy entrypoint re-exporting services.agents
+  app_services.py        # Legacy entrypoint re-exporting services.app_services
+  policy_engine.py       # Legacy entrypoint re-exporting services.policy_engine
+  conversation_manager.py# Legacy entrypoint re-exporting services.conversation_manager
+  usage_tracker.py       # Legacy entrypoint re-exporting services.usage_tracker
+  ai_models.py           # Legacy entrypoint re-exporting ai.models
+  rag_service.py         # Legacy entrypoint re-exporting ai.rag
+  qdrant_client_adapter.py # Legacy entrypoint re-exporting ai.vector_store.qdrant_client
+  core/
+    __init__.py          # Shared settings, engine, Base, core models
+    config.py            # Settings / env configuration
+    db.py                # SQLAlchemy engine and SessionLocal
+    models.py            # Users, workspaces, agents, conversations, usage logs, index status
+    deps.py              # FastAPI DB session dependency
+  ai/
+    __init__.py
+    models.py            # Unified LLM and embeddings configuration
+    rag.py               # RAG service using LangChain embeddings
+    vector_store/
+      __init__.py
+      qdrant_client.py   # Qdrant client helpers (per-workspace collections)
+  services/
+    __init__.py
+    agents.py            # Agent protocol, EchoAgent, GeneralManager
+    app_services.py      # App registry and permissions
+    policy_engine.py     # Workspace ownership / permission checks
+    conversation_manager.py # Conversation and message lifecycle
+    usage_tracker.py     # Usage logging to PostgreSQL
+    auth.py              # Firebase ID token validation and AuthedUser model
   api/
     __init__.py
     workspaces.py
     conversations.py
+    apps.py
+  migrations/
+    __init__.py          # Alembic / migration entrypoint (future expansion)
   .env           (local settings, not committed)
 ```
 
@@ -95,22 +120,22 @@ The Agent Platform is the control‑plane and orchestration backend. At a high l
 ## Module overview
 
 - `main.py` – FastAPI application instance and router wiring.
-- `auth.py` – Firebase ID token validation and `AuthedUser` model.
-- `config.py` – Environment‑driven settings (PostgreSQL URL, Qdrant URL, Qdrant API key, LLM provider, etc.).
-- `db.py` – SQLAlchemy engine, session factory, and Base.
-- `models.py` – SQLAlchemy models for users, workspaces, agents, conversations, messages, usage logs, and index status.
-- `deps.py` – FastAPI dependency for database sessions.
-- `agents.py` – Agent protocol, simple `EchoAgent`, and `GeneralManager` entry point.
-- `policy_engine.py` – Workspace ownership and permission checks.
-- `usage_tracker.py` – Usage logging to PostgreSQL.
-- `conversation_manager.py` – Conversation and message creation/listing.
-- `ai_models.py` – Unified LangChain chat and embeddings models configured from environment.
-- `rag_service.py` – RAG indexing and search over Qdrant, using the unified embeddings model.
-- `qdrant_client_adapter.py` – Thin wrapper around Qdrant client with workspace‑scoped collections and API key support.
-- `app_services.py` – App registry and per‑app permission calculations.
-- `api/workspaces.py` – Workspace creation API (lazy user provisioning, workspace index status setup).
-- `api/conversations.py` – Conversation CRUD and agent interaction endpoints (direct agent + GM‑orchestrated).
-- `api/apps.py` – App registry and per‑workspace app permissions API.
+- `core.config` – Environment‑driven settings (PostgreSQL URL, Qdrant URL, Qdrant API key, LLM provider, etc.).
+- `core.db` – SQLAlchemy engine, session factory, and Base.
+- `core.models` – SQLAlchemy models for users, workspaces, agents, conversations, messages, usage logs, and index status.
+- `core.deps` – FastAPI dependency for database sessions.
+- `services.auth` – Firebase ID token validation and `AuthedUser` model.
+- `services.agents` – Agent protocol, simple `EchoAgent`, and `GeneralManager` entry point.
+- `services.policy_engine` – Workspace ownership and permission checks.
+- `services.usage_tracker` – Usage logging to PostgreSQL.
+- `services.conversation_manager` – Conversation and message creation/listing.
+- `services.app_services` – App registry and per‑app permission calculations.
+- `ai.models` – Unified LangChain chat and embeddings models configured from environment.
+- `ai.rag` – RAG indexing and search over Qdrant, using the unified embeddings model.
+- `ai.vector_store.qdrant_client` – Qdrant client with workspace‑scoped collections and API key support.
+- `api.workspaces` – Workspace creation API (lazy user provisioning, workspace index status setup).
+- `api.conversations` – Conversation CRUD and agent interaction endpoints (direct agent + GM‑orchestrated).
+- `api.apps` – App registry and per‑workspace app permissions API.
 
 ---
 
