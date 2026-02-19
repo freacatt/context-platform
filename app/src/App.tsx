@@ -3,6 +3,7 @@ import { GlobalShaderOverlay } from "@/components/ui/global-shader-overlay"
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { GlobalProvider } from './contexts/GlobalContext';
+import { AlertProvider } from './contexts/AlertContext';
 import { WorkspaceProvider } from './contexts/WorkspaceContext';
 import { ErrorBoundary } from './components/ui/error-boundary';
 import LandingPage from './pages/LandingPage';
@@ -54,7 +55,8 @@ function App() {
           <AuthProvider>
             <WorkspaceProvider>
               <GlobalProvider>
-                <PWAProvider>
+                <AlertProvider>
+                  <PWAProvider>
                 <GlobalShaderOverlay />
                 <Routes>
                   <Route path="/" element={<LandingPage />} />
@@ -237,6 +239,7 @@ function App() {
                 </Routes>
                 <PWAPrompt />
                 </PWAProvider>
+                </AlertProvider>
               </GlobalProvider>
             </WorkspaceProvider>
           </AuthProvider>
