@@ -12,7 +12,7 @@
                                              
 ```
 
-> **The AI-Powered Workbench for Structured Thinking & Architecture Planning**
+> **The AI-Powered Workbench for Structured Thinking & Architecture Planning** 
 
 ---
 
