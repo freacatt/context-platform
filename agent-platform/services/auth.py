@@ -1,9 +1,10 @@
 from typing import Optional
 
-import firebase_admin
 from fastapi import Header, HTTPException, status
 from firebase_admin import auth as firebase_auth
 from pydantic import BaseModel
+
+from core.firestore import _ensure_firebase_initialized
 
 
 class AuthedUser(BaseModel):
@@ -19,14 +20,9 @@ def _get_bearer_token(authorization: Optional[str]) -> str:
     return token
 
 
-def _ensure_firebase_app_initialized() -> None:
-    if not firebase_admin._apps:
-        firebase_admin.initialize_app()
-
-
 def get_current_user(authorization: Optional[str] = Header(default=None, convert_underscores=False)) -> AuthedUser:
     token = _get_bearer_token(authorization)
-    _ensure_firebase_app_initialized()
+    _ensure_firebase_initialized()
     try:
         decoded = firebase_auth.verify_id_token(token)
     except Exception:

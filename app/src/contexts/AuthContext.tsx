@@ -18,7 +18,6 @@ import {
 interface AuthContextType {
   user: User | null;
   isGuest: boolean;
-  apiKey: string;
   loading: boolean;
   error: string | null;
   loginAsGuest: () => void;
@@ -28,7 +27,6 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<void>;
   updateUserPassword: (password: string) => Promise<void>;
   reauthenticate: () => Promise<void>;
-  updateApiKey: (newKey: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -47,7 +45,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isGuest, setIsGuest] = useState<boolean>(() => {
     return localStorage.getItem('auth_isGuest') === 'true';
   });
-  const [apiKey, setApiKey] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -106,14 +103,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         userDoc = {
           id: userCredential.user.uid,
           email: userCredential.user.email,
-          apiKey: '',
           createdAt: new Date().toISOString()
         };
         await storage.save('users', userDoc);
       }
-      
-      // Set API Key immediately
-      setApiKey(userDoc.apiKey || userDoc.api_key || '');
 
       return userCredential.user;
     } catch (error: any) {
@@ -142,14 +135,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         userDoc = {
           id: userCredential.user.uid,
           email: userCredential.user.email,
-          apiKey: '',
           createdAt: new Date().toISOString()
         };
         await storage.save('users', userDoc);
       }
-      
-      // Set API Key immediately
-      setApiKey(userDoc.apiKey || userDoc.api_key || '');
 
       return userCredential.user;
     } catch (error: any) {
@@ -176,13 +165,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const userDoc = {
         id: userCredential.user.uid,
         email: userCredential.user.email,
-        apiKey: '',
         createdAt: new Date().toISOString()
       };
       await storage.save('users', userDoc);
-      
-      // Set API Key immediately
-      setApiKey('');
       
       return userCredential.user;
     } catch (error: any) {
@@ -240,32 +225,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const updateApiKey = async (newKey: string) => {
-    if (!user) return;
-    try {
-        const userDoc = await storage.get('users', user.uid);
-        if (userDoc) {
-            await storage.update('users', user.uid, {
-                apiKey: newKey
-            });
-        } else {
-            await storage.save('users', {
-                id: user.uid,
-                email: user.email,
-                apiKey: newKey,
-                createdAt: new Date().toISOString()
-            });
-        }
-        setApiKey(newKey);
-    } catch (error) {
-        console.error("Error updating API key:", error);
-        throw error;
-    }
-  };
-
   const logout = async () => {
-    setApiKey('');
-    
     // Clear local data to ensure next user starts fresh
     await localDB.clearAllData();
     
@@ -293,17 +253,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       if (currentUser) {
-        // Fetch API key
-        try {
-            const data = await storage.get('users', currentUser.uid);
-            if (data) {
-                setApiKey(data.apiKey || data.api_key || '');
-            }
-        } catch (err) {
-            console.error("Error fetching user data:", err);
-        }
-      } else {
-        setApiKey('');
+        // nothing extra to load for now
       }
       setLoading(false);
     });
@@ -314,7 +264,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const value = {
     user,
     isGuest,
-    apiKey,
     loading,
     error,
     loginAsGuest,
@@ -324,7 +273,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     resetPassword,
     updateUserPassword,
     reauthenticate,
-    updateApiKey,
     logout
   };
 

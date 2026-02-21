@@ -3,7 +3,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { useGlobalContext } from '../../contexts/GlobalContext';
 import { LogOut, LayoutGrid, Globe, Bot, Download, Lock, User, RefreshCw } from 'lucide-react';
-import APIKeyModal from './APIKeyModal';
 import SetPasswordModal from './SetPasswordModal';
 import SyncModal from './SyncModal';
 import { useSyncStore } from '../../services/syncStore';
@@ -99,8 +98,6 @@ const Navbar: React.FC = () => {
             isOpen={isSyncModalOpen} 
             onClose={() => setIsSyncModalOpen(false)} 
           />
-
-          <APIKeyModal />
 
           {/* User Menu */}
           {user && (

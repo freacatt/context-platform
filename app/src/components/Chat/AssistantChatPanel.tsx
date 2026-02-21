@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGlobalContext } from '../../contexts/GlobalContext';
+import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { useCurrentPageContext } from '../../hooks/useCurrentPageContext';
 import { 
   subscribeToChat, 
@@ -9,6 +10,7 @@ import {
   createConversation
 } from '../../services/chatService';
 import { aiService } from '../../services/aiService';
+import { useAlert } from '../../contexts/AlertContext';
 import { Conversation as ConversationType, StoredMessage, Pyramid, ProductDefinition } from '../../types';
 import {
   Sheet,
@@ -65,9 +67,11 @@ const AssistantChatPanel: React.FC<ChatPanelProps> = ({
   productDefinition = null,
   additionalContext = null
 }) => {
-  const { user, apiKey } = useAuth();
+  const { user } = useAuth();
   const { aggregatedContext: globalContext } = useGlobalContext();
   const { context: pageContext, title: pageTitle } = useCurrentPageContext();
+  const { currentWorkspace } = useWorkspace();
+  const { showAlert } = useAlert();
 
   const activeContext = useMemo(() => {
     let contextToUse = additionalContext || "";
@@ -128,7 +132,7 @@ const AssistantChatPanel: React.FC<ChatPanelProps> = ({
   };
 
   const handleSend = async () => {
-    if (!input.trim() || !user || !apiKey) return;
+    if (!input.trim() || !user) return;
     
     const textContent = input.trim();
     setInput(''); // Clear input immediately
@@ -150,20 +154,29 @@ const AssistantChatPanel: React.FC<ChatPanelProps> = ({
 
         if (!conversationId) return;
 
-        // Use AI Service to handle the chat interaction
-        await aiService.processGlobalChat(
-            user.uid,
-            apiKey,
-            conversationId,
-            textContent,
-            globalContext,
-            messages,
-            activeContext
-        );
-        
-    } catch (error) {
+        const combinedContext = [globalContext, activeContext]
+          .filter(Boolean)
+          .join("\n\n");
+
+        const agentId = currentWorkspace?.aiChatAgentId || currentWorkspace?.gmAgentId || "";
+        if (!currentWorkspace?.id || !agentId) {
+          showAlert({ type: "warning", title: "No Agent", message: "No AI agent configured for this workspace." });
+          return;
+        }
+
+        await aiService.processChat({
+          userId: user.uid,
+          conversationId,
+          message: textContent,
+          workspaceId: currentWorkspace.id,
+          agentId,
+          globalContext: combinedContext,
+          history: messages,
+        });
+
+    } catch (error: any) {
         console.error(error);
-        alert("Failed to send message");
+        showAlert({ type: "error", title: "Chat Error", message: error?.message || "Failed to send message" });
     } finally {
         setIsTyping(false);
     }
@@ -317,16 +330,11 @@ const AssistantChatPanel: React.FC<ChatPanelProps> = ({
                             </PromptInputTools>
                             <PromptInputSubmit 
                                 onClick={handleSend}
-                                disabled={!input.trim() || isTyping || !apiKey} 
+                                disabled={!input.trim() || isTyping || !user} 
                                 className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
                             />
                         </PromptInputFooter>
                     </PromptInput>
-                    {!apiKey && (
-                        <p className="mt-2 text-center text-xs text-red-500 font-medium">
-                            API Key required to chat.
-                        </p>
-                    )}
                  </div>
             </div>
         </div>

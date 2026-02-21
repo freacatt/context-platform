@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGlobalContext } from '../../contexts/GlobalContext';
+import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { 
   subscribeToConversations, 
   subscribeToChat, 
@@ -8,6 +9,7 @@ import {
   deleteConversation,
 } from '../../services/chatService';
 import { aiService } from '../../services/aiService';
+import { useAlert } from '../../contexts/AlertContext';
 import { Conversation as ConversationType, StoredMessage, Pyramid, ProductDefinition } from '../../types';
 import { Plus, MessageSquare, Trash2, Bot, X } from 'lucide-react';
 import { cn } from "@/lib/utils";
@@ -61,8 +63,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   productDefinition = null,
   additionalContext = null
 }) => {
-  const { user, apiKey } = useAuth();
+  const { user } = useAuth();
   const { aggregatedContext: globalContext } = useGlobalContext();
+  const { currentWorkspace } = useWorkspace();
+  const { showAlert } = useAlert();
   const [messages, setMessages] = useState<StoredMessage[]>([]);
   const [conversations, setConversations] = useState<ConversationType[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -105,7 +109,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   };
 
   const handleSend = async ({ text }: { text: string }) => {
-    if (!text.trim() || !apiKey || !user) return;
+    if (!text.trim() || !user) return;
     
     const userMsg = text.trim();
     setIsTyping(true);
@@ -126,42 +130,36 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
       if (!currentConversationId) return;
 
-      // Prepare context
-      let contextToUse = additionalContext || "";
-      
+      // Build context
+      let contextParts: string[] = [];
+      if (globalContext) contextParts.push(globalContext);
+      if (additionalContext) contextParts.push(additionalContext);
       if (productDefinition) {
-          await aiService.processProductDefinitionChat(
-              user.uid,
-              apiKey,
-              currentConversationId,
-              userMsg,
-              productDefinition,
-              contextToUse,
-              messages
-          );
-      } else {
-          let globalContextStr = globalContext || "";
-          if (pyramid) {
-              globalContextStr += `\n\nPyramid Context: ${JSON.stringify(pyramid)}`;
-          }
-          if (contextToUse) {
-              globalContextStr += `\n\nAdditional Context: ${contextToUse}`;
-          }
-
-          await aiService.processGlobalChat(
-              user.uid,
-              apiKey,
-              currentConversationId,
-              userMsg,
-              globalContextStr,
-              messages,
-              "" // No explicit page context here
-          );
+          contextParts.push(`Product definition:\n${JSON.stringify(productDefinition, null, 2)}`);
       }
-      
-    } catch (error) {
+      if (pyramid) {
+          contextParts.push(`Pyramid Context:\n${JSON.stringify(pyramid)}`);
+      }
+
+      const agentId = currentWorkspace?.aiChatAgentId || currentWorkspace?.gmAgentId || "";
+      if (!currentWorkspace?.id || !agentId) {
+          showAlert({ type: "warning", title: "No Agent", message: "No AI agent configured for this workspace." });
+          return;
+      }
+
+      await aiService.processChat({
+          userId: user.uid,
+          conversationId: currentConversationId,
+          message: userMsg,
+          workspaceId: currentWorkspace.id,
+          agentId,
+          globalContext: contextParts.join("\n\n"),
+          history: messages,
+      });
+
+    } catch (error: any) {
       console.error("Error sending message:", error);
-      alert("Failed to send message.");
+      showAlert({ type: "error", title: "Chat Error", message: error?.message || "Failed to send message." });
     } finally {
       setIsTyping(false);
     }
@@ -308,24 +306,17 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                             className="border rounded-2xl bg-white shadow-sm hover:shadow-md transition-shadow focus-within:ring-2 focus-within:ring-indigo-100 focus-within:border-indigo-400"
                         >
                             <PromptInputTextarea 
-                                placeholder={apiKey ? "Message AI Assistant..." : "Please set API Key in Navbar first"}
-                                disabled={!apiKey}
+                                placeholder="Message AI Assistant..."
                                 className="min-h-[56px] max-h-[200px]"
                             />
                             <PromptInputFooter>
                                 <PromptInputTools />
                                 <PromptInputSubmit 
                                     status={isTyping ? 'streaming' : 'idle'}
-                                    disabled={!apiKey}
                                     className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
                                 />
                             </PromptInputFooter>
                         </PromptInput>
-                        {!apiKey && (
-                            <p className="mt-2 text-center text-xs text-red-500 font-medium">
-                                API Key required to chat.
-                            </p>
-                        )}
                         <p className="mt-2 text-center text-[11px] text-gray-400 opacity-60">
                             AI can make mistakes. Please verify important information.
                         </p>

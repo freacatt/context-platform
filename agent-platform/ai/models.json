@@ -1,0 +1,92 @@
+{
+  "llm_models": {
+    "openai": [
+      {
+        "name": "gpt-4.1-mini",
+        "label": "GPT-4.1 Mini",
+        "context_window": 128000,
+        "supports_tools": true
+      },
+      {
+        "name": "gpt-4.1",
+        "label": "GPT-4.1",
+        "context_window": 128000,
+        "supports_tools": true
+      },
+      {
+        "name": "gpt-4o-mini",
+        "label": "GPT-4o Mini",
+        "context_window": 128000,
+        "supports_tools": true
+      }
+    ],
+    "anthropic": [
+      {
+        "name": "claude-3-5-sonnet-20241022",
+        "label": "Claude 3.5 Sonnet",
+        "context_window": 200000,
+        "supports_tools": true
+      },
+      {
+        "name": "claude-3-5-haiku-20241022",
+        "label": "Claude 3.5 Haiku",
+        "context_window": 200000,
+        "supports_tools": true
+      }
+    ],
+    "gemini": [
+      {
+        "name": "gemini-1.5-pro",
+        "label": "Gemini 1.5 Pro",
+        "context_window": 200000,
+        "supports_tools": true
+      },
+      {
+        "name": "gemini-1.5-flash",
+        "label": "Gemini 1.5 Flash",
+        "context_window": 200000,
+        "supports_tools": true
+      }
+    ],
+    "grok": [
+      {
+        "name": "grok-beta",
+        "label": "Grok Beta",
+        "context_window": null,
+        "supports_tools": true
+      },
+      {
+        "name": "grok-2-mini",
+        "label": "Grok 2 Mini",
+        "context_window": null,
+        "supports_tools": true
+      }
+    ],
+    "deepseek": [
+      {
+        "name": "deepseek-chat",
+        "label": "DeepSeek Chat",
+        "context_window": null,
+        "supports_tools": true
+      },
+      {
+        "name": "deepseek-reasoner",
+        "label": "DeepSeek Reasoner",
+        "context_window": null,
+        "supports_tools": true
+      }
+    ]
+  },
+  "embedding_models": {
+    "openai": [
+      "text-embedding-3-large",
+      "text-embedding-3-small"
+    ],
+    "anthropic": [
+      "text-embedding-3-large"
+    ],
+    "gemini": [
+      "text-embedding-004"
+    ]
+  }
+}

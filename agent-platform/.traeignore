@@ -1,0 +1,9 @@
+app/
+mcp-gateway/
+.ai/
+.prompts/
+node_modules/
+dist/
+venv/
+.firebase/
+.vercel/

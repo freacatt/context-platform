@@ -15,9 +15,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Sparkles, Save, Merge, AlertTriangle } from 'lucide-react';
 import { AiRecommendationButton } from '../Common/AiRecommendationButton';
-import { useAuth } from '../../contexts/AuthContext';
-import { useGlobalContext } from '../../contexts/GlobalContext';
-import { generateQuestions, generateAnswers } from '../../services/anthropic';
+import { recommend } from '@/services/agentPlatformClient';
 import { Block } from '../../types';
 
 interface BlockModalProps {
@@ -31,8 +29,6 @@ interface BlockModalProps {
 }
 
 const BlockModal: React.FC<BlockModalProps> = ({ isOpen, onClose, block, parents, onSave, pyramidContext, allBlocks }) => {
-  const { apiKey } = useAuth();
-  const { aggregatedContext: globalContext } = useGlobalContext();
   const [answer, setAnswer] = useState<string>('');
   const [question, setQuestion] = useState<string>('');
   const [combinedQuestion, setCombinedQuestion] = useState<string>('');
@@ -91,6 +87,14 @@ Question: ${h.question || h.content || "N/A"}
 Answer: ${h.answer || "N/A"}
 `;
       }).join('\n');
+  };
+
+  const parseSuggestions = (text: string) => {
+    return text
+      .split('\n')
+      .map(line => line.replace(/^\s*[\d\.\-\*]+\s*/, '').trim())
+      .filter(Boolean)
+      .slice(0, 3);
   };
 
   useEffect(() => {
@@ -213,24 +217,23 @@ Answer: ${h.answer || "N/A"}
                         label="Combine Questions"
                         loadingLabel="Combining..."
                         icon={<Merge size={14} className="mr-1" />}
-                        onGenerate={async (apiKey, globalContext) => {
+                        onGenerate={async ({ workspaceId, agentId, globalContext }) => {
+                            if (!workspaceId || !agentId) {
+                                throw new Error("Workspace and agent are required for AI suggestions");
+                            }
                             setSuggestionTarget('combined');
                             setSuggestions([]);
                             setAiError(null);
                             
                             const parentQuestions = parents.map(p => p.question || p.content || "").join("\n");
-
-                            return await generateQuestions(
-                                apiKey, 
-                                pyramidContext || "General Problem Solving", 
-                                'combine', 
-                                {
-                                    parentQuestion: parentQuestions,
-                                    currentAnswer: "",
-                                    historyContext: ""
-                                },
-                                globalContext
-                            );
+                            const historyContext = buildHistoryContext();
+                            const result = await recommend(workspaceId, agentId!, "pyramid_combined_question", {
+                              pyramid_context: pyramidContext || "General Problem Solving",
+                              global_context: globalContext,
+                              history_context: historyContext,
+                              parent_questions: parentQuestions,
+                            });
+                            return parseSuggestions(result.response);
                         }}
                         onSuccess={setSuggestions}
                         onError={(err) => setAiError(err.message || "Failed to combine questions.")}
@@ -261,26 +264,25 @@ Answer: ${h.answer || "N/A"}
                         label="AI Answer"
                         loadingLabel="Generating..."
                         icon={<Sparkles size={14} className="mr-1" />}
-                        onGenerate={async (apiKey, globalContext) => {
+                        onGenerate={async ({ workspaceId, agentId, globalContext }) => {
+                            if (!workspaceId || !agentId) {
+                                throw new Error("Workspace and agent are required for AI suggestions");
+                            }
                             setSuggestionTarget('answer');
                             setSuggestions([]);
                             setAiError(null);
 
-                            const questionToAnswer = parents && parents.length > 1 
-                                ? combinedQuestion 
+                            const questionToAnswer = parents && parents.length > 1
+                                ? combinedQuestion
                                 : (parents?.[0]?.question || parents?.[0]?.content || "Start of the pyramid");
-                            
                             const historyContext = buildHistoryContext();
-
-                            return await generateAnswers(
-                                apiKey, 
-                                pyramidContext || "General Problem Solving", 
-                                questionToAnswer, 
-                                {
-                                    historyContext
-                                },
-                                globalContext
-                            );
+                            const result = await recommend(workspaceId, agentId!, "pyramid_answer", {
+                              pyramid_context: pyramidContext || "General Problem Solving",
+                              global_context: globalContext,
+                              history_context: historyContext,
+                              question: questionToAnswer,
+                            });
+                            return parseSuggestions(result.response);
                         }}
                         onSuccess={setSuggestions}
                         onError={(err) => setAiError(err.message || "Failed to generate answer.")}
@@ -312,28 +314,26 @@ Answer: ${h.answer || "N/A"}
                         label="AI Suggestion"
                         loadingLabel="Generating..."
                         icon={<Sparkles size={14} className="mr-1" />}
-                        onGenerate={async (apiKey, globalContext) => {
+                        onGenerate={async ({ workspaceId, agentId, globalContext }) => {
+                            if (!workspaceId || !agentId) {
+                                throw new Error("Workspace and agent are required for AI suggestions");
+                            }
                             setSuggestionTarget('question');
                             setSuggestions([]);
                             setAiError(null);
 
-                            const effectiveParentQuestion = parents && parents.length > 1 
-                                ? combinedQuestion 
+                            const effectiveParentQuestion = parents && parents.length > 1
+                                ? combinedQuestion
                                 : (parents?.[0]?.question || parents?.[0]?.content || "Start of the pyramid");
-
                             const historyContext = buildHistoryContext();
-                            
-                            return await generateQuestions(
-                                apiKey, 
-                                pyramidContext || "General Problem Solving", 
-                                'regular', 
-                                {
-                                    parentQuestion: effectiveParentQuestion,
-                                    currentAnswer: answer || "No answer provided yet",
-                                    historyContext
-                                },
-                                globalContext
-                            );
+                            const result = await recommend(workspaceId, agentId!, "pyramid_followup_question", {
+                              pyramid_context: pyramidContext || "General Problem Solving",
+                              global_context: globalContext,
+                              history_context: historyContext,
+                              answer: answer || "No answer provided yet",
+                              parent_question: effectiveParentQuestion,
+                            });
+                            return parseSuggestions(result.response);
                         }}
                         onSuccess={setSuggestions}
                         onError={(err) => setAiError(err.message || "Failed to generate suggestions.")}

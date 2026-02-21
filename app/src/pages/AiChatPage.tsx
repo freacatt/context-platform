@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGlobalContext } from '../contexts/GlobalContext';
+import { useWorkspace } from '../contexts/WorkspaceContext';
+import { useAlert } from '../contexts/AlertContext';
 import { 
   subscribeToConversations, 
   subscribeToChat, 
@@ -35,8 +37,10 @@ import {
 import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 
 const AiChatPage: React.FC = () => {
-  const { user, apiKey } = useAuth();
+  const { user } = useAuth();
   const { aggregatedContext: globalContext } = useGlobalContext();
+  const { currentWorkspace } = useWorkspace();
+  const { showAlert } = useAlert();
   const [messages, setMessages] = useState<StoredMessage[]>([]);
   const [conversations, setConversations] = useState<ConversationType[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -125,22 +129,26 @@ const AiChatPage: React.FC = () => {
             }
           }
           
-          if (currentConvId && user && apiKey) {
-            await aiService.processGlobalChat(
-                user.uid,
-                apiKey,
-                currentConvId,
-                userMessageContent,
-                globalContext || "",
-                messages,
-                "" // No current page context for general chat page
-            );
-          } else if (!apiKey) {
-            alert("Please add your API Key in the Settings or Profile page to use the AI chat.");
+          if (currentConvId && user) {
+            const agentId = currentWorkspace?.aiChatAgentId || currentWorkspace?.gmAgentId || "";
+            if (!currentWorkspace?.id || !agentId) {
+              showAlert({ type: "warning", title: "No Agent", message: "No AI agent configured for this workspace." });
+              setIsRunning(false);
+              return;
+            }
+            await aiService.processChat({
+              userId: user.uid,
+              conversationId: currentConvId,
+              message: userMessageContent,
+              workspaceId: currentWorkspace.id,
+              agentId,
+              globalContext: globalContext || "",
+              history: messages,
+            });
           }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error sending message:", error);
-            alert("Failed to send message. Please check your API key and try again.");
+            showAlert({ type: "error", title: "Chat Error", message: error?.message || "Failed to send message. Please try again." });
         } finally {
             setIsRunning(false);
         }

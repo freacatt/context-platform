@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Wand2 } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
 import { useGlobalContext } from '../../contexts/GlobalContext';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { cn } from "@/lib/utils";
 
 interface AiRecommendationButtonProps<T = string> {
-  onGenerate: (apiKey: string, globalContext: string) => Promise<T>;
+  onGenerate: (options: { workspaceId: string | null; agentId: string | null; globalContext: string }) => Promise<T>;
   onSuccess: (result: T) => void;
   onError?: (error: any) => void;
   label?: string;
@@ -16,8 +16,7 @@ interface AiRecommendationButtonProps<T = string> {
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
   size?: "default" | "sm" | "lg" | "icon";
   className?: string;
-  // Deprecated props from Radix migration, kept for compatibility if needed but ignored or mapped
-  color?: string; 
+  color?: string;
 }
 
 export const AiRecommendationButton = <T,>({
@@ -34,18 +33,18 @@ export const AiRecommendationButton = <T,>({
   className
 }: AiRecommendationButtonProps<T>) => {
   const [isGenerating, setIsGenerating] = useState(false);
-  const { apiKey } = useAuth();
   const { aggregatedContext: globalContext } = useGlobalContext();
+  const { currentWorkspace } = useWorkspace();
 
   const handleClick = async () => {
-    if (!apiKey) {
-      alert("Please set your API Key in Settings to use AI features.");
-      return;
-    }
-
     setIsGenerating(true);
     try {
-      const result = await onGenerate(apiKey, globalContext);
+      const agentId = currentWorkspace?.aiRecommendationAgentId || currentWorkspace?.gmAgentId || null;
+      const result = await onGenerate({
+        workspaceId: currentWorkspace?.id ?? null,
+        agentId,
+        globalContext,
+      });
       onSuccess(result);
     } catch (error) {
       console.error("AI Generation Error:", error);

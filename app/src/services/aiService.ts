@@ -1,7 +1,6 @@
-import { sendMessage, subscribeToChat, createConversation } from './chatService';
-import { sendGlobalChatMessage, sendProductDefinitionChatMessage } from './anthropic';
-import { agentDirectAgentCall } from './agentPlatformClient';
-import { StoredMessage, ChatMessage, ProductDefinition } from '../types';
+import { sendMessage } from './chatService';
+import { chat as agentChat, AgentPlatformError } from './agentPlatformClient';
+import { StoredMessage } from '../types';
 
 export class AIService {
   private static instance: AIService;
@@ -16,141 +15,68 @@ export class AIService {
   }
 
   /**
-   * Orchestrates a chat interaction for Product Definition context
+   * Unified chat: saves user message, calls agent-platform, saves response.
    */
-  async processProductDefinitionChat(
-    userId: string,
-    apiKey: string,
-    conversationId: string,
-    userMessage: string,
-    productDefinition: ProductDefinition,
-    context: string,
-    history: StoredMessage[] = [],
-    globalContext: string = ""
-  ): Promise<string> {
-    if (!apiKey) throw new Error("API Key is missing");
+  async processChat(params: {
+    userId: string;
+    conversationId: string;
+    message: string;
+    workspaceId: string;
+    agentId: string;
+    globalContext?: string;
+    history?: StoredMessage[];
+  }): Promise<string> {
+    const {
+      userId,
+      conversationId,
+      message,
+      workspaceId,
+      agentId,
+      globalContext,
+      history = [],
+    } = params;
 
-    // 1. Save user message
+    // 1. Save user message locally
     await sendMessage(
       userId,
       conversationId,
-      'user',
-      userMessage,
-      {},
-      'conversations'
+      "user",
+      message,
+      { workspaceId },
+      "conversations"
     );
 
-    // 2. Prepare history
-    const historyForApi: ChatMessage[] = history.map(msg => {
-      let contentStr = '';
-      if (typeof msg.content === 'string') {
-        contentStr = msg.content;
+    // 2. Build history array for agent-platform
+    const historyEntries = history.map((msg) => {
+      let content = "";
+      if (typeof msg.content === "string") {
+        content = msg.content;
       } else if (Array.isArray(msg.content)) {
-        contentStr = (msg.content as any[]).map((c: any) => c.text || '').join('');
+        content = (msg.content as any[]).map((c: any) => c.text || "").join("");
       }
-      return {
-        role: (msg.role === 'conversations' ? 'user' : msg.role) as "user" | "assistant",
-        content: contentStr
-      };
+      const role = msg.role === "conversations" ? "user" : msg.role;
+      return { role, content };
     });
 
-    // 3. Call AI
-    const aiResponse = await sendProductDefinitionChatMessage(
-      apiKey,
-      productDefinition,
-      context,
-      historyForApi,
-      userMessage,
+    // 3. Call agent-platform chat endpoint
+    const result = await agentChat(
+      workspaceId,
+      agentId,
+      message,
+      historyEntries,
       globalContext
     );
+    const aiResponse = result.response;
 
-    // 4. Save AI response
+    // 4. Save assistant response locally
     if (aiResponse) {
       await sendMessage(
         userId,
         conversationId,
-        'assistant',
+        "assistant",
         aiResponse,
-        {},
-        'conversations'
-      );
-    }
-
-    return aiResponse;
-  }
-
-  /**
-   * Orchestrates a full chat interaction:
-   * 1. Saves user message
-   * 2. Calls AI
-   * 3. Saves AI response
-   */
-  async processGlobalChat(
-    userId: string,
-    apiKey: string,
-    conversationId: string,
-    userMessage: string,
-    globalContext: string,
-    history: StoredMessage[] = [],
-    currentPageContext: string = ""
-  ): Promise<string> {
-    if (!apiKey) throw new Error("API Key is missing");
-
-    await sendMessage(
-      userId,
-      conversationId,
-      'user',
-      userMessage,
-      {},
-      'conversations'
-    );
-
-    const historyForApi: ChatMessage[] = history.map(msg => {
-      let contentStr = '';
-      if (typeof msg.content === 'string') {
-        contentStr = msg.content;
-      } else if (Array.isArray(msg.content)) {
-        contentStr = (msg.content as any[]).map((c: any) => c.text || '').join('');
-      }
-      return {
-        role: (msg.role === 'conversations' ? 'user' : msg.role) as "user" | "assistant",
-        content: contentStr
-      };
-    });
-
-    let aiResponse: string;
-    if (globalContext && import.meta.env.VITE_AGENT_SERVER_URL) {
-      const workspaceId = history[0]?.metadata?.workspaceId || "";
-      if (!workspaceId) {
-        aiResponse = await sendGlobalChatMessage(
-          apiKey,
-          globalContext,
-          historyForApi,
-          userMessage,
-          currentPageContext
-        );
-      } else {
-        const result = await agentDirectAgentCall(workspaceId, userMessage);
-        aiResponse = result.output;
-      }
-    } else {
-      aiResponse = await sendGlobalChatMessage(
-        apiKey,
-        globalContext,
-        historyForApi,
-        userMessage,
-        currentPageContext
-      );
-    }
-
-    if (aiResponse) {
-      await sendMessage(
-        userId,
-        conversationId,
-        'assistant',
-        aiResponse,
-        {},
-        'conversations'
+        { workspaceId },
+        "conversations"
       );
     }
 
@@ -158,4 +84,5 @@ export class AIService {
   }
 }
 
+export { AgentPlatformError };
 export const aiService = AIService.getInstance();

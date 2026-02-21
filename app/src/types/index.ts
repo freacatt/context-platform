@@ -10,3 +10,4 @@ export * from './technicalArchitecture';
 export * from './uiUxArchitecture';
 export * from './technicalTask';
 export * from './mcp';
+export * from './agent';

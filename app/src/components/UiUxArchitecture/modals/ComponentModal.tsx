@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Plus, X } from 'lucide-react';
 import { AiRecommendationButton } from '../../Common/AiRecommendationButton';
-import { generateUiUxSuggestion } from '../../../services/anthropic';
+import { recommend } from '@/services/agentPlatformClient';
 import { BaseComponent } from '../../../types/uiUxArchitecture';
 
 interface ComponentModalProps {
@@ -105,15 +105,18 @@ export const ComponentModal: React.FC<ComponentModalProps> = ({ open, onOpenChan
               <div className="flex justify-between items-center">
                 <Label>Description</Label>
                 <AiRecommendationButton
-                  onGenerate={(apiKey, globalContext) => generateUiUxSuggestion(
-                    apiKey,
-                    "UI/UX Architecture", 
-                    'component',
-                    localComponent.main.name || "Unnamed Component",
-                    `Category: ${localComponent.main.category}\nType: ${localComponent.type}`,
-                    globalContext,
-                    'description'
-                  )}
+                  onGenerate={async ({ workspaceId, agentId, globalContext }) => {
+                    if (!workspaceId || !agentId) {
+                      throw new Error("Workspace is required for AI suggestions");
+                    }
+                    const result = await recommend(workspaceId, agentId!, "uiux_component_description", {
+                      component_name: localComponent.main.name || "Unnamed Component",
+                      category: localComponent.main.category,
+                      component_type: localComponent.type,
+                      global_context: globalContext || "N/A",
+                    });
+                    return result.response;
+                  }}
                   onSuccess={(result) => handleChange(['main', 'description'], result)}
                   label="AI Suggest"
                 />

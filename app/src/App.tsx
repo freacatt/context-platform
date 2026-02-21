@@ -29,6 +29,7 @@ import { UiUxArchitectureEditorPage } from './pages/UiUxArchitectureEditorPage';
 import { TechnicalTaskBoard } from './pages/TechnicalTaskBoard';
 import { TechnicalTaskDetail } from './pages/TechnicalTaskDetail';
 import AiChatPage from './pages/AiChatPage';
+import AiSettingsPage from './pages/AiSettingsPage';
 
 import AuthenticatedLayout from './components/Layout/AuthenticatedLayout';
 import { PWAProvider } from './contexts/PWAContext';
@@ -53,9 +54,9 @@ function App() {
       <ErrorBoundary>
         <Router>
           <AuthProvider>
-            <WorkspaceProvider>
-              <GlobalProvider>
-                <AlertProvider>
+            <AlertProvider>
+              <WorkspaceProvider>
+                <GlobalProvider>
                   <PWAProvider>
                 <GlobalShaderOverlay />
                 <Routes>
@@ -228,20 +229,30 @@ function App() {
               />
 
                {/* AI Assistant Route */}
-               <Route 
-                path="/ai-chat" 
+               <Route
+                path="/ai-chat"
                 element={
                   <ProtectedRoute>
                     <AiChatPage />
                   </ProtectedRoute>
-                } 
+                }
+              />
+
+              {/* AI Settings Route */}
+              <Route
+                path="/workspace/:workspaceId/ai-settings"
+                element={
+                  <ProtectedRoute>
+                    <AiSettingsPage />
+                  </ProtectedRoute>
+                }
               />
                 </Routes>
                 <PWAPrompt />
                 </PWAProvider>
-                </AlertProvider>
-              </GlobalProvider>
-            </WorkspaceProvider>
+                </GlobalProvider>
+              </WorkspaceProvider>
+            </AlertProvider>
           </AuthProvider>
         </Router>
       </ErrorBoundary>

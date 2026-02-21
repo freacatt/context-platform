@@ -1,4 +1,5 @@
 import { storage } from './storage';
+import { setupWorkspace as agentSetupWorkspace, AgentPlatformError } from './agentPlatformClient';
 import { Workspace } from '../types';
 
 const mapWorkspaceFromStorage = (data: any): Workspace => {
@@ -8,6 +9,9 @@ const mapWorkspaceFromStorage = (data: any): Workspace => {
         name: data.name,
         createdAt: data.createdAt ? new Date(data.createdAt) : null,
         lastModified: data.lastModified ? new Date(data.lastModified) : null,
+        gmAgentId: data.gmAgentId,
+        aiRecommendationAgentId: data.aiRecommendationAgentId,
+        aiChatAgentId: data.aiChatAgentId,
     };
 };
 
@@ -25,6 +29,41 @@ export const createWorkspace = async (userId: string, name: string): Promise<str
   return id;
 };
 
+/**
+ * Call agent-platform to set up AI infrastructure for a workspace.
+ * Updates the workspace doc with agent IDs on success.
+ */
+export const setupWorkspaceAgentPlatform = async (
+  workspaceId: string,
+  name: string
+): Promise<{ gmAgentId: string }> => {
+  const result = await agentSetupWorkspace(workspaceId, name);
+  // Update workspace doc with agent references
+  await storage.update('workspaces', workspaceId, {
+    gmAgentId: result.gm_agent_id,
+    aiRecommendationAgentId: result.gm_agent_id,
+    aiChatAgentId: result.gm_agent_id,
+    lastModified: new Date().toISOString(),
+  });
+  return { gmAgentId: result.gm_agent_id };
+};
+
+/**
+ * Update workspace AI agent assignments.
+ */
+export const updateWorkspaceAgentSettings = async (
+  workspaceId: string,
+  settings: {
+    aiRecommendationAgentId?: string;
+    aiChatAgentId?: string;
+  }
+): Promise<void> => {
+  await storage.update('workspaces', workspaceId, {
+    ...settings,
+    lastModified: new Date().toISOString(),
+  });
+};
+
 export const getWorkspace = async (workspaceId: string): Promise<Workspace | null> => {
   const data = await storage.get('workspaces', workspaceId);
   if (!data) return null;
@@ -34,7 +73,7 @@ export const getWorkspace = async (workspaceId: string): Promise<Workspace | nul
 export const getUserWorkspaces = async (userId: string): Promise<Workspace[]> => {
     const results = await storage.query('workspaces', { userId });
     const workspaces = results.map(mapWorkspaceFromStorage);
-    
+
     return workspaces.sort((a, b) => {
          const dateA = a.createdAt?.getTime() || 0;
          const dateB = b.createdAt?.getTime() || 0;
@@ -79,7 +118,7 @@ export const deleteWorkspace = async (workspaceId: string, userId: string): Prom
         const messages = await storage.query('messages', { parentId: conversation.id });
         const messagePromises = messages.map(msg => storage.delete('messages', msg.id));
         await Promise.all(messagePromises);
-        
+
         // Delete the conversation itself
         await storage.delete('conversations', conversation.id);
     }
@@ -87,3 +126,5 @@ export const deleteWorkspace = async (workspaceId: string, userId: string): Prom
     // 3. Finally delete the workspace
     await storage.delete('workspaces', workspaceId);
 };
+
+export { AgentPlatformError };

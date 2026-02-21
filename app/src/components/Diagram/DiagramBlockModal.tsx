@@ -15,10 +15,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Sparkles, Notebook, PaintBucket, Trash2 } from 'lucide-react';
 import { AiRecommendationButton } from '../Common/AiRecommendationButton';
-import { useAuth } from '../../contexts/AuthContext';
-import { useGlobalContext } from '../../contexts/GlobalContext';
+import { recommend } from '@/services/agentPlatformClient';
 import { ContextSource } from '../../types';
-import { generateDiagramBlockDescription } from '../../services/anthropic';
 import ContextSelectorModal from '../GlobalContext/ContextSelectorModal';
 
 interface EdgeInfo {
@@ -54,9 +52,6 @@ const DiagramBlockModal: React.FC<DiagramBlockModalProps> = ({
   onSave,
   onDelete
 }) => {
-  const { apiKey } = useAuth();
-  const { aggregatedContext } = useGlobalContext();
-
   const [localTitle, setLocalTitle] = useState(title);
   const [localDescription, setLocalDescription] = useState(description || '');
   const [localBorderColor, setLocalBorderColor] = useState(borderColor || '#1f2937');
@@ -69,6 +64,33 @@ const DiagramBlockModal: React.FC<DiagramBlockModalProps> = ({
     setLocalBorderColor(borderColor || '#1f2937');
     setAttachedSources(contextSources || []);
   }, [title, description, borderColor, contextSources, isOpen]);
+
+  const buildContextSummary = () => {
+    const sources = attachedSources || [];
+    if (!sources.length) return "No explicit attachments.";
+    return sources
+      .map((s) => `- [${s.type}] ${s.title || s.id}`)
+      .join("\n");
+  };
+
+  const buildConnectionsSummary = () => {
+    const outgoingLines = outgoing.map(
+      (e) => `OUTGOING: ${e.title}${e.direction ? ` (${e.direction})` : ""}`,
+    );
+    const incomingLines = incoming.map(
+      (e) => `INCOMING: ${e.title}${e.direction ? ` (${e.direction})` : ""}`,
+    );
+    return [...outgoingLines, ...incomingLines].join("\n") || "No explicit connections.";
+  };
+
+  const buildRecommendVariables = (globalContext: string): Record<string, string> => ({
+    diagram_title: diagramTitle,
+    block_title: localTitle || title,
+    global_context: globalContext || "N/A",
+    context_summary: buildContextSummary(),
+    connections_summary: buildConnectionsSummary(),
+    current_description: localDescription || "(none)",
+  });
 
   const handleSave = () => {
     onSave({
@@ -111,13 +133,12 @@ const DiagramBlockModal: React.FC<DiagramBlockModalProps> = ({
                 label="AI Suggest"
                 loadingLabel="Generating..."
                 icon={<Sparkles size={14} className="mr-1" />}
-                onGenerate={async (key, globalContext) => {
-                  return await generateDiagramBlockDescription(
-                    key,
-                    localTitle || title,
-                    diagramTitle,
-                    globalContext
-                  );
+                onGenerate={async ({ workspaceId, agentId, globalContext }) => {
+                  if (!workspaceId || !agentId) {
+                    throw new Error("Workspace and agent are required for AI suggestions");
+                  }
+                  const result = await recommend(workspaceId, agentId, "diagram_block_description", buildRecommendVariables(globalContext));
+                  return result.response;
                 }}
                 onSuccess={(text) => setLocalDescription(text)}
                 onError={() => {}}

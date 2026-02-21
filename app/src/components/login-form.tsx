@@ -175,9 +175,9 @@ export function LoginForm({
                     <Button variant="secondary" className="w-full" type="button" onClick={handleGuestLogin} disabled={loading}>
                       Continue as Guest (Local Only)
                     </Button>
-                    <p className="text-xs text-amber-600 font-medium text-center">
+                    {/* <p className="text-xs text-amber-600 font-medium text-center">
                       Login with your local DB. No need to register. Everything will be stored in your local machine and will not be transferred to the server.
-                    </p>
+                    </p> */}
                   </>
                 )}
               </div>

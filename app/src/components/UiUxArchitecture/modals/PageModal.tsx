@@ -18,7 +18,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Trash2 } from 'lucide-react';
 import { Page, BaseComponent, PageComponent } from '../../../types/uiUxArchitecture';
 import { AiRecommendationButton } from '../../Common/AiRecommendationButton';
-import { generateUiUxSuggestion } from '../../../services/anthropic';
+import { recommend } from '@/services/agentPlatformClient';
 
 interface PageModalProps {
   open: boolean;
@@ -147,15 +147,18 @@ export const PageModal: React.FC<PageModalProps> = ({ open, onOpenChange, page, 
                 <div className="flex justify-between items-center">
                   <Label>Description</Label>
                   <AiRecommendationButton
-                    onGenerate={(apiKey, globalContext) => generateUiUxSuggestion(
-                      apiKey,
-                      "UI/UX Architecture",
-                      'page',
-                      localPage.main.title || "Unnamed Page",
-                      `Route: ${localPage.main.route}\nRequires Auth: ${localPage.main.requires_auth}`,
-                      globalContext,
-                      'description'
-                    )}
+                    onGenerate={async ({ workspaceId, agentId, globalContext }) => {
+                      if (!workspaceId || !agentId) {
+                        throw new Error("Workspace is required for AI suggestions");
+                      }
+                      const result = await recommend(workspaceId, agentId!, "uiux_page_description", {
+                        page_title: localPage.main.title || "Unnamed Page",
+                        route: localPage.main.route,
+                        requires_auth: localPage.main.requires_auth ? "Yes" : "No",
+                        global_context: globalContext || "N/A",
+                      });
+                      return result.response;
+                    }}
                     onSuccess={(result) => handleChange(['main', 'description'], result)}
                     label="AI Suggest"
                   />

@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Wand2 } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { useGlobalContext } from '../../contexts/GlobalContext';
-import { generateProductDefinitionSuggestion } from '../../services/anthropic';
 import { ContextSource, ProductDefinitionNode } from '../../types';
 import { AiRecommendationButton } from '../Common/AiRecommendationButton';
+import { recommend } from '@/services/agentPlatformClient';
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -36,8 +34,6 @@ const TopicEditModal: React.FC<TopicEditModalProps> = ({
   contextData,
   productTitle
 }) => {
-  const { apiKey } = useAuth();
-  const { selectedContextIds } = useGlobalContext();
   const [description, setDescription] = useState('');
   const [attachments, setAttachments] = useState<ContextSource[]>([]);
 
@@ -57,24 +53,28 @@ const TopicEditModal: React.FC<TopicEditModalProps> = ({
     }
   };
 
-  const handleAiSuggestion = async (context: string) => {
-    if (!node) return;
-    
-    // Construct a prompt based on the node title and available context
-    const prompt = `
-      Product: ${productTitle}
-      Topic: ${node.label}
-      Current Description: ${description}
-      
-      Please suggest a detailed description for this product definition topic.
-      Focus on clarity, user value, and technical feasibility if applicable.
-    `;
+  const handleAiSuggestion = async ({
+    workspaceId,
+    agentId,
+    globalContext,
+  }: {
+    workspaceId: string | null;
+    agentId: string | null;
+    globalContext: string;
+  }) => {
+    if (!node) return "";
+    if (!workspaceId || !agentId) {
+      throw new Error("Workspace and agent are required for AI suggestions");
+    }
 
-    return await generateProductDefinitionSuggestion(
-        apiKey || '', 
-        prompt, 
-        context // Pass the resolved context data
-    );
+    const result = await recommend(workspaceId, agentId, "product_definition_topic", {
+      product_title: productTitle,
+      topic_label: node.label,
+      current_description: description || "(empty)",
+      context_data: contextData || "No extra context provided.",
+      global_context: globalContext || "N/A",
+    });
+    return result.response;
   };
 
   if (!node) return null;
@@ -97,10 +97,9 @@ const TopicEditModal: React.FC<TopicEditModalProps> = ({
               </label>
               <AiRecommendationButton
                 onGenerate={handleAiSuggestion}
-                onApply={(text) => {
+                onSuccess={(text) => {
                   setDescription(text);
                 }}
-                contextIds={selectedContextIds}
                 label="Suggest Description"
                 icon={<Wand2 size={12} />}
               />

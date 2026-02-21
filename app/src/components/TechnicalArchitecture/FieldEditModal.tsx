@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AiRecommendationButton } from '../Common/AiRecommendationButton';
-import { generateTechnicalArchitectureSuggestion } from '../../services/anthropic';
-import { TechnicalArchitecture } from '../../types';
+import { recommend } from '@/services/agentPlatformClient';
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -99,14 +98,20 @@ const FieldEditModal: React.FC<FieldEditModalProps> = ({
                  fieldType === 'map' ? 'Key: Value pairs (one per line)' : 'Content'}
               </Label>
               <AiRecommendationButton
-                onGenerate={(apiKey, globalContext) => generateTechnicalArchitectureSuggestion(
-                  apiKey,
-                  architectureTitle,
-                  title,
-                  description || "",
-                  fieldPath.join(' > '),
-                  globalContext
-                )}
+                onGenerate={async ({ workspaceId, agentId, globalContext }) => {
+                  if (!workspaceId || !agentId) {
+                    throw new Error("Workspace and agent are required for AI suggestions");
+                  }
+                  const result = await recommend(workspaceId, agentId!, "technical_architecture_field", {
+                    architecture_title: architectureTitle,
+                    field_title: title,
+                    field_path: fieldPath.join(' > '),
+                    description: description || "No extra description provided.",
+                    global_context: globalContext || "N/A",
+                    current_value: textValue || "(empty)",
+                  });
+                  return result.response;
+                }}
                 onSuccess={(suggestion) => {
                   setTextValue(prev => {
                       if (!prev.trim()) return suggestion;

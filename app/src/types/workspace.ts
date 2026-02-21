@@ -4,4 +4,7 @@ export interface Workspace {
   name: string;
   createdAt: Date | null;
   lastModified: Date | null;
+  gmAgentId?: string;
+  aiRecommendationAgentId?: string;
+  aiChatAgentId?: string;
 }

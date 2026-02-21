@@ -16,7 +16,8 @@ import {
   ArrowLeft,
   Database,
   Globe,
-  Download
+  Download,
+  Settings2
 } from "lucide-react"
 
 import { NavMain, NavItem } from "@/components/nav-main"
@@ -34,6 +35,7 @@ import {
 import { useGlobalContext } from "@/contexts/GlobalContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { useWorkspace } from "@/contexts/WorkspaceContext"
+import { useNavigate } from "react-router-dom"
 import { WorkspaceSwitcher } from "@/components/workspace-switcher"
 import { StorageSettingsDialog } from "@/components/storage-settings-dialog"
 import { McpAccessModal } from "@/components/McpAccess/McpAccessModal"
@@ -56,6 +58,7 @@ export function WorkspaceSidebar({ ...props }: React.ComponentProps<typeof Sideb
   const { user, logout } = useAuth();
   const { setIsContextModalOpen, selectedSources } = useGlobalContext();
   const { currentWorkspace } = useWorkspace();
+  const navigate = useNavigate();
   
   // State for dynamic nav items
   const [navItems, setNavItems] = React.useState<NavItem[]>([]);
@@ -258,8 +261,23 @@ export function WorkspaceSidebar({ ...props }: React.ComponentProps<typeof Sideb
         <ModeToggle />
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton 
-              size="lg" 
+            <SidebarMenuButton
+              size="lg"
+              onClick={() => currentWorkspace && navigate(`/workspace/${currentWorkspace.id}/ai-settings`)}
+              tooltip="AI Settings"
+            >
+              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-violet-100 text-violet-600 dark:bg-violet-900 dark:text-violet-300">
+                <Settings2 className="size-4" />
+              </div>
+              <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-semibold">AI Settings</span>
+                <span className="truncate text-xs text-muted-foreground">Agents & Models</span>
+              </div>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              size="lg"
               onClick={() => setIsContextModalOpen(true)}
               tooltip="Global Context"
             >

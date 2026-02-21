@@ -1,7 +1,5 @@
-from uuid import UUID
-
 from qdrant_client import QdrantClient
-from qdrant_client.models import Filter, FieldCondition, MatchValue, PointStruct, SearchRequest, VectorParams, Distance
+from qdrant_client.models import Filter, FieldCondition, MatchValue, PointStruct, VectorParams, Distance
 
 from core.config import settings
 
@@ -18,7 +16,7 @@ def get_qdrant_client() -> QdrantClient:
     return _build_qdrant_client()
 
 
-def ensure_workspace_collection(client: QdrantClient, workspace_id: UUID, vector_size: int) -> None:
+def ensure_workspace_collection(client: QdrantClient, workspace_id: str, vector_size: int) -> None:
     collection_name = f"workspace_{workspace_id}"
     collections = client.get_collections()
     if any(c.name == collection_name for c in collections.collections):
@@ -31,7 +29,7 @@ def ensure_workspace_collection(client: QdrantClient, workspace_id: UUID, vector
 
 def upsert_workspace_points(
     client: QdrantClient,
-    workspace_id: UUID,
+    workspace_id: str,
     points: list[PointStruct],
 ) -> None:
     collection_name = f"workspace_{workspace_id}"
@@ -40,7 +38,7 @@ def upsert_workspace_points(
 
 def search_workspace_points(
     client: QdrantClient,
-    workspace_id: UUID,
+    workspace_id: str,
     vector: list[float],
     workspace_filter: dict | None = None,
     limit: int = 10,
@@ -50,10 +48,9 @@ def search_workspace_points(
     workspace_filter = workspace_filter or {}
     for key, value in workspace_filter.items():
         must_conditions.append(FieldCondition(key=key, match=MatchValue(value=value)))
-    search_request = SearchRequest(
-        vector=vector,
+    return client.search(
+        collection_name=collection_name,
+        query_vector=vector,
+        query_filter=Filter(must=must_conditions) if must_conditions else None,
         limit=limit,
-        filter=Filter(must=must_conditions) if must_conditions else None,
     )
-    return client.search(collection_name=collection_name, **search_request.model_dump(exclude_none=True))
-

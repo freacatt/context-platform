@@ -2,10 +2,8 @@ import React, { useState } from 'react';
 import { TechnicalTask, TaskPriority, TaskType } from '../../types/technicalTask';
 import { updateTechnicalTask, generateMarkdown } from '../../services/technicalTaskService';
 import { Download, Save, Sparkles } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { useGlobalContext } from '../../contexts/GlobalContext';
-import { generateTechnicalTaskSuggestion } from '../../services/anthropic';
 import { AiRecommendationButton } from '../Common/AiRecommendationButton';
+import { recommend } from '@/services/agentPlatformClient';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,19 +37,28 @@ interface RenderFieldProps {
 }
 
 const RenderField: React.FC<RenderFieldProps> = ({ task, onUpdate, label, field, placeholder, multiline, aiContext }) => {
-    const { apiKey } = useAuth();
-    const { selectedContextIds } = useGlobalContext();
-
-    const handleAiSuggestion = async (context: string) => {
-        const prompt = `
-            Task Title: ${task.title}
-            Task Description: ${task.description}
-            Field to Generate: ${label}
-            Current Value: ${task[field] || ''}
-            
-            Please suggest content for the '${label}' field of this technical task.
-        `;
-        return await generateTechnicalTaskSuggestion(apiKey || '', prompt, context);
+    const handleAiSuggestion = async ({
+        workspaceId,
+        agentId,
+        globalContext,
+    }: {
+        workspaceId: string | null;
+        agentId: string | null;
+        globalContext: string;
+    }) => {
+        if (!workspaceId || !agentId) {
+            throw new Error("Workspace and agent are required for AI suggestions");
+        }
+        const result = await recommend(workspaceId, agentId, "technical_task_field", {
+          task_title: task.title,
+          task_description: task.description,
+          field_label: label,
+          field_name: String(field),
+          current_value: (task[field] as string) || "(empty)",
+          global_context: globalContext || "N/A",
+          ai_context: aiContext || label,
+        });
+        return result.response;
     };
 
     return (
@@ -61,8 +68,7 @@ const RenderField: React.FC<RenderFieldProps> = ({ task, onUpdate, label, field,
                 {aiContext && (
                     <AiRecommendationButton
                         onGenerate={handleAiSuggestion}
-                        onApply={(text) => onUpdate([field as string], text)}
-                        contextIds={selectedContextIds}
+                        onSuccess={(text) => onUpdate([field as string], text)}
                         label="Suggest"
                         size="sm"
                         icon={<Sparkles size={12} />}

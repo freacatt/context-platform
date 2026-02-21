@@ -1,10 +1,8 @@
 from dataclasses import dataclass
 from enum import Enum
-from uuid import UUID
 
-from sqlalchemy.orm import Session
+from google.cloud.firestore_v1.client import Client
 
-from core.models import User, Workspace
 from services.policy_engine import PolicyEngine
 
 
@@ -32,17 +30,14 @@ def list_registered_apps() -> list[AppId]:
     return list(AppId)
 
 
-def get_workspace_app_permissions(db: Session, firebase_uid: str, workspace_id: UUID) -> list[AppPermission]:
+def get_workspace_app_permissions(
+    db: Client, firebase_uid: str, workspace_id: str
+) -> list[AppPermission]:
     policy = PolicyEngine(db)
     policy.assert_workspace_owner(firebase_uid, workspace_id)
-    user = db.query(User).filter(User.firebase_uid == firebase_uid).one()
-    workspace = db.query(Workspace).filter(Workspace.id == workspace_id).one()
-    plan_type = user.plan_type
     permissions: list[AppPermission] = []
     for app in AppId:
-        can_read = True
-        can_write = True
-        reason = None
-        permissions.append(AppPermission(app_id=app, can_read=can_read, can_write=can_write, reason=reason))
+        permissions.append(
+            AppPermission(app_id=app, can_read=True, can_write=True, reason=None)
+        )
     return permissions
-

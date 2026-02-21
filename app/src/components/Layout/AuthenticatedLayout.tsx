@@ -7,7 +7,6 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import APIKeyModal from "../Navbar/APIKeyModal"
 import GlobalContextManager from "../GlobalContext/GlobalContextManager"
 import { WorkspaceActions } from "@/components/WorkspaceActions"
 import SyncModal from "../Navbar/SyncModal"
@@ -59,7 +58,6 @@ const AuthenticatedLayout: React.FC<AuthenticatedLayoutProps> = ({ children }) =
               </Button>
 
             <WorkspaceActions />
-            <APIKeyModal />
             <SyncModal 
                 isOpen={isSyncModalOpen} 
                 onClose={() => setIsSyncModalOpen(false)} 
@@ -70,6 +68,8 @@ const AuthenticatedLayout: React.FC<AuthenticatedLayoutProps> = ({ children }) =
           {children}
         </div>
         <GlobalContextManager />
+        {/* Bottom scroll fade overlay */}
+        <div className="pointer-events-none sticky bottom-0 z-10 h-10 bg-gradient-to-t from-blue-500/15 to-transparent backdrop-blur-[2px]" />
       </SidebarInset>
     </SidebarProvider>
   );

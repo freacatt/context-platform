@@ -1,178 +1,187 @@
 # Agent Platform (FastAPI Server)
 
-This directory contains the Agent Platform backend: a FastAPI server that powers agents, orchestration, RAG, and control‑plane features for the Context Platform  / Context Platform SPA.
+FastAPI backend that powers agent orchestration, RAG (Qdrant), and AI chat for the Context Platform SPA.
 
-The React app in `src/` stays a pure client. It talks to this server over authenticated HTTP/JSON APIs; it never connects directly to PostgreSQL or Qdrant.
-
----
-
-## Why this directory exists
-
-The repository has two main pieces:
-- `src/` – React 19 + TypeScript SPA (browser client)
-- `agent-platform/` – FastAPI server (agent orchestration + control plane)
-
-This keeps backend concerns (auth boundary, workspaces, usage, RAG, multi‑tenant safety) completely isolated from the frontend code and from the Dexie/Firestore storage adapter used by the SPA.
-
-You can deploy and scale the Agent Platform separately from the web app, while both still live in the same monorepo.
+The React app in `app/` is a pure client — it talks to this server over authenticated HTTP/JSON APIs and never connects directly to Qdrant.
 
 ---
 
-## Why everything is directly in `agent-platform/` now
+## Architecture
 
-Originally, the Python code lived under:
-
-```text
-agent-platform/
-  agentplatform/
-    main.py
-    models.py
-    db.py
-    ...
+```
+Client (SPA) → Firebase Auth → Agent Server (FastAPI)
+                                    ↓
+                    ┌──────────┬──────────┬──────────┐
+                    │  Qdrant  │Firestore │ LLM API  │
+                    │(Vectors) │ (Shared) │(External)│
+                    └──────────┴──────────┴──────────┘
 ```
 
-That extra `agentplatform/` package added an unnecessary level of nesting and made it harder to see what the server actually consists of.
+- **Frontend:** React 19 + TypeScript SPA in `app/`
+  - Uses `VITE_AGENT_SERVER_URL` to talk to this server
+  - Attaches Firebase ID tokens as `Authorization: Bearer <idToken>`
+- **Backend (this folder):** FastAPI service
+  - HTTP/JSON API only, no server-side templates
+  - Auth boundary, workspace setup, agent management, chat
+- **Firestore:**
+  - Shared data store between frontend and agent-platform
+  - Workspaces, agents, workspace content
+- **Qdrant:**
+  - Per-workspace vector collections for semantic search and RAG
+- **LLM + embeddings:**
+  - Multi-provider support: Anthropic, OpenAI, Gemini, Grok, DeepSeek
+  - Configured via `AGENT_PLATFORM_LLM_*` and `AGENT_PLATFORM_EMBEDDINGS_*`
 
-The layout is now flattened:
+---
 
-```text
+## Directory layout
+
+```
 agent-platform/
-  main.py
-  config.py              # Legacy entrypoint re-exporting core.config
-  db.py                  # Legacy entrypoint re-exporting core.db
-  models.py              # Legacy entrypoint re-exporting core.models
-  deps.py                # Legacy entrypoint re-exporting core.deps
-  agents.py              # Legacy entrypoint re-exporting services.agents
-  app_services.py        # Legacy entrypoint re-exporting services.app_services
-  policy_engine.py       # Legacy entrypoint re-exporting services.policy_engine
-  conversation_manager.py# Legacy entrypoint re-exporting services.conversation_manager
-  usage_tracker.py       # Legacy entrypoint re-exporting services.usage_tracker
-  ai_models.py           # Legacy entrypoint re-exporting ai.models
-  rag_service.py         # Legacy entrypoint re-exporting ai.rag
-  qdrant_client_adapter.py # Legacy entrypoint re-exporting ai.vector_store.qdrant_client
+  main.py                  # FastAPI app, CORS, routers, exception handlers
   core/
-    __init__.py          # Shared settings, engine, Base, core models
-    config.py            # Settings / env configuration
-    db.py                # SQLAlchemy engine and SessionLocal
-    models.py            # Users, workspaces, agents, conversations, usage logs, index status
-    deps.py              # FastAPI DB session dependency
+    config.py              # Settings / env configuration
+    firestore.py           # Firestore client initialization (firebase_admin)
+    exceptions.py          # Structured error types (AppError, NotFoundError, etc.)
+    __init__.py
   ai/
-    __init__.py
-    models.py            # Unified LLM and embeddings configuration
-    rag.py               # RAG service using LangChain embeddings
+    models.py              # Unified LLM and embeddings model factory
+    rag.py                 # RAG service using LangChain embeddings
     vector_store/
-      __init__.py
-      qdrant_client.py   # Qdrant client helpers (per-workspace collections)
+      qdrant_client.py     # Qdrant client helpers (per-workspace collections)
   services/
-    __init__.py
-    agents.py            # Agent protocol, EchoAgent, GeneralManager
-    app_services.py      # App registry and permissions
-    policy_engine.py     # Workspace ownership / permission checks
-    conversation_manager.py # Conversation and message lifecycle
-    usage_tracker.py     # Usage logging to PostgreSQL
-    auth.py              # Firebase ID token validation and AuthedUser model
+    auth.py                # Firebase ID token validation and AuthedUser model
+    agents.py              # Agent CRUD (Firestore-backed)
+    chat_service.py        # LLM chat orchestration via LangChain
+    policy_engine.py       # Workspace ownership / permission checks (Firestore)
+    app_services.py        # App registry and permissions
   api/
-    __init__.py
-    workspaces.py
-    conversations.py
-    apps.py
-  migrations/
-    __init__.py          # Alembic / migration entrypoint (future expansion)
-  .env           (local settings, not committed)
+    workspaces.py          # POST /workspaces/setup, GET /workspaces/{id}
+    agents.py              # Agent CRUD endpoints
+    chat.py                # POST /chat (stateless prompt → LLM response)
+    apps.py                # GET /apps
+  tests/
+    conftest.py            # Test fixtures (mock Firestore, Qdrant, auth, LLM)
+    test_workspaces.py     # Workspace setup tests
+    test_agents.py         # Agent CRUD tests
+    test_chat.py           # Chat endpoint tests
+  docker-compose.yml       # Qdrant only
+  requirements.txt
+  .env                     # Local settings (not committed)
 ```
 
-Benefits of this layout:
-- Easier to navigate: all core server modules are visible at a glance.
-- Simpler to run: you can start the server with `uvicorn main:app` from inside `agent-platform/`.
-- Fewer path surprises: imports are straightforward (`from models import User`, `from api.workspaces import router`).
-- The top‑level directory name (`agent-platform`) is clearly tied to the role this folder plays in the monorepo.
+---
+
+## Features
+
+- **Workspace setup** — Atomic initialization with rollback (Qdrant namespace + GM agent + workspace update)
+- **Agent management** — CRUD for AI agents with model configuration (auto/manual mode)
+- **Stateless chat** — Send prompt + agent_id → get LLM response (frontend manages conversation persistence)
+- **Policy engine** — Workspace ownership verification on every operation
+- **Multi-provider LLM** — Anthropic, OpenAI, Gemini, Grok, DeepSeek via LangChain
+- **RAG** — Per-workspace Qdrant collections for semantic search
+- **Structured errors** — Typed error codes with consistent JSON responses
 
 ---
 
-## Core responsibilities
+## HTTP API
 
-The Agent Platform is the control‑plane and orchestration backend. At a high level it is responsible for:
+All endpoints require `Authorization: Bearer <FIREBASE_ID_TOKEN>`.
 
-- **Identity boundary**
-  - Validates Firebase ID tokens on every request.
-  - Treats `firebase_uid` as the canonical user identifier.
+### Health
+- `GET /health` → `{"status": "ok"}`
 
-- **Control‑plane database (PostgreSQL)**
-  - Stores users, workspaces, agents, permissions, conversations, messages, usage logs, and workspace index status.
-  - Only authenticated users ever get rows in PostgreSQL (guest mode remains local‑only in the SPA).
+### Workspaces
 
-- **RAG + vector store (Qdrant)**
-  - Creates per‑workspace collections in Qdrant.
-  - Indexes documents via embeddings and runs workspace‑scoped similarity search.
+- `POST /workspaces/setup`
+  - **Body:** `{ "workspace_id": "string", "name": "string" }`
+  - **Behavior:** Verifies workspace → creates Qdrant collection → creates GM agent → updates workspace
+  - **Response:** `{ "workspace_id": "string", "gm_agent_id": "string" }`
 
-- **Agent orchestration**
-  - Provides endpoints for:
-    - Direct agent calls (low‑latency, no delegation).
-    - GM‑orchestrated tasks (task decomposition + delegation to domain agents).
-  - Ensures all inter‑agent work is mediated by the General Manager and Policy Engine.
+- `GET /workspaces/{workspace_id}`
+  - **Response:** `{ "id", "name", "gm_agent_id", "ai_recommendation_agent_id", "ai_chat_agent_id" }`
 
-- **Policy + usage**
-  - Enforces workspace ownership and permissions on every sensitive operation.
-  - Logs usage events to support billing and cost visibility.
+### Agents
 
----
+- `GET /agents?workspace_id={id}` — List agents for workspace
+- `GET /agents/{agent_id}` — Get single agent
+- `POST /agents` — Create agent (`{ "workspace_id", "name", "model_mode", "model_provider?", "model_name?", "context" }`)
+- `PUT /agents/{agent_id}` — Update agent fields
+- `DELETE /agents/{agent_id}` — Delete (cannot delete default GM agent)
 
-## Module overview
+### Chat
 
-- `main.py` – FastAPI application instance and router wiring.
-- `core.config` – Environment‑driven settings (PostgreSQL URL, Qdrant URL, Qdrant API key, LLM provider, etc.).
-- `core.db` – SQLAlchemy engine, session factory, and Base.
-- `core.models` – SQLAlchemy models for users, workspaces, agents, conversations, messages, usage logs, and index status.
-- `core.deps` – FastAPI dependency for database sessions.
-- `services.auth` – Firebase ID token validation and `AuthedUser` model.
-- `services.agents` – Agent protocol, simple `EchoAgent`, and `GeneralManager` entry point.
-- `services.policy_engine` – Workspace ownership and permission checks.
-- `services.usage_tracker` – Usage logging to PostgreSQL.
-- `services.conversation_manager` – Conversation and message creation/listing.
-- `services.app_services` – App registry and per‑app permission calculations.
-- `ai.models` – Unified LangChain chat and embeddings models configured from environment.
-- `ai.rag` – RAG indexing and search over Qdrant, using the unified embeddings model.
-- `ai.vector_store.qdrant_client` – Qdrant client with workspace‑scoped collections and API key support.
-- `api.workspaces` – Workspace creation API (lazy user provisioning, workspace index status setup).
-- `api.conversations` – Conversation CRUD and agent interaction endpoints (direct agent + GM‑orchestrated).
-- `api.apps` – App registry and per‑workspace app permissions API.
+- `POST /chat`
+  - **Body:** `{ "workspace_id", "agent_id", "message", "history": [], "context": "optional" }`
+  - **Response:** `{ "response": "AI text", "agent_id": "string", "model": "string" }`
+
+### Apps
+
+- `GET /apps` — List registered apps
 
 ---
 
 ## Environment configuration
 
-Environment variables are read via `AGENT_PLATFORM_` prefix. A starter config lives in `.env.example` inside `agent-platform/`. Typical keys:
+Environment variables use `AGENT_PLATFORM_` prefix. Copy `.env.example` to `.env`.
 
-- Core:
-  - `AGENT_PLATFORM_DATABASE_URL=postgresql+psycopg2://user:password@localhost/context_platform`
-- Qdrant:
-  - `AGENT_PLATFORM_QDRANT_URL=http://localhost:6333`
-  - `AGENT_PLATFORM_QDRANT_API_KEY=` (for Qdrant Cloud or secured instances)
-- Unified LLM (LangChain):
-  - `AGENT_PLATFORM_LLM_PROVIDER=anthropic` (or `openai`)
-  - `AGENT_PLATFORM_LLM_MODEL=claude-3-5-sonnet-20241022` (or an OpenAI model like `gpt-4.1-mini`)
-- Unified embeddings:
-  - `AGENT_PLATFORM_EMBEDDINGS_PROVIDER=anthropic` (or `openai`)
-  - `AGENT_PLATFORM_EMBEDDINGS_MODEL=text-embedding-3-large` (or `text-embedding-3-large` for OpenAI)
-- Provider API keys:
-  - `AGENT_PLATFORM_ANTHROPIC_API_KEY=...`
-  - `AGENT_PLATFORM_OPENAI_API_KEY=...`
-
-Copy `.env.example` to `.env` and fill in real credentials for your environment.
+| Variable | Description |
+|----------|-------------|
+| `AGENT_PLATFORM_QDRANT_URL` | Qdrant server URL (default: `http://localhost:6333`) |
+| `AGENT_PLATFORM_QDRANT_API_KEY` | Qdrant API key (optional) |
+| `AGENT_PLATFORM_FIREBASE_CREDENTIALS_PATH` | Path to Firebase service account JSON (optional — uses `GOOGLE_APPLICATION_CREDENTIALS` otherwise) |
+| `AGENT_PLATFORM_LLM_PROVIDER` | LLM provider: `anthropic`, `openai`, `gemini`, `grok`, `deepseek` |
+| `AGENT_PLATFORM_LLM_MODEL` | Model name (e.g., `claude-3-5-sonnet-20241022`) |
+| `AGENT_PLATFORM_EMBEDDINGS_PROVIDER` | Embeddings provider |
+| `AGENT_PLATFORM_EMBEDDINGS_MODEL` | Embeddings model name |
+| `AGENT_PLATFORM_ANTHROPIC_API_KEY` | Anthropic API key |
+| `AGENT_PLATFORM_OPENAI_API_KEY` | OpenAI API key |
+| `AGENT_PLATFORM_CORS_ORIGINS` | Allowed CORS origins (default: `http://localhost:5173`) |
 
 ---
 
-## Running the server locally
+## Docker Compose
 
-From the repository root:
+Only Qdrant runs in Docker:
 
 ```bash
 cd agent-platform
+docker-compose up -d
+```
+
+This starts:
+- **Qdrant** on port 6333 (HTTP + dashboard at `/dashboard`) and 6334 (gRPC)
+
+---
+
+## Running locally
+
+```bash
+cd agent-platform
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Start Qdrant
+docker-compose up -d
+
+# Start the server
 uvicorn main:app --reload
 ```
 
-Prerequisites (typical):
+Prerequisites:
 - Python 3.12+
-- Dependencies like `fastapi`, `uvicorn`, `sqlalchemy`, `psycopg2-binary`, `pydantic`, `firebase_admin`, `qdrant-client`.
+- Firebase service account credentials configured
+- Required API keys in `.env`
 
-The React SPA should call this server using the base URL configured via `VITE_AGENT_SERVER_URL` on the frontend and attach Firebase ID tokens to each request.
+---
+
+## Running tests
+
+```bash
+cd agent-platform
+source venv/bin/activate
+pytest -v
+```
+
+Tests mock all external dependencies (Firestore, Qdrant, Firebase Auth, LLM).

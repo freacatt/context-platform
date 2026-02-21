@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ThemeSpecification } from '../../../types/uiUxArchitecture';
 import { AiRecommendationButton } from '../../Common/AiRecommendationButton';
-import { generateUiUxSuggestion } from '../../../services/anthropic';
+import { recommend } from '@/services/agentPlatformClient';
 
 interface ThemeModalProps {
   open: boolean;
@@ -96,15 +96,17 @@ export const ThemeModal: React.FC<ThemeModalProps> = ({ open, onOpenChange, them
                 <div className="flex justify-between items-center">
                   <Label>Theme Description</Label>
                   <AiRecommendationButton
-                    onGenerate={(apiKey, globalContext) => generateUiUxSuggestion(
-                      apiKey,
-                      "UI/UX Architecture",
-                      'theme',
-                      "Global Theme",
-                      `Font Family: ${localTheme.main.typography.font_family}\nBase Size: ${localTheme.main.typography.font_size_base}`,
-                      globalContext,
-                      'description'
-                    )}
+                    onGenerate={async ({ workspaceId, agentId, globalContext }) => {
+                      if (!workspaceId || !agentId) {
+                        throw new Error("Workspace is required for AI suggestions");
+                      }
+                      const result = await recommend(workspaceId, agentId!, "uiux_theme_description", {
+                        font_family: localTheme.main.typography.font_family,
+                        font_size_base: localTheme.main.typography.font_size_base,
+                        global_context: globalContext || "N/A",
+                      });
+                      return result.response;
+                    }}
                     onSuccess={(result) => handleChange(['main', 'description'], result)}
                     label="AI Suggest"
                   />

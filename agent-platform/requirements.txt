@@ -1,8 +1,7 @@
 fastapi
 uvicorn[standard]
 pydantic
-sqlalchemy
-psycopg2-binary
+pydantic-settings
 firebase-admin
 qdrant-client
 langchain-core
@@ -10,3 +9,5 @@ langchain-openai
 langchain-anthropic
 langchain-google-genai
 python-dotenv
+httpx
+pytest
