@@ -1,3 +1,20 @@
+export interface AppAccessEntry {
+  appId: string;
+  permissions: string[];
+}
+
+export interface McpServerEntry {
+  name: string;
+  url: string;
+  auth: Record<string, string>;
+}
+
+export interface OrchestratorConfig {
+  canDelegateToAgents: boolean;
+  autoSelectAgent: boolean;
+  fallbackBehavior: string;
+}
+
 export interface AgentConfig {
   id: string;
   workspaceId: string;
@@ -10,6 +27,10 @@ export interface AgentConfig {
   skills: string[];
   context: string;
   isDefault: boolean;
+  isOrchestrator: boolean;
+  appAccess: AppAccessEntry[];
+  mcpServers: McpServerEntry[];
+  orchestratorConfig: OrchestratorConfig | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -23,6 +44,10 @@ export interface AgentCreatePayload {
   model_name?: string;
   skills?: string[];
   context?: string;
+  is_orchestrator?: boolean;
+  app_access?: { app_id: string; permissions: string[] }[];
+  mcp_servers?: { name: string; url: string; auth: Record<string, string> }[];
+  orchestrator_config?: { can_delegate_to_agents: boolean; auto_select_agent: boolean; fallback_behavior: string } | null;
 }
 
 export interface AgentUpdatePayload {
@@ -32,4 +57,8 @@ export interface AgentUpdatePayload {
   model_name?: string;
   skills?: string[];
   context?: string;
+  is_orchestrator?: boolean;
+  app_access?: { app_id: string; permissions: string[] }[];
+  mcp_servers?: { name: string; url: string; auth: Record<string, string> }[];
+  orchestrator_config?: { can_delegate_to_agents: boolean; auto_select_agent: boolean; fallback_behavior: string } | null;
 }

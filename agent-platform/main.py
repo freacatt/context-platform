@@ -7,10 +7,11 @@ from core.exceptions import AppError
 
 from api.workspaces import router as workspaces_router
 from api.agents import router as agents_router
-from api.chat import router as chat_router
 from api.apps import router as apps_router
 from api.models import router as models_router
 from api.recommend import router as recommend_router
+from api.sessions import router as sessions_router
+from api.plans import router as plans_router
 
 
 app = FastAPI(title="Pyramid Agent Platform", version="2.0.0")
@@ -67,7 +68,8 @@ async def health():
 
 app.include_router(workspaces_router)
 app.include_router(agents_router)
-app.include_router(chat_router)
 app.include_router(apps_router)
 app.include_router(models_router)
 app.include_router(recommend_router)
+app.include_router(sessions_router)
+app.include_router(plans_router)

@@ -111,19 +111,7 @@ export const deleteWorkspace = async (workspaceId: string, userId: string): Prom
         await Promise.all(promises);
     }
 
-    // 2. Delete conversations and their messages
-    const conversations = await storage.query('conversations', commonFilter);
-    for (const conversation of conversations) {
-        // Delete messages for this conversation
-        const messages = await storage.query('messages', { parentId: conversation.id });
-        const messagePromises = messages.map(msg => storage.delete('messages', msg.id));
-        await Promise.all(messagePromises);
-
-        // Delete the conversation itself
-        await storage.delete('conversations', conversation.id);
-    }
-
-    // 3. Finally delete the workspace
+    // 2. Finally delete the workspace
     await storage.delete('workspaces', workspaceId);
 };
 

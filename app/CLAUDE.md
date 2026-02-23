@@ -174,10 +174,10 @@ When working on agent/chat features:
 - Every request MUST include Firebase ID token.
 - UI MUST NEVER talk directly to Qdrant or agent data in Firestore.
 - Agent capabilities derived from server — NEVER hard-coded.
-- AI chat uses `agentPlatformClient.chat()` with workspace's configured agentId.
-- AI field recommendations use `agentPlatformClient.chat()` via `AiRecommendationButton`.
+- AI chat uses server-side sessions via `agentPlatformClient` session APIs.
+- AI field recommendations use `agentPlatformClient.recommend()` via `AiRecommendationButton`.
 - Agent configuration managed via AI Settings page (`/workspace/:workspaceId/ai-settings`).
-- Render message history from local storage. Frontend manages conversation persistence.
+- Session message history managed server-side. Frontend is display-only.
 
 ---
 
@@ -240,9 +240,10 @@ When working on agent/chat features:
 
 ### AI Assistant
 - **Category**: AI Apps | **Color**: `bg-violet-600`
-- CRITICAL: Every message has valid `role` (`user`/`assistant`). Legacy `conversations` role → `user` on read. All persistence through chat service + storage adapter.
-- Uses `Conversation` and `StoredMessage` in `app/src/types/index.ts`
+- CRITICAL: Uses server-side sessions exclusively. No local conversation storage.
+- Session types in `app/src/types/session.ts`
 - Page: `app/src/pages/AiChatPage.tsx`
-- AI: `app/src/services/aiService.ts` (unified `processChat` method via agent-platform)
-- `processChat`: Save user msg → build history → call agent-platform `/chat` with agentId → save reply.
+- API client: `app/src/services/agentPlatformClient.ts` (session CRUD + messaging)
+- Flow: Create session → send message → server returns response + tool call traces → display
+- Chat-only mode: Toggle before starting session to disable tool execution (pure conversation)
 - Agent selection: Uses `workspace.aiChatAgentId` (chat) or `workspace.aiRecommendationAgentId` (field AI) with `gmAgentId` as fallback.

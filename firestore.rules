@@ -56,22 +56,7 @@ rules_version = '2';
        } 
      } 
  
-     // Independent Conversations collection 
-    match /conversations/{conversationId} { 
-      allow create: if isOwner(request.resource.data.userId); 
-      allow read, update, delete: if isOwner(resource.data.userId); 
-      
-      // Note: Messages are now embedded as an array field 'messages' within the conversation document.
-      // Legacy subcollection support is removed.
-    } 
-
-    // Messages collection (Root level for chatService)
-    match /messages/{messageId} {
-      allow create: if isOwner(request.resource.data.userId);
-      allow read, update, delete: if isOwner(resource.data.userId);
-    }
- 
-    // Context Documents collection 
+    // Context Documents collection
     match /contextDocuments/{documentId} { 
       allow create: if isOwner(request.resource.data.userId); 
       allow read, update, delete: if isOwner(resource.data.userId); 
@@ -127,6 +112,13 @@ rules_version = '2';
     // Agents collection (managed by agent-platform Admin SDK)
     // Frontend needs read access to display agent info in AI Settings
     match /agents/{agentId} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Write operations are handled by agent-platform Admin SDK (bypasses rules)
+    }
+
+    // Sessions collection (managed by agent-platform Admin SDK)
+    // Frontend needs read access to display session history in AI Chat
+    match /sessions/{sessionId} {
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;
       // Write operations are handled by agent-platform Admin SDK (bypasses rules)
     }

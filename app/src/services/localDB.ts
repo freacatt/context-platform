@@ -1,11 +1,9 @@
 import Dexie, { Table } from 'dexie';
-import { 
-  Pyramid, 
-  Workspace, 
-  ProductDefinition, 
+import {
+  Pyramid,
+  Workspace,
+  ProductDefinition,
   ContextDocument,
-  Conversation,
-  StoredMessage,
   Directory,
   UiUxArchitecture,
   Diagram,
@@ -22,8 +20,6 @@ export class LocalDB extends Dexie {
   pyramids!: Table<Pyramid>;
   productDefinitions!: Table<ProductDefinition>;
   contextDocuments!: Table<ContextDocument>;
-  conversations!: Table<Conversation>;
-  messages!: Table<StoredMessage>;
   // We might need to store user settings locally too
   userSettings!: Table<{ id: string, userId: string, saveLocally: boolean, saveToCloud: boolean }>;
 
@@ -69,6 +65,12 @@ export class LocalDB extends Dexie {
 
     this.version(4).stores({
         workspace_mcp_settings: 'id, userId, workspaceId'
+    });
+
+    // v5: Remove legacy conversations and messages tables (sessions replace them)
+    this.version(5).stores({
+        conversations: null,
+        messages: null
     });
   }
 

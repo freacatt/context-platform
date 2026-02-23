@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
-import { Loader2, Plus, Bot, Settings, Trash2, Shield } from 'lucide-react';
+import { Loader2, Plus, Bot, Settings, Trash2, Shield, Network, Server } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/ui/delete-confirm-dialog';
 
 const AiSettingsPage: React.FC = () => {
@@ -121,6 +121,9 @@ const AiSettingsPage: React.FC = () => {
     model_provider?: string;
     model_name?: string;
     context: string;
+    is_orchestrator: boolean;
+    app_access: { app_id: string; permissions: string[] }[];
+    mcp_servers: { name: string; url: string; auth: Record<string, string> }[];
   }) => {
     try {
       if (modalMode === 'create' && currentWorkspace?.id) {
@@ -131,6 +134,9 @@ const AiSettingsPage: React.FC = () => {
           model_provider: data.model_provider,
           model_name: data.model_name,
           context: data.context,
+          is_orchestrator: data.is_orchestrator,
+          app_access: data.app_access,
+          mcp_servers: data.mcp_servers,
         });
         showAlert({ type: 'success', title: 'Created', message: `Agent "${data.name}" created.` });
       } else if (selectedAgent) {
@@ -140,6 +146,9 @@ const AiSettingsPage: React.FC = () => {
           model_provider: data.model_provider,
           model_name: data.model_name,
           context: data.context,
+          is_orchestrator: data.is_orchestrator,
+          app_access: data.app_access,
+          mcp_servers: data.mcp_servers,
         });
         showAlert({ type: 'success', title: 'Updated', message: `Agent "${data.name}" updated.` });
       }
@@ -278,14 +287,33 @@ const AiSettingsPage: React.FC = () => {
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                 <span className="px-2 py-0.5 rounded-full bg-muted font-medium">
                   {agent.type === 'gm' ? 'General Manager' : 'Custom'}
                 </span>
                 <span className="px-2 py-0.5 rounded-full bg-muted">
                   Model: {agent.modelMode === 'auto' ? 'Auto' : agent.modelName || 'Manual'}
                 </span>
+                {agent.isOrchestrator && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300">
+                    <Network size={10} /> Orchestrator
+                  </span>
+                )}
+                {agent.mcpServers && agent.mcpServers.length > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                    <Server size={10} /> {agent.mcpServers.length} MCP
+                  </span>
+                )}
               </div>
+              {agent.appAccess && agent.appAccess.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {agent.appAccess.map((a) => (
+                    <span key={a.appId} className="px-1.5 py-0.5 text-[10px] rounded bg-primary/10 text-primary font-medium">
+                      {a.appId.replace(/_/g, ' ')}
+                    </span>
+                  ))}
+                </div>
+              )}
               {agent.context && (
                 <p className="mt-2 text-xs text-muted-foreground line-clamp-2">
                   {agent.context}

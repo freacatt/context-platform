@@ -10,8 +10,6 @@ const COLLECTIONS_TO_SYNC = [
   'pyramids',
   'productDefinitions',
   'contextDocuments',
-  'conversations',
-  'messages',
   'directories',
   'uiUxArchitectures',
   'diagrams',

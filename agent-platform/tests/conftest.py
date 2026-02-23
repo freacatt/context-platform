@@ -178,9 +178,10 @@ def client(seeded_firestore, mock_qdrant):
         patch("core.firestore.get_firestore_client", return_value=seeded_firestore),
         patch("api.workspaces.get_firestore_client", return_value=seeded_firestore),
         patch("api.agents.get_firestore_client", return_value=seeded_firestore),
-        patch("api.chat.get_firestore_client", return_value=seeded_firestore),
         patch("api.apps.get_firestore_client", return_value=seeded_firestore),
         patch("api.recommend.get_firestore_client", return_value=seeded_firestore),
+        patch("api.sessions.get_firestore_client", return_value=seeded_firestore),
+        patch("api.plans.get_firestore_client", return_value=seeded_firestore),
         patch("api.workspaces.get_qdrant_client", return_value=mock_qdrant),
         patch("api.workspaces.ensure_workspace_collection", side_effect=lambda c, wid, vs: c.create_collection(f"workspace_{wid}")),
     ]

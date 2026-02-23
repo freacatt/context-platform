@@ -32,9 +32,11 @@ Client (SPA) → Firebase Auth → Agent Server (FastAPI)
 |---------|---------|
 | `core/` | Settings, Firestore client, structured exceptions |
 | `ai/` | LLM/chat model factory, embeddings, RAG, vector store helpers |
-| `services/` | Auth, policy engine, chat service, agent CRUD, app registry |
+| `services/` | Auth, policy engine, chat/session/execution/planning/orchestration/MCP services, agent CRUD |
+| `tools/` | ToolDefinition, AppDefinition, CRUD handler factory, ToolRegistry (8 apps × 5 tools) |
+| `tools/apps/` | Per-app registrations (pyramids, product_definitions, technical_architectures, etc.) |
 | `api/` | FastAPI routers (HTTP/JSON endpoints) |
-| `tests/` | pytest test suite |
+| `tests/` | pytest test suite (116 tests) |
 
 ## Firestore Collections (Agent-Platform Managed)
 
@@ -49,9 +51,22 @@ modelProvider: string | null
 modelName: string | null
 skills: string[]
 context: string            # agent system prompt
-isDefault: boolean          # true for GM agent
+isDefault: boolean         # true for GM agent
+isOrchestrator: boolean    # true for GM, enables delegation
+appAccess: [{appId, permissions: ["create","read","update","delete","list"]}]
+mcpServers: [{name, url, auth: {type, token/key}}]
+orchestratorConfig: {canDelegateToAgents, autoSelectAgent, fallbackBehavior} | null
 createdAt: timestamp
 updatedAt: timestamp
+```
+
+### `sessions/{sessionId}`
+```
+workspaceId, agentId, userId, title, status ("active"|"paused"|"completed"),
+messages: [{id, role ("user"|"assistant"|"tool_call"|"tool_result"), content, timestamp, metadata}],
+metadata: {plan?: {goal, status, steps: [...]}},
+parentSessionId: string | null,  # set for delegated sub-sessions
+createdAt, updatedAt
 ```
 
 ### Workspace fields (added by agent-platform)
@@ -75,12 +90,23 @@ workspaces/{id}
 ### Agents
 - `GET /agents?workspace_id={id}` — List agents for workspace
 - `GET /agents/{id}` — Get single agent
-- `POST /agents` — Create new custom agent
+- `POST /agents` — Create agent (with app_access, mcp_servers, orchestrator_config)
 - `PUT /agents/{id}` — Update agent config
 - `DELETE /agents/{id}` — Delete agent (cannot delete default)
 
-### Chat
-- `POST /chat` — Stateless chat: send message + agent_id → get LLM response
+### Sessions
+- `POST /sessions` — Create session (supports `chat_only: true` to disable tool execution)
+- `GET /sessions?workspace_id={id}&agent_id?&status?` — List sessions
+- `GET /sessions/{id}` — Get session with messages
+- `POST /sessions/{id}/messages` — Send message → AI response (with tool execution if agent has tools and session is not chat_only)
+- `DELETE /sessions/{id}` — Delete session permanently
+- `PATCH /sessions/{id}` — Update session status
+
+### Plans
+- `GET /sessions/{id}/plan` — Get session plan
+- `POST /sessions/{id}/plan/approve` — Approve plan
+- `POST /sessions/{id}/plan/execute` — Execute plan steps
+- `POST /sessions/{id}/plan/steps/{step_id}/skip` — Skip a step
 
 ### Apps
 - `GET /apps` — List registered apps
@@ -97,21 +123,38 @@ All endpoints require Firebase ID token as `Authorization: Bearer <token>`.
 6. Updates workspace doc with `gmAgentId`
 7. On ANY failure → rolls back (deletes agent doc, deletes Qdrant collection)
 
-## Chat Flow
+## Session Message Flow (Primary)
 
-1. Frontend sends `POST /chat` with workspace_id, agent_id, message, history, context
-2. Agent-platform validates workspace ownership
-3. Loads agent config from Firestore
-4. Builds LangChain chat model using agent's model config
-5. Constructs messages: system prompt (agent.context) + history + user message
-6. Calls LLM, returns response text + model info
-7. Frontend handles message persistence (saves user + assistant messages locally)
+1. Frontend sends `POST /sessions/{id}/messages` with message + optional context
+2. Agent-platform validates session ownership and active status
+3. Stores user message in session, loads agent config
+4. If session is `chat_only` → always uses `ChatService` (no tools, pure conversation)
+5. If agent has tools (and not chat_only) → `ExecutionService`: builds system prompt with AppDefinitions, binds LangChain tools, runs LLM → tool call loop (max 10 iterations)
+6. If agent has no tools → `ChatService`: simple LLM call
+7. Stores assistant message, returns response + tool call traces
+
+## Orchestration Flow
+
+1. GM agent receives task → LLM calls `__delegate__` tool
+2. `OrchestrationService.find_agents_for_task()` discovers specialists by appAccess
+3. `delegate()` creates sub-session (parentSessionId = GM session), executes via specialist agent
+4. Result flows back to GM session as delegation trace
+
+## Tool System
+
+- 8 apps × 5 CRUD tools = 40 tools registered in `ToolRegistry` singleton
+- Apps: pyramids, product_definitions, technical_architectures, technical_tasks, diagrams, ui_ux_architectures, context_documents, pipelines
+- Tool ID format: `{app_id}.{action}` (e.g. `pyramids.create`)
+- MCP tool ID format: `mcp:{server_name}:{tool_name}`
+- Each app has an `AppDefinition` with description, data schema, usage guidelines — injected into agent system prompts
+- GM agent (empty appAccess) gets all tools; custom agents get filtered by appAccess
 
 ## Hard Constraints
 
 - No long-lived in-memory state (stateless per request).
 - All workspace access verified via PolicyEngine before any operation.
 - Snake_case in API (Pydantic) ↔ camelCase in Firestore — conversion handled in API layer.
+- NO cross-workspace data access — tool handlers verify workspaceId on every read/update/delete.
 
 ## Model Configuration
 

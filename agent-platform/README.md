@@ -53,11 +53,27 @@ agent-platform/
     auth.py                # Firebase ID token validation and AuthedUser model
     agents.py              # Agent CRUD (Firestore-backed)
     chat_service.py        # LLM chat orchestration via LangChain
+    session_service.py     # Server-side session CRUD and message management
+    execution_service.py   # Agent execution loop with LLM tool-calling
+    permission_service.py  # Per-agent per-app access control
+    planning_service.py    # Chain-of-thought planning and step execution
+    orchestration_service.py # Agent-to-agent delegation via sub-sessions
+    mcp_client.py          # External MCP server connectivity
     policy_engine.py       # Workspace ownership / permission checks (Firestore)
     app_services.py        # App registry and permissions
+  tools/
+    base.py                # ToolDefinition, AppDefinition, ToolAction
+    handlers.py            # Generic CRUD handler factory for Firestore apps
+    registry.py            # ToolRegistry singleton (8 apps × 5 tools)
+    apps/                  # Per-app tool + definition registrations
+      pyramids.py, product_definitions.py, technical_architectures.py,
+      technical_tasks.py, diagrams.py, ui_ux_architectures.py,
+      context_documents.py, pipelines.py
   api/
     workspaces.py          # POST /workspaces/setup, GET /workspaces/{id}
-    agents.py              # Agent CRUD endpoints
+    agents.py              # Agent CRUD endpoints (with app access, MCP, orchestrator config)
+    sessions.py            # Session CRUD + message send with tool execution
+    plans.py               # Plan CRUD, approval, execution, step skip
     chat.py                # POST /chat (stateless prompt → LLM response)
     apps.py                # GET /apps
   tests/
@@ -65,6 +81,14 @@ agent-platform/
     test_workspaces.py     # Workspace setup tests
     test_agents.py         # Agent CRUD tests
     test_chat.py           # Chat endpoint tests
+    test_sessions.py       # Session CRUD and messaging tests
+    test_execution.py      # Tool execution loop tests
+    test_permissions.py    # Permission service tests
+    test_planning.py       # Planning service tests
+    test_orchestration.py  # Agent-to-agent delegation tests
+    test_tool_registry.py  # Tool registry tests
+    test_tool_handlers.py  # CRUD handler tests
+    test_mcp.py            # MCP client tests
   docker-compose.yml       # Qdrant only
   requirements.txt
   .env                     # Local settings (not committed)
@@ -75,8 +99,14 @@ agent-platform/
 ## Features
 
 - **Workspace setup** — Atomic initialization with rollback (Qdrant namespace + GM agent + workspace update)
-- **Agent management** — CRUD for AI agents with model configuration (auto/manual mode)
-- **Stateless chat** — Send prompt + agent_id → get LLM response (frontend manages conversation persistence)
+- **Agent management** — CRUD for AI agents with model configuration, app access, MCP servers, orchestrator config
+- **Server-side sessions** — Conversation state with message history, status transitions, title generation
+- **Tool execution** — LLM tool-calling loop with permission checks against 8 app × 5 CRUD tools (40 total)
+- **Chain-of-thought planning** — Structured multi-step plans with approval workflow and step-by-step execution
+- **Agent orchestration** — GM delegates tasks to specialist agents via sub-sessions based on app access
+- **External MCP** — Per-agent connectivity to external MCP servers with tool discovery and namespaced tool IDs
+- **Permission system** — Fine-grained per-agent per-app access control (GM gets all, custom agents get filtered)
+- **Stateless chat** — Backward-compatible `POST /chat` endpoint (frontend manages conversation persistence)
 - **Policy engine** — Workspace ownership verification on every operation
 - **Multi-provider LLM** — Anthropic, OpenAI, Gemini, Grok, DeepSeek via LangChain
 - **RAG** — Per-workspace Qdrant collections for semantic search
@@ -105,11 +135,26 @@ All endpoints require `Authorization: Bearer <FIREBASE_ID_TOKEN>`.
 
 - `GET /agents?workspace_id={id}` — List agents for workspace
 - `GET /agents/{agent_id}` — Get single agent
-- `POST /agents` — Create agent (`{ "workspace_id", "name", "model_mode", "model_provider?", "model_name?", "context" }`)
+- `POST /agents` — Create agent with app access, MCP servers, orchestrator config
 - `PUT /agents/{agent_id}` — Update agent fields
 - `DELETE /agents/{agent_id}` — Delete (cannot delete default GM agent)
 
-### Chat
+### Sessions
+
+- `POST /sessions` — Create session (`{ "workspace_id", "agent_id", "title?" }`)
+- `GET /sessions?workspace_id={id}&agent_id?&status?` — List sessions
+- `GET /sessions/{id}` — Get session with messages
+- `POST /sessions/{id}/messages` — Send message → get AI response (with tool execution)
+- `PATCH /sessions/{id}` — Update session status (active/paused/completed)
+
+### Plans
+
+- `GET /sessions/{id}/plan` — Get current plan
+- `POST /sessions/{id}/plan/approve` — Approve plan for execution
+- `POST /sessions/{id}/plan/execute` — Execute approved plan
+- `POST /sessions/{id}/plan/steps/{step_id}/skip` — Skip a plan step
+
+### Chat (Legacy)
 
 - `POST /chat`
   - **Body:** `{ "workspace_id", "agent_id", "message", "history": [], "context": "optional" }`

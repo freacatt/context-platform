@@ -15,7 +15,6 @@ class AppId(str, Enum):
     DIAGRAMS = "diagrams"
     CONTEXT_DOCUMENTS = "context_documents"
     PIPELINES = "pipelines"
-    GLOBAL_TASKS = "global_tasks"
 
 
 @dataclass
@@ -28,6 +27,18 @@ class AppPermission:
 
 def list_registered_apps() -> list[AppId]:
     return list(AppId)
+
+
+def get_app_definition(app_id: str):
+    """Get an AppDefinition from the tool registry."""
+    from tools.registry import get_tool_registry
+    return get_tool_registry().get_app(app_id)
+
+
+def list_app_definitions():
+    """List all AppDefinitions from the tool registry."""
+    from tools.registry import get_tool_registry
+    return get_tool_registry().list_apps()
 
 
 def get_workspace_app_permissions(

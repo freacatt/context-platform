@@ -17,6 +17,14 @@ DEFAULT_GM_AGENT = {
     "skills": [],
     "context": "You are a helpful AI assistant. Answer questions clearly and concisely.",
     "isDefault": True,
+    "isOrchestrator": True,
+    "appAccess": [],
+    "mcpServers": [],
+    "orchestratorConfig": {
+        "canDelegateToAgents": True,
+        "autoSelectAgent": True,
+        "fallbackBehavior": "handle_self",
+    },
 }
 
 
@@ -35,6 +43,10 @@ def create_agent(db: Client, workspace_id: str, user_id: str, data: dict) -> dic
         "skills": data.get("skills", []),
         "context": data.get("context", ""),
         "isDefault": data.get("isDefault", False),
+        "isOrchestrator": data.get("isOrchestrator", False),
+        "appAccess": data.get("appAccess", []),
+        "mcpServers": data.get("mcpServers", []),
+        "orchestratorConfig": data.get("orchestratorConfig", None),
         "createdAt": now,
         "updatedAt": now,
     }
@@ -81,7 +93,10 @@ def update_agent(db: Client, agent_id: str, updates: dict) -> dict:
     if not doc.exists:
         raise NotFoundError("agent", agent_id)
 
-    allowed_fields = {"name", "modelMode", "modelProvider", "modelName", "skills", "context"}
+    allowed_fields = {
+        "name", "modelMode", "modelProvider", "modelName", "skills", "context",
+        "isOrchestrator", "appAccess", "mcpServers", "orchestratorConfig",
+    }
     filtered = {k: v for k, v in updates.items() if k in allowed_fields}
     filtered["updatedAt"] = datetime.now(timezone.utc)
     ref.update(filtered)
