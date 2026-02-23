@@ -54,6 +54,8 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@radix-ui/react-use-controllable-state": "^1.2.2",
     "@radix-ui/themes": "^3.2.1",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
     "@rive-app/react-webgl2": "^4.26.2",
     "@streamdown/cjk": "^1.0.1",
     "@streamdown/code": "^1.0.1",

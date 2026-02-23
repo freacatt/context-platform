@@ -239,7 +239,7 @@ export function WorkspaceSidebar({ ...props }: React.ComponentProps<typeof Sideb
   };
 
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
+    <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <WorkspaceSwitcher />
       </SidebarHeader>

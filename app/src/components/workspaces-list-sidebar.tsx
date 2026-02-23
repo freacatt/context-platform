@@ -35,7 +35,7 @@ export function WorkspacesListSidebar({ ...props }: React.ComponentProps<typeof 
   };
 
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
+    <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
             <SidebarMenuItem>

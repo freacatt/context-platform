@@ -43,6 +43,7 @@ app/src/
 ├── components/                 # Reusable UI components
 │   ├── ui/                     # Generic Shadcn primitives (button, card, dialog, accordion, etc.)
 │   ├── ai-elements/            # Conversation, Message, PromptInput components
+│   ├── AgentIsland/            # 3D agent bar (React Three Fiber)
 │   ├── AgentSettings/          # AgentConfigModal
 │   ├── Board/                  # PyramidBoard, Block, BlockModal
 │   ├── Chat/                   # (reserved for future chat components)
@@ -439,3 +440,39 @@ agents, sessions — writes via Admin SDK (bypasses rules)
 5. **Global context**: Workspace-level context aggregation injected into every AI interaction.
 6. **Workspace isolation**: All entities scoped by userId + workspaceId. Workspace deletion cascades.
 7. **Shadcn UI**: All primitives from Radix via Shadcn. Custom components compose these primitives.
+
+---
+
+## Agent Island (3D Agent Bar)
+
+Global floating bar at center-bottom of all authenticated pages displaying workspace agents as interactive 3D characters.
+
+### Component Tree
+```
+AuthenticatedLayout
+  └── AgentIsland (fixed bottom-center, glassmorphism)
+        └── React.lazy → AgentCharacter × N
+              └── <Canvas> (R3F)
+                    └── AgentModel (GLTF + animation cycling)
+```
+
+### Files
+| File | Purpose |
+|------|---------|
+| `components/AgentIsland/AgentIsland.tsx` | Container: glassmorphism bar, lazy loading, route-based visibility |
+| `components/AgentIsland/AgentCharacter.tsx` | Per-agent 3D Canvas with GLTF model and animation cycling |
+| `components/AgentIsland/useAgentIslandAgents.ts` | Hook: fetches agents via `getAgents(workspaceId)` |
+
+### 3D Stack
+- **@react-three/fiber**: React renderer for Three.js
+- **@react-three/drei**: `useGLTF` (GLTF/Draco loading), `useAnimations` (clip management)
+- **Model**: `public/agents/gm.gltf` — shared model for all agents (Draco-compressed)
+- **Animations**: `idle`, `walk`, `happy`, `sad`, `standing_jump`, `jump_run`, `running`
+
+### Behavior
+- Each agent rendered as a separate `<Canvas>` with transparent background
+- Characters overflow above the island container (upper body/head sticks out)
+- Animation cycle: `idle` → `walk` → `happy` with crossfade, staggered per agent
+- Click navigates to `/ai-chat`
+- Hidden on `/ai-chat` page, max 6 visible agents with "+N" overflow badge
+- Lazy-loaded to keep Three.js out of the initial JS bundle

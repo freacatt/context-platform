@@ -8,6 +8,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import GlobalContextManager from "../GlobalContext/GlobalContextManager"
+import { AgentIsland } from "../AgentIsland/AgentIsland"
 import { WorkspaceActions } from "@/components/WorkspaceActions"
 import SyncModal from "../Navbar/SyncModal"
 import { useSyncStore } from "../../services/syncStore"
@@ -70,6 +71,7 @@ const AuthenticatedLayout: React.FC<AuthenticatedLayoutProps> = ({ children }) =
         <GlobalContextManager />
         {/* Bottom scroll fade overlay */}
         <div className="pointer-events-none sticky bottom-0 z-10 h-10 bg-gradient-to-t from-blue-500/15 to-transparent backdrop-blur-[2px]" />
+        <AgentIsland />
       </SidebarInset>
     </SidebarProvider>
   );
