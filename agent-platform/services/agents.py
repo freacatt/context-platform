@@ -9,8 +9,10 @@ from core.exceptions import ConflictError, NotFoundError
 
 
 DEFAULT_GM_AGENT = {
-    "name": "General Manager",
+    "name": "Jeana",
     "type": "gm",
+    "position": "General Manager",
+    "color": "#a855f7",
     "modelMode": "auto",
     "modelProvider": None,
     "modelName": None,
@@ -37,6 +39,8 @@ def create_agent(db: Client, workspace_id: str, user_id: str, data: dict) -> dic
         "userId": user_id,
         "name": data.get("name", "New Agent"),
         "type": data.get("type", "custom"),
+        "position": data.get("position", ""),
+        "color": data.get("color", ""),
         "modelMode": data.get("modelMode", "auto"),
         "modelProvider": data.get("modelProvider"),
         "modelName": data.get("modelName"),
@@ -94,8 +98,9 @@ def update_agent(db: Client, agent_id: str, updates: dict) -> dict:
         raise NotFoundError("agent", agent_id)
 
     allowed_fields = {
-        "name", "modelMode", "modelProvider", "modelName", "skills", "context",
-        "isOrchestrator", "appAccess", "mcpServers", "orchestratorConfig",
+        "name", "position", "color", "modelMode", "modelProvider", "modelName",
+        "skills", "context", "isOrchestrator", "appAccess", "mcpServers",
+        "orchestratorConfig",
     }
     filtered = {k: v for k, v in updates.items() if k in allowed_fields}
     filtered["updatedAt"] = datetime.now(timezone.utc)

@@ -1,5 +1,5 @@
 import { storage } from './storage';
-import { setupWorkspace as agentSetupWorkspace, AgentPlatformError } from './agentPlatformClient';
+import { setupWorkspace as agentSetupWorkspace, teardownWorkspace, AgentPlatformError } from './agentPlatformClient';
 import { Workspace } from '../types';
 
 const mapWorkspaceFromStorage = (data: any): Workspace => {
@@ -12,6 +12,7 @@ const mapWorkspaceFromStorage = (data: any): Workspace => {
         gmAgentId: data.gmAgentId,
         aiRecommendationAgentId: data.aiRecommendationAgentId,
         aiChatAgentId: data.aiChatAgentId,
+        islandAgentIds: data.islandAgentIds || [],
     };
 };
 
@@ -56,6 +57,7 @@ export const updateWorkspaceAgentSettings = async (
   settings: {
     aiRecommendationAgentId?: string;
     aiChatAgentId?: string;
+    islandAgentIds?: string[];
   }
 ): Promise<void> => {
   await storage.update('workspaces', workspaceId, {
@@ -89,6 +91,13 @@ export const updateWorkspace = async (workspaceId: string, updates: Partial<Work
 };
 
 export const deleteWorkspace = async (workspaceId: string, userId: string): Promise<void> => {
+    // 0. Tear down agent-platform resources (agents, sessions, Qdrant)
+    try {
+        await teardownWorkspace(workspaceId);
+    } catch {
+        // Best-effort: don't block workspace deletion if agent-platform is unreachable
+    }
+
     const commonFilter = { workspaceId, userId };
 
     // 1. Delete simple collections (direct workspace children)

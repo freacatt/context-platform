@@ -21,6 +21,8 @@ export interface AgentConfig {
   userId: string;
   name: string;
   type: 'gm' | 'custom';
+  position: string;
+  color: string;
   modelMode: 'auto' | 'manual';
   modelProvider?: string;
   modelName?: string;
@@ -39,6 +41,8 @@ export interface AgentCreatePayload {
   workspace_id: string;
   name: string;
   type?: string;
+  position?: string;
+  color?: string;
   model_mode?: string;
   model_provider?: string;
   model_name?: string;
@@ -52,6 +56,8 @@ export interface AgentCreatePayload {
 
 export interface AgentUpdatePayload {
   name?: string;
+  position?: string;
+  color?: string;
   model_mode?: string;
   model_provider?: string;
   model_name?: string;

@@ -17,6 +17,7 @@ import { createPyramid } from '../../services/pyramidService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useNavigate } from 'react-router-dom';
+import { useWorkspacePath } from '@/hooks/useWorkspacePath';
 
 const CreatePyramidModal: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
@@ -25,6 +26,7 @@ const CreatePyramidModal: React.FC = () => {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const navigate = useNavigate();
+  const wp = useWorkspacePath();
 
   const handleSubmit = async () => {
     if (!title.trim() || !user) return;
@@ -38,7 +40,7 @@ const CreatePyramidModal: React.FC = () => {
       
       // Small delay to allow modal to close visually before navigating
       setTimeout(() => {
-        navigate(`/pyramid/${pyramidId}`);
+        navigate(wp(`/pyramid/${pyramidId}`));
       }, 100);
     } catch (error) {
       console.error(error);

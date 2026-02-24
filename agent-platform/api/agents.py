@@ -39,6 +39,8 @@ class AgentResponse(BaseModel):
     user_id: str
     name: str
     type: str
+    position: str = ""
+    color: str = ""
     model_mode: str
     model_provider: str | None = None
     model_name: str | None = None
@@ -57,6 +59,8 @@ class AgentCreateRequest(BaseModel):
     workspace_id: str
     name: str
     type: str = "custom"
+    position: str = ""
+    color: str = ""
     model_mode: str = "auto"
     model_provider: str | None = None
     model_name: str | None = None
@@ -70,6 +74,8 @@ class AgentCreateRequest(BaseModel):
 
 class AgentUpdateRequest(BaseModel):
     name: str | None = None
+    position: str | None = None
+    color: str | None = None
     model_mode: str | None = None
     model_provider: str | None = None
     model_name: str | None = None
@@ -168,6 +174,8 @@ def _to_response(agent_data: dict) -> AgentResponse:
         user_id=agent_data.get("userId", ""),
         name=agent_data.get("name", ""),
         type=agent_data.get("type", "custom"),
+        position=agent_data.get("position", ""),
+        color=agent_data.get("color", ""),
         model_mode=agent_data.get("modelMode", "auto"),
         model_provider=agent_data.get("modelProvider"),
         model_name=agent_data.get("modelName"),

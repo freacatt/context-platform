@@ -1,24 +1,13 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useWorkspace } from '../contexts/WorkspaceContext';
-import { useParams } from 'react-router-dom';
 import { Loading } from "@/components/ui/loading";
 import { AppCard3D } from "@/components/dashboard/AppCard3D";
 import { Bot, Pyramid, Workflow, GitMerge, Layout, BookOpen, Server, CheckSquare } from "lucide-react";
+import { useWorkspacePath } from '@/hooks/useWorkspacePath';
 
 const Dashboard: React.FC = () => {
-  const { user, loading } = useAuth();
-  const { workspaceId } = useParams<{ workspaceId: string }>();
-  const { workspaces, setCurrentWorkspace, currentWorkspace } = useWorkspace();
-
-  useEffect(() => {
-    if (workspaceId && workspaces.length > 0) {
-      const workspace = workspaces.find(w => w.id === workspaceId);
-      if (workspace && (!currentWorkspace || currentWorkspace.id !== workspaceId)) {
-        setCurrentWorkspace(workspace);
-      }
-    }
-  }, [workspaceId, workspaces, currentWorkspace, setCurrentWorkspace]);
+  const { loading } = useAuth();
+  const wp = useWorkspacePath();
   
   if (loading) {
     return (
@@ -41,7 +30,7 @@ const Dashboard: React.FC = () => {
             <AppCard3D 
               title="AI Assistant" 
               description="Chat with the AI assistant to get help with your project, generate ideas, or analyze your data."
-              to="/ai-chat"
+              to={wp('/ai-chat')}
               icon={Bot}
               colorClass="bg-violet-600"
               buttonColorClass="bg-violet-500/25 hover:bg-violet-500/35"
@@ -58,7 +47,7 @@ const Dashboard: React.FC = () => {
             <AppCard3D 
               title="Pyramid Solver" 
               description="Structure your problem solving with a logical pyramid approach. Break down complex issues into manageable questions and answers."
-              to="/pyramids"
+              to={wp('/pyramids')}
               icon={Pyramid}
               colorClass="bg-indigo-600"
               buttonColorClass="bg-indigo-500/25 hover:bg-indigo-500/35"
@@ -66,7 +55,7 @@ const Dashboard: React.FC = () => {
             <AppCard3D 
               title="Diagrams" 
               description="Create and manage visual diagrams to illustrate system flows, architectures, and processes."
-              to="/diagrams"
+              to={wp('/diagrams')}
               icon={Workflow}
               colorClass="bg-rose-600"
               buttonColorClass="bg-rose-500/25 hover:bg-rose-500/35"
@@ -83,7 +72,7 @@ const Dashboard: React.FC = () => {
             <AppCard3D 
               title="Product Definition" 
               description="Define your product using the structured mindmap. Detail problems, appetites, solutions, and risks in a structured graph."
-              to="/product-definitions"
+              to={wp('/product-definitions')}
               icon={GitMerge}
               colorClass="bg-teal-600"
               buttonColorClass="bg-teal-500/25 hover:bg-teal-500/35"
@@ -91,7 +80,7 @@ const Dashboard: React.FC = () => {
             <AppCard3D 
               title="UI/UX Architecture" 
               description="Design your application's visual structure, theme, and navigation flow using a visual node editor."
-              to="/ui-ux-architectures"
+              to={wp('/ui-ux-architectures')}
               icon={Layout}
               colorClass="bg-pink-600"
               buttonColorClass="bg-pink-500/25 hover:bg-pink-500/35"
@@ -108,7 +97,7 @@ const Dashboard: React.FC = () => {
             <AppCard3D 
               title="Context &amp; Documents" 
               description="Create and manage knowledge base documents. Use them as context for your product definitions and problem solving."
-              to="/context-documents"
+              to={wp('/context-documents')}
               icon={BookOpen}
               colorClass="bg-amber-600"
               buttonColorClass="bg-amber-500/25 hover:bg-amber-500/35"
@@ -125,7 +114,7 @@ const Dashboard: React.FC = () => {
             <AppCard3D 
               title="Technical Architecture"
               description="Define the full technical architecture of your application. Specify system layers, technology stack, and engineering standards."
-              to="/technical-architectures"
+              to={wp('/technical-architectures')}
               icon={Server}
               colorClass="bg-purple-600"
               buttonColorClass="bg-purple-500/25 hover:bg-purple-500/35"
@@ -133,7 +122,7 @@ const Dashboard: React.FC = () => {
             <AppCard3D 
               title="Technical Tasks" 
               description="Manage implementation tasks and bug fixes. Link tasks to technical architecture and track progress in pipelines."
-              to="/technical-tasks"
+              to={wp('/technical-tasks')}
               icon={CheckSquare}
               colorClass="bg-blue-600"
               buttonColorClass="bg-blue-500/25 hover:bg-blue-500/35"

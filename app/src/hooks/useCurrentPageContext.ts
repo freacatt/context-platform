@@ -18,14 +18,14 @@ export const useCurrentPageContext = () => {
     useEffect(() => {
         const fetchContext = async () => {
             // Check if we are in a detail view
-            const pyramidMatch = matchPath("/pyramid/:id", location.pathname);
-            const productMatch = matchPath("/product-definition/:id", location.pathname);
-            const docMatch = matchPath("/context-document/:id", location.pathname);
-            const techMatch = matchPath("/technical-architecture/:id", location.pathname);
-            const uiUxMatch = matchPath("/ui-ux-architecture/:id", location.pathname);
-            const taskMatch = matchPath("/technical-task/:id", location.pathname);
-            const diagramMatch = matchPath("/diagram/:id", location.pathname);
-            const directoryMatch = matchPath("/directory/:id", location.pathname);
+            const pyramidMatch = matchPath("/:workspaceId/pyramid/:id", location.pathname);
+            const productMatch = matchPath("/:workspaceId/product-definition/:id", location.pathname);
+            const docMatch = matchPath("/:workspaceId/context-document/:id", location.pathname);
+            const techMatch = matchPath("/:workspaceId/technical-architecture/:id", location.pathname);
+            const uiUxMatch = matchPath("/:workspaceId/ui-ux-architecture/:id", location.pathname);
+            const taskMatch = matchPath("/:workspaceId/technical-task/:id", location.pathname);
+            const diagramMatch = matchPath("/:workspaceId/diagram/:id", location.pathname);
+            const directoryMatch = matchPath("/:workspaceId/directory/:id", location.pathname);
 
             // If no match, reset
             if (!pyramidMatch && !productMatch && !docMatch && !techMatch && !uiUxMatch && !taskMatch && !diagramMatch && !directoryMatch) {

@@ -102,7 +102,7 @@ const WorkspacesPage = () => {
 
     const handleSelect = (workspace: any) => {
         setCurrentWorkspace(workspace);
-        navigate(`/workspace/${workspace.id}/dashboard`);
+        navigate(`/${workspace.id}/dashboard`);
     };
 
     if (loading) {

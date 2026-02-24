@@ -7,4 +7,5 @@ export interface Workspace {
   gmAgentId?: string;
   aiRecommendationAgentId?: string;
   aiChatAgentId?: string;
+  islandAgentIds?: string[];
 }

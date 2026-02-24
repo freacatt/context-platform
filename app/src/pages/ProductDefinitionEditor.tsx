@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useWorkspacePath } from '@/hooks/useWorkspacePath';
 import ReactFlow, { 
   Controls, 
   Background, 
@@ -36,6 +37,7 @@ const edgeTypes = {};
 const ProductDefinitionEditorContent: React.FC = () => {
   const { id: definitionId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const wp = useWorkspacePath();
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   
@@ -351,7 +353,7 @@ const ProductDefinitionEditorContent: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center px-6 py-3 border-b border-border bg-background shadow-sm z-10">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/product-definitions')}>
+          <Button variant="ghost" size="icon" onClick={() => navigate(wp('/product-definitions'))}>
             <ArrowLeft size={20} />
           </Button>
           <div>

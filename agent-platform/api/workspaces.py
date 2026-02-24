@@ -3,6 +3,8 @@ import logging
 from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel
 
+from google.cloud.firestore_v1.base_query import FieldFilter
+
 from core.firestore import get_firestore_client
 from core.exceptions import AppError, NotFoundError
 from services.auth import AuthedUser, get_current_user
@@ -104,6 +106,47 @@ def setup_workspace(
         workspace_id=payload.workspace_id,
         gm_agent_id=created_agent_id,
     )
+
+
+@router.delete("/{workspace_id}/teardown", status_code=status.HTTP_204_NO_CONTENT)
+def teardown_workspace(
+    workspace_id: str,
+    current_user: AuthedUser = Depends(get_current_user),
+) -> None:
+    """Clean up agent-platform resources for a workspace being deleted.
+
+    Deletes: all agents, all sessions, and the Qdrant collection.
+    Called by the frontend before deleting the workspace doc from Firestore.
+    """
+    db = get_firestore_client()
+    policy = PolicyEngine(db)
+    policy.assert_workspace_owner(current_user.firebase_uid, workspace_id)
+
+    # 1. Delete all sessions for this workspace
+    session_docs = (
+        db.collection("sessions")
+        .where(filter=FieldFilter("workspaceId", "==", workspace_id))
+        .stream()
+    )
+    for doc in session_docs:
+        doc.reference.delete()
+
+    # 2. Delete all agents for this workspace
+    agent_docs = (
+        db.collection("agents")
+        .where(filter=FieldFilter("workspaceId", "==", workspace_id))
+        .stream()
+    )
+    for doc in agent_docs:
+        doc.reference.delete()
+
+    # 3. Delete Qdrant collection (best-effort)
+    try:
+        qdrant = get_qdrant_client()
+        collection_name = f"workspace_{workspace_id}"
+        qdrant.delete_collection(collection_name)
+    except Exception:
+        logger.warning("Failed to delete Qdrant collection for workspace %s (may not exist)", workspace_id)
 
 
 @router.get("/{workspace_id}", response_model=WorkspaceResponse)

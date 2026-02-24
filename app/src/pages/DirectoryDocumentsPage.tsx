@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useWorkspacePath } from '@/hooks/useWorkspacePath';
 import { Folder, ArrowLeft, FileText, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getDirectory, getDirectoryDocuments } from '../services/directoryService';
@@ -16,6 +17,7 @@ const DirectoryDocumentsPage: React.FC = () => {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const navigate = useNavigate();
+  const wp = useWorkspacePath();
 
   const [directory, setDirectory] = useState<Directory | null>(null);
   const [documents, setDocuments] = useState<ContextDocument[]>([]);
@@ -66,7 +68,7 @@ const DirectoryDocumentsPage: React.FC = () => {
       <div className="container mx-auto p-4">
         <div className="flex justify-between items-center mb-8 mt-6">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/context-documents')} className="cursor-pointer">
+            <Button variant="ghost" size="icon" onClick={() => navigate(wp('/context-documents'))} className="cursor-pointer">
               <ArrowLeft size={18} />
             </Button>
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
@@ -82,7 +84,7 @@ const DirectoryDocumentsPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {documents.map(doc => (
               <Card key={doc.id} className="hover:shadow-md transition-shadow flex flex-col h-full">
-                <Link to={`/context-document/${doc.id}`} className="block flex-grow p-0">
+                <Link to={wp(`/context-document/${doc.id}`)} className="block flex-grow p-0">
                   <CardContent className="p-4 flex flex-col h-full">
                     <div className="flex-grow">
                       <div className="flex items-center gap-2 mb-2">
@@ -112,7 +114,7 @@ const DirectoryDocumentsPage: React.FC = () => {
                     >
                         <Trash2 size={16} />
                     </Button>
-                    <Button variant="secondary" size="sm" className="h-8 cursor-pointer" onClick={() => navigate(`/context-document/${doc.id}`)}>
+                    <Button variant="secondary" size="sm" className="h-8 cursor-pointer" onClick={() => navigate(wp(`/context-document/${doc.id}`))}>
                         Open
                     </Button>
                   </div>

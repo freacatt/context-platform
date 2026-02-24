@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useWorkspacePath } from '@/hooks/useWorkspacePath';
 import { Pyramid } from '../../types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,6 +19,7 @@ interface PyramidListProps {
 
 const PyramidList: React.FC<PyramidListProps> = ({ pyramids, onDelete }) => {
   const navigate = useNavigate();
+  const wp = useWorkspacePath();
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -25,7 +27,7 @@ const PyramidList: React.FC<PyramidListProps> = ({ pyramids, onDelete }) => {
         <Card 
             key={pyramid.id} 
             className="cursor-pointer relative group h-full flex flex-col hover:shadow-md transition-all border-l-4 border-l-blue-500" 
-            onClick={() => navigate(`/pyramid/${pyramid.id}`)}
+            onClick={() => navigate(wp(`/pyramid/${pyramid.id}`))}
         >
             <CardContent className="p-4 flex flex-col gap-3 h-full">
                 <div className="flex justify-between items-start">

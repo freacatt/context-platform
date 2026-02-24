@@ -28,6 +28,7 @@ import {
 import { Loader2, Plus, Trash2, Check } from 'lucide-react';
 import { AgentConfig, AppAccessEntry, McpServerEntry } from '@/types/agent';
 import { getModels, getApps, ProviderOption } from '@/services/agentPlatformClient';
+import { AGENT_COLOR_PALETTE, getRandomAgentColor } from '@/lib/agent-colors';
 
 const ALL_PERMISSIONS = ['create', 'read', 'update', 'delete', 'list'];
 
@@ -37,6 +38,8 @@ interface AgentConfigModalProps {
   agent: AgentConfig | null;
   onSave: (data: {
     name: string;
+    position: string;
+    color: string;
     model_mode: string;
     model_provider?: string;
     model_name?: string;
@@ -56,6 +59,8 @@ export const AgentConfigModal: React.FC<AgentConfigModalProps> = ({
   mode,
 }) => {
   const [name, setName] = useState('');
+  const [position, setPosition] = useState('');
+  const [color, setColor] = useState('');
   const [modelMode, setModelMode] = useState<'auto' | 'manual'>('auto');
   const [modelProvider, setModelProvider] = useState<string>('');
   const [modelName, setModelName] = useState<string>('');
@@ -90,6 +95,8 @@ export const AgentConfigModal: React.FC<AgentConfigModalProps> = ({
   useEffect(() => {
     if (agent && mode === 'edit') {
       setName(agent.name);
+      setPosition(agent.position || '');
+      setColor(agent.color || '');
       setModelMode(agent.modelMode);
       setModelProvider(agent.modelProvider || '');
       setModelName(agent.modelName || '');
@@ -99,6 +106,8 @@ export const AgentConfigModal: React.FC<AgentConfigModalProps> = ({
       setMcpServers(agent.mcpServers || []);
     } else {
       setName('');
+      setPosition('');
+      setColor(getRandomAgentColor());
       setModelMode('auto');
       setModelProvider('');
       setModelName('');
@@ -115,6 +124,8 @@ export const AgentConfigModal: React.FC<AgentConfigModalProps> = ({
     try {
       await onSave({
         name: name.trim(),
+        position: position.trim(),
+        color,
         model_mode: modelMode,
         model_provider: modelMode === 'manual' ? modelProvider : undefined,
         model_name: modelMode === 'manual' ? modelName : undefined,
@@ -194,6 +205,38 @@ export const AgentConfigModal: React.FC<AgentConfigModalProps> = ({
               placeholder="Agent name"
               disabled={agent?.isDefault && mode === 'edit'}
             />
+          </div>
+
+          {/* Position */}
+          <div className="space-y-2">
+            <Label htmlFor="agent-position">Position / Role</Label>
+            <Input
+              id="agent-position"
+              value={position}
+              onChange={(e) => setPosition(e.target.value)}
+              placeholder="e.g., Product Manager, Designer, Engineer"
+            />
+          </div>
+
+          {/* Color */}
+          <div className="space-y-2">
+            <Label>Color</Label>
+            <div className="flex flex-wrap gap-2">
+              {AGENT_COLOR_PALETTE.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setColor(c)}
+                  className="relative w-7 h-7 rounded-full transition-transform hover:scale-110 focus:outline-none"
+                  style={{ backgroundColor: c }}
+                  title={c}
+                >
+                  {color === c && (
+                    <Check size={14} className="absolute inset-0 m-auto text-white drop-shadow-md" />
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Model Mode */}

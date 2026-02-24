@@ -1,4 +1,4 @@
-import { useRef, useEffect, useMemo, Suspense } from 'react';
+import React, { useRef, useEffect, useMemo, Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF, useAnimations } from '@react-three/drei';
 import * as THREE from 'three';
@@ -9,10 +9,10 @@ const MODEL_PATH = '/agents/gm.gltf';
 const ANIMATION_CYCLE = ['idle', 'walk', 'happy', 'standing_jump', 'jump_run'];
 
 interface AgentModelProps {
-  animationOffset?: number;
+  isActive: boolean;
 }
 
-function AgentModel({ animationOffset = 0 }: AgentModelProps) {
+function AgentModel({ isActive }: AgentModelProps) {
   const group = useRef<THREE.Group>(null!);
   const { scene, animations } = useGLTF(MODEL_PATH);
   const { camera } = useThree();
@@ -37,7 +37,7 @@ function AgentModel({ animationOffset = 0 }: AgentModelProps) {
     framedRef.current = true;
   }, [camera, clonedScene]);
 
-  // Play animations in sequence, looping back to start
+  // Play animations in sequence
   useEffect(() => {
     if (!mixer || Object.keys(actions).length === 0) return;
 
@@ -61,18 +61,21 @@ function AgentModel({ animationOffset = 0 }: AgentModelProps) {
       playNext();
     };
 
-    // Stagger start based on animationOffset
-    const timeout = setTimeout(() => {
-      mixer.addEventListener('finished', onFinished);
-      playNext();
-    }, animationOffset * 1000);
+    mixer.addEventListener('finished', onFinished);
+    playNext();
 
     return () => {
-      clearTimeout(timeout);
       mixer.removeEventListener('finished', onFinished);
       Object.values(actions).forEach((a) => a?.stop());
     };
-  }, [actions, mixer, animationOffset]);
+  }, [actions, mixer]);
+
+  // Speed up animation when active (agent is processing)
+  useFrame((_state, delta) => {
+    if (mixer) {
+      mixer.update(delta * (isActive ? 1.5 : 1));
+    }
+  });
 
   return (
     <group ref={group} dispose={null}>
@@ -83,35 +86,35 @@ function AgentModel({ animationOffset = 0 }: AgentModelProps) {
 
 useGLTF.preload(MODEL_PATH);
 
-interface AgentCharacterProps {
+interface AgentOrbProps {
+  color: string;
+  isActive: boolean;
   agentName: string;
-  index: number;
-  onClick: () => void;
 }
 
-export function AgentCharacter({ agentName, index, onClick }: AgentCharacterProps) {
+export const AgentOrb: React.FC<AgentOrbProps> = ({ color, isActive, agentName }) => {
   return (
-    <div
-      className="relative cursor-pointer group"
-      onClick={onClick}
-      title={agentName}
-      style={{ width: 100, height: 30 }}
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center h-full">
+          <div
+            className="w-10 h-10 rounded-full animate-pulse"
+            style={{ backgroundColor: `${color}40` }}
+          />
+        </div>
+      }
     >
-      {/* Canvas is much taller than container; negative margin pushes it up so character overflows above island */}
-      <div style={{ width: 180, height: 280, marginTop: -250 }}>
-        <Canvas
-          camera={{ fov: 38, near: 0.1, far: 100 }}
-          gl={{ alpha: true, antialias: true }}
-          style={{ background: 'transparent' }}
-          frameloop="always"
-        >
-          <ambientLight intensity={0.9} />
-          <directionalLight position={[2, 4, 3]} intensity={1.4} />
-          <Suspense fallback={null}>
-            <AgentModel animationOffset={index * 1.5} />
-          </Suspense>
-        </Canvas>
-      </div>
-    </div>
+      <Canvas
+        camera={{ fov: 38, near: 0.1, far: 100 }}
+        gl={{ alpha: true, antialias: true }}
+        style={{ background: 'transparent' }}
+        frameloop="always"
+        aria-label={`3D avatar for ${agentName}`}
+      >
+        <ambientLight intensity={0.9} />
+        <directionalLight position={[2, 4, 3]} intensity={1.4} />
+        <AgentModel isActive={isActive} />
+      </Canvas>
+    </Suspense>
   );
-}
+};

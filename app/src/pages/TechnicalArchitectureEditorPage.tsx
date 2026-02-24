@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useWorkspacePath } from '@/hooks/useWorkspacePath';
 import { useAuth } from '../contexts/AuthContext';
 import { getTechnicalArchitecture, updateTechnicalArchitecture } from '../services/technicalArchitectureService';
 import { TechnicalArchitecture } from '../types';
@@ -9,6 +10,7 @@ export const TechnicalArchitectureEditorPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const { user } = useAuth();
     const navigate = useNavigate();
+    const wp = useWorkspacePath();
     const [architecture, setArchitecture] = useState<TechnicalArchitecture | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -25,7 +27,7 @@ export const TechnicalArchitectureEditorPage: React.FC = () => {
         if (data) {
             setArchitecture(data);
         } else {
-            navigate('/technical-architectures');
+            navigate(wp('/technical-architectures'));
         }
         setLoading(false);
     };

@@ -3,6 +3,7 @@ import { Search, Plus, MoreVertical, Trash2, ArrowRight, Clock, Pencil } from 'l
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useWorkspacePath } from '@/hooks/useWorkspacePath';
 import { Diagram } from '../types';
 import { getUserDiagrams, createDiagram, deleteDiagram, updateDiagram } from '../services/diagramService';
 
@@ -50,6 +51,7 @@ const DiagramsPage: React.FC = () => {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string, title: string } | null>(null);
 
   const navigate = useNavigate();
+  const wp = useWorkspacePath();
 
   const fetchDiagrams = async () => {
     if (!user) return;
@@ -113,7 +115,7 @@ const DiagramsPage: React.FC = () => {
       if (id) {
         setCreateDialogOpen(false);
         setNewTitle("");
-        navigate(`/diagram/${id}`);
+        navigate(wp(`/diagram/${id}`));
       }
     } catch (error) {
       console.error("Failed to create diagram", error);
@@ -242,7 +244,7 @@ const DiagramsPage: React.FC = () => {
         ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {filteredDiagrams.map(diagram => (
-                    <Card key={diagram.id} className="cursor-pointer relative group h-full flex flex-col hover:shadow-md transition-all" onClick={() => navigate(`/diagram/${diagram.id}`)}>
+                    <Card key={diagram.id} className="cursor-pointer relative group h-full flex flex-col hover:shadow-md transition-all" onClick={() => navigate(wp(`/diagram/${diagram.id}`))}>
                         <CardContent className="p-4 flex flex-col gap-3 h-full">
                             <div className="flex justify-between items-start">
                                 <div className="flex-1 min-w-0 pr-2">

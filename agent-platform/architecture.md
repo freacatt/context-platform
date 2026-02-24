@@ -97,7 +97,7 @@ agent-platform/
 
 ### agents.py — Agent Management
 - CRUD operations on `agents` Firestore collection
-- `create_default_gm_agent()`: Creates General Manager agent (isDefault=true, isOrchestrator=true)
+- `create_default_gm_agent()`: Creates GM agent named "Jeana" with position "General Manager" (isDefault=true, isOrchestrator=true)
 - Agent fields: name, type (gm|custom), modelMode, modelProvider, modelName, context (system prompt), skills, appAccess, mcpServers, orchestratorConfig
 - Cannot delete default agents
 
@@ -327,6 +327,7 @@ POST /workspaces/setup {workspace_id, name}
 ### agents/{agentId}
 ```
 workspaceId, userId, name, type ("gm"|"custom")
+position (string, e.g. "General Manager"), color (hex string, e.g. "#6366f1")
 modelMode ("auto"|"manual"), modelProvider, modelName
 skills[], context (system prompt)
 isDefault, isOrchestrator

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Trash2 } from 'lucide-react';
 import { TechnicalTask } from '../../types/technicalTask';
 import { useNavigate } from 'react-router-dom';
+import { useWorkspacePath } from '@/hooks/useWorkspacePath';
 import { cn } from "@/lib/utils";
 
 interface TaskCardProps {
@@ -14,9 +15,10 @@ interface TaskCardProps {
 
 export const TaskCard: React.FC<TaskCardProps> = ({ task, onDelete }) => {
     const navigate = useNavigate();
+    const wp = useWorkspacePath();
 
     const handleClick = () => {
-        navigate(`/technical-task/${task.id}`);
+        navigate(wp(`/technical-task/${task.id}`));
     };
 
     const handleDelete = (e: React.MouseEvent) => {

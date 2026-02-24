@@ -84,6 +84,8 @@ interface AgentApiResponse {
   user_id: string;
   name: string;
   type: string;
+  position: string;
+  color: string;
   model_mode: string;
   model_provider: string | null;
   model_name: string | null;
@@ -109,6 +111,8 @@ function mapAgent(raw: AgentApiResponse): AgentConfig {
     userId: raw.user_id,
     name: raw.name,
     type: raw.type as "gm" | "custom",
+    position: raw.position || "",
+    color: raw.color || "",
     modelMode: raw.model_mode as "auto" | "manual",
     modelProvider: raw.model_provider || undefined,
     modelName: raw.model_name || undefined,
@@ -148,6 +152,12 @@ export async function setupWorkspace(
   return request<WorkspaceSetupResponse>("/workspaces/setup", {
     method: "POST",
     body: JSON.stringify({ workspace_id: workspaceId, name }),
+  });
+}
+
+export async function teardownWorkspace(workspaceId: string): Promise<void> {
+  await request<void>(`/workspaces/${encodeURIComponent(workspaceId)}/teardown`, {
+    method: "DELETE",
   });
 }
 

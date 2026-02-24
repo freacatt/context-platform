@@ -30,7 +30,9 @@ def test_get_agent(client):
     assert resp.status_code == 200
     data = resp.json()
     assert data["id"] == gm_id
-    assert data["name"] == "General Manager"
+    assert data["name"] == "Jeana"
+    assert data["position"] == "General Manager"
+    assert data["color"] == "#a855f7"
 
 
 def test_create_custom_agent(client):

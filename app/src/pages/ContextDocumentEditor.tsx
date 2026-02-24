@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useWorkspacePath } from '@/hooks/useWorkspacePath';
 import { ArrowLeft, Save, Download, ChevronDown, Folder } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getContextDocument, updateContextDocument, assignContextDocumentToDirectory } from '../services/contextDocumentService';
@@ -22,6 +23,7 @@ const ContextDocumentEditor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const documentId = id;
   const navigate = useNavigate();
+  const wp = useWorkspacePath();
   const { user } = useAuth();
   
   const [document, setDocument] = useState<ContextDocument | null>(null);
@@ -172,7 +174,7 @@ const ContextDocumentEditor: React.FC = () => {
         className="flex justify-between items-center px-6 py-3 border-b border-border bg-background shadow-sm z-10"
       >
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/context-documents')}>
+          <Button variant="ghost" size="icon" onClick={() => navigate(wp('/context-documents'))}>
             <ArrowLeft size={20} />
           </Button>
           <div>

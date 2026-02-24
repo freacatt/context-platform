@@ -43,7 +43,7 @@ app/src/
 ├── components/                 # Reusable UI components
 │   ├── ui/                     # Generic Shadcn primitives (button, card, dialog, accordion, etc.)
 │   ├── ai-elements/            # Conversation, Message, PromptInput components
-│   ├── AgentIsland/            # 3D agent bar (React Three Fiber)
+│   ├── AgentIsland/            # Floating agent bar with chat modal
 │   ├── AgentSettings/          # AgentConfigModal
 │   ├── Board/                  # PyramidBoard, Block, BlockModal
 │   ├── Chat/                   # (reserved for future chat components)
@@ -188,44 +188,47 @@ pyramids, productDefinitions, contextDocuments, directories, uiUxArchitectures, 
 | Path | Page | Description |
 |------|------|-------------|
 | `/workspaces` | WorkspacesPage | Workspace list and creation |
-| `/workspace/:id/dashboard` | Dashboard | Main app selector (8 categories) |
+
+All workspace-scoped routes are nested under `/:workspaceId` using a `WorkspaceRouteSync` layout route that syncs the URL workspace ID to context.
+
+| `/:workspaceId/dashboard` | Dashboard | Main app selector (8 categories) |
 
 #### Problem Solving, Thinking and Planning (bg-indigo-600)
 | Path | Page | Description |
 |------|------|-------------|
-| `/pyramids` | PyramidsPage | Pyramid list |
-| `/pyramid/:id` | PyramidEditor | 8x8 grid editor |
-| `/diagrams` | DiagramsPage | Diagram list |
-| `/diagram/:id` | DiagramEditor | ReactFlow visual editor |
+| `/:workspaceId/pyramids` | PyramidsPage | Pyramid list |
+| `/:workspaceId/pyramid/:id` | PyramidEditor | 8x8 grid editor |
+| `/:workspaceId/diagrams` | DiagramsPage | Diagram list |
+| `/:workspaceId/diagram/:id` | DiagramEditor | ReactFlow visual editor |
 
 #### Product Design & Management (bg-teal-600 / bg-pink-600)
 | Path | Page | Description |
 |------|------|-------------|
-| `/product-definitions` | ProductDefinitionsPage | Product def list |
-| `/product-definition/:id` | ProductDefinitionEditor | Hierarchical mindmap editor |
-| `/ui-ux-architectures` | UiUxArchitecturesPage | UI/UX list |
-| `/ui-ux-architecture/:id` | UiUxArchitectureEditorPage | Theme/component/page editor |
+| `/:workspaceId/product-definitions` | ProductDefinitionsPage | Product def list |
+| `/:workspaceId/product-definition/:id` | ProductDefinitionEditor | Hierarchical mindmap editor |
+| `/:workspaceId/ui-ux-architectures` | UiUxArchitecturesPage | UI/UX list |
+| `/:workspaceId/ui-ux-architecture/:id` | UiUxArchitectureEditorPage | Theme/component/page editor |
 
 #### Knowledge Base (bg-amber-600)
 | Path | Page | Description |
 |------|------|-------------|
-| `/context-documents` | ContextDocumentsPage | Document list |
-| `/context-document/:id` | ContextDocumentEditor | Rich text editor |
-| `/directory/:id` | DirectoryDocumentsPage | Directory contents |
+| `/:workspaceId/context-documents` | ContextDocumentsPage | Document list |
+| `/:workspaceId/context-document/:id` | ContextDocumentEditor | Rich text editor |
+| `/:workspaceId/directory/:id` | DirectoryDocumentsPage | Directory contents |
 
 #### Technical (bg-purple-600 / bg-blue-600)
 | Path | Page | Description |
 |------|------|-------------|
-| `/technical-architectures` | TechnicalArchitecturesPage | Architecture list |
-| `/technical-architecture/:id` | TechnicalArchitectureEditorPage | Architecture editor |
-| `/technical-tasks` | TechnicalTaskBoard | Kanban board |
-| `/technical-task/:id` | TechnicalTaskDetail | Task detail view |
+| `/:workspaceId/technical-architectures` | TechnicalArchitecturesPage | Architecture list |
+| `/:workspaceId/technical-architecture/:id` | TechnicalArchitectureEditorPage | Architecture editor |
+| `/:workspaceId/technical-tasks` | TechnicalTaskBoard | Kanban board |
+| `/:workspaceId/technical-task/:id` | TechnicalTaskDetail | Task detail view |
 
 #### AI Apps (bg-violet-600)
 | Path | Page | Description |
 |------|------|-------------|
-| `/ai-chat` | AiChatPage | Session-based AI chat |
-| `/workspace/:id/ai-settings` | AiSettingsPage | Agent configuration |
+| `/:workspaceId/ai-chat` | AiChatPage | Session-based AI chat |
+| `/:workspaceId/ai-settings` | AiSettingsPage | Agent configuration |
 
 ---
 
@@ -445,34 +448,39 @@ agents, sessions — writes via Admin SDK (bypasses rules)
 
 ## Agent Island (3D Agent Bar)
 
-Global floating bar at center-bottom of all authenticated pages displaying workspace agents as interactive 3D characters.
+Floating glassmorphism bar at center-bottom of workspace pages. Agents rendered as blur-styled buttons with name, position, and color. Clicking an agent opens a per-agent chat modal.
 
 ### Component Tree
 ```
 AuthenticatedLayout
   └── AgentIsland (fixed bottom-center, glassmorphism)
-        └── React.lazy → AgentCharacter × N
-              └── <Canvas> (R3F)
-                    └── AgentModel (GLTF + animation cycling)
+        ├── AgentButton × N (blur/glass styled, color accent)
+        ├── "All Agents" button → /ai-chat
+        ├── "AI Settings" button → /ai-settings
+        └── AgentChatModal (Dialog with chat session)
+              └── useAgentChat hook (shared with AiChatPage)
 ```
 
 ### Files
 | File | Purpose |
 |------|---------|
-| `components/AgentIsland/AgentIsland.tsx` | Container: glassmorphism bar, lazy loading, route-based visibility |
-| `components/AgentIsland/AgentCharacter.tsx` | Per-agent 3D Canvas with GLTF model and animation cycling |
+| `components/AgentIsland/AgentIsland.tsx` | Container: glassmorphism bar, visibility logic, modal state |
+| `components/AgentIsland/AgentButton.tsx` | Per-agent blur/glass button with color, name, position, status badge |
+| `components/AgentIsland/AgentChatModal.tsx` | Dialog with session sidebar + chat area for a specific agent |
 | `components/AgentIsland/useAgentIslandAgents.ts` | Hook: fetches agents via `getAgents(workspaceId)` |
+| `components/AgentIsland/useAgentLastSessionStatus.ts` | Hook: fetches last session status per agent |
+| `hooks/useAgentChat.ts` | Extracted chat logic shared between AgentChatModal and AiChatPage |
+| `lib/agent-colors.ts` | Color palette (12 colors) + `getRandomAgentColor()` helper |
 
-### 3D Stack
-- **@react-three/fiber**: React renderer for Three.js
-- **@react-three/drei**: `useGLTF` (GLTF/Draco loading), `useAnimations` (clip management)
-- **Model**: `public/agents/gm.gltf` — shared model for all agents (Draco-compressed)
-- **Animations**: `idle`, `walk`, `happy`, `sad`, `standing_jump`, `jump_run`, `running`
+### Agent Data Model (new fields)
+- `position: string` — Agent role (e.g., "General Manager", "Designer")
+- `color: string` — Hex color from palette, used for button accent
+- Default GM agent: name "Jeana", position "General Manager", color "#6366f1"
 
 ### Behavior
-- Each agent rendered as a separate `<Canvas>` with transparent background
-- Characters overflow above the island container (upper body/head sticks out)
-- Animation cycle: `idle` → `walk` → `happy` with crossfade, staggered per agent
-- Click navigates to `/ai-chat`
-- Hidden on `/ai-chat` page, max 6 visible agents with "+N" overflow badge
-- Lazy-loaded to keep Three.js out of the initial JS bundle
+- Max 5 agents visible, configurable via `workspace.islandAgentIds` in AI Settings
+- Click agent → opens `AgentChatModal` (not navigation)
+- Right-side buttons: "All Agents" (→ /ai-chat), "AI Settings" (→ /ai-settings)
+- Status badge on agent buttons: green pulse = active session, amber = paused, none = no session
+- Hidden on `/ai-chat` page and `/workspaces` page
+- Context awareness: modal uses `useCurrentPageContext` to pass page context to agent

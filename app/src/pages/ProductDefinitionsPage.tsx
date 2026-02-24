@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { getUserProductDefinitions, createProductDefinition, deleteProductDefinition, renameProductDefinition } from '../services/productDefinitionService';
 import { useNavigate } from 'react-router-dom';
+import { useWorkspacePath } from '@/hooks/useWorkspacePath';
 import { ProductDefinition } from '../types';
 
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,7 @@ const ProductDefinitionsPage: React.FC = () => {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const navigate = useNavigate();
+  const wp = useWorkspacePath();
   const [definitions, setDefinitions] = useState<ProductDefinition[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -109,7 +111,7 @@ const ProductDefinitionsPage: React.FC = () => {
       setIsCreateOpen(false);
       setNewTitle('');
       setSelectedTemplateId(DEFAULT_PRODUCT_DEFINITION_TEMPLATE_ID);
-      navigate(`/product-definition/${id}`);
+      navigate(wp(`/product-definition/${id}`));
     } catch (error) {
       console.error(error);
       alert("Failed to create definition");
@@ -311,7 +313,7 @@ const ProductDefinitionsPage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredDefinitions.map(def => (
                     <Card key={def.id} className="hover:shadow-md transition-shadow border-l-4 border-l-teal-500 flex flex-col">
-                        <div className="flex-grow cursor-pointer p-0" onClick={() => navigate(`/product-definition/${def.id}`)}>
+                        <div className="flex-grow cursor-pointer p-0" onClick={() => navigate(wp(`/product-definition/${def.id}`))}>
                             <CardContent className="p-3">
                                 <div className="flex flex-col gap-2">
                                     <h3 className="font-semibold text-lg truncate">{def.title}</h3>

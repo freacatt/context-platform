@@ -42,7 +42,7 @@ const Navbar: React.FC = () => {
     <div className="sticky top-0 z-50 px-6 py-3 bg-white/80 backdrop-blur-md shadow-md border-b">
       <div className="flex justify-between items-center max-w-[1920px] mx-auto">
         <div className="flex gap-4 items-center">
-            <Link to={currentWorkspace ? `/workspace/${currentWorkspace.id}/dashboard` : '/workspaces'} className="no-underline text-black cursor-pointer flex items-center gap-2">
+            <Link to={currentWorkspace ? `/${currentWorkspace.id}/dashboard` : '/workspaces'} className="no-underline text-black cursor-pointer flex items-center gap-2">
                 <span className="text-xl font-bold text-gray-900 hover:text-indigo-600 transition-colors cursor-pointer">
                     Context Platform
                 </span>

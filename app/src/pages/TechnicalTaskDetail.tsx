@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useWorkspacePath } from '@/hooks/useWorkspacePath';
 import { useAuth } from '../contexts/AuthContext';
 import { getTechnicalTask } from '../services/technicalTaskService';
 import { TechnicalTask } from '../types/technicalTask';
@@ -9,6 +10,7 @@ export const TechnicalTaskDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const { user } = useAuth();
     const navigate = useNavigate();
+    const wp = useWorkspacePath();
     const [task, setTask] = useState<TechnicalTask | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -26,7 +28,7 @@ export const TechnicalTaskDetail: React.FC = () => {
             if (found) {
                 setTask(found);
             } else {
-                navigate('/technical-tasks');
+                navigate(wp('/technical-tasks'));
             }
         } catch (error) {
             console.error("Failed to load task", error);

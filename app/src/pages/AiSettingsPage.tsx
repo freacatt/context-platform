@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
+import { Checkbox } from '../components/ui/checkbox';
 import { Loader2, Plus, Bot, Settings, Trash2, Shield, Network, Server } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/ui/delete-confirm-dialog';
 
@@ -39,6 +40,10 @@ const AiSettingsPage: React.FC = () => {
   // Agent assignments
   const [recommendationAgentId, setRecommendationAgentId] = useState('');
   const [chatAgentId, setChatAgentId] = useState('');
+
+  // Island agent IDs
+  const [islandAgentIds, setIslandAgentIds] = useState<string[]>([]);
+  const [savingIsland, setSavingIsland] = useState(false);
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -70,6 +75,13 @@ const AiSettingsPage: React.FC = () => {
     if (currentWorkspace) {
       setRecommendationAgentId(currentWorkspace.aiRecommendationAgentId || currentWorkspace.gmAgentId || '');
       setChatAgentId(currentWorkspace.aiChatAgentId || currentWorkspace.gmAgentId || '');
+      // Default: if no island agents configured, pre-select the GM agent
+      const saved = currentWorkspace.islandAgentIds || [];
+      if (saved.length === 0 && currentWorkspace.gmAgentId) {
+        setIslandAgentIds([currentWorkspace.gmAgentId]);
+      } else {
+        setIslandAgentIds(saved);
+      }
     }
   }, [currentWorkspace]);
 
@@ -117,6 +129,8 @@ const AiSettingsPage: React.FC = () => {
 
   const handleModalSave = async (data: {
     name: string;
+    position: string;
+    color: string;
     model_mode: string;
     model_provider?: string;
     model_name?: string;
@@ -130,6 +144,8 @@ const AiSettingsPage: React.FC = () => {
         await apiCreateAgent({
           workspace_id: currentWorkspace.id,
           name: data.name,
+          position: data.position,
+          color: data.color,
           model_mode: data.model_mode,
           model_provider: data.model_provider,
           model_name: data.model_name,
@@ -142,6 +158,8 @@ const AiSettingsPage: React.FC = () => {
       } else if (selectedAgent) {
         await apiUpdateAgent(selectedAgent.id, {
           name: data.name,
+          position: data.position,
+          color: data.color,
           model_mode: data.model_mode,
           model_provider: data.model_provider,
           model_name: data.model_name,
@@ -155,7 +173,31 @@ const AiSettingsPage: React.FC = () => {
       await loadAgents();
     } catch (error: any) {
       showAlert({ type: 'error', title: 'Error', message: error?.message || 'Failed to save agent' });
-      throw error; // re-throw so modal stays open
+      throw error;
+    }
+  };
+
+  const handleToggleIslandAgent = (agentId: string) => {
+    setIslandAgentIds((prev) => {
+      if (prev.includes(agentId)) {
+        return prev.filter((id) => id !== agentId);
+      }
+      if (prev.length >= 5) return prev;
+      return [...prev, agentId];
+    });
+  };
+
+  const handleSaveIslandConfig = async () => {
+    if (!currentWorkspace?.id) return;
+    setSavingIsland(true);
+    try {
+      await updateWorkspaceAgentSettings(currentWorkspace.id, { islandAgentIds });
+      await refreshWorkspaces();
+      showAlert({ type: 'success', title: 'Saved', message: 'Agent Island configuration updated.' });
+    } catch (error: any) {
+      showAlert({ type: 'error', title: 'Error', message: error?.message || 'Failed to save island config' });
+    } finally {
+      setSavingIsland(false);
     }
   };
 
@@ -246,6 +288,48 @@ const AiSettingsPage: React.FC = () => {
         </CardContent>
       </Card>
 
+      {/* Agent Island Configuration */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle className="text-lg">Agent Island</CardTitle>
+          <CardDescription>Choose which agents appear in the floating island bar (max 5).</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {agents.map((agent) => (
+            <label
+              key={agent.id}
+              className="flex items-center gap-3 cursor-pointer"
+            >
+              <Checkbox
+                checked={islandAgentIds.includes(agent.id)}
+                onCheckedChange={() => handleToggleIslandAgent(agent.id)}
+                disabled={!islandAgentIds.includes(agent.id) && islandAgentIds.length >= 5}
+              />
+              <div
+                className="w-3 h-3 rounded-full shrink-0"
+                style={{ backgroundColor: agent.color || '#6366f1' }}
+              />
+              <span className="text-sm font-medium">{agent.name}</span>
+              {agent.position && (
+                <span className="text-xs text-muted-foreground">· {agent.position}</span>
+              )}
+            </label>
+          ))}
+          {agents.length === 0 && (
+            <p className="text-sm text-muted-foreground italic">No agents available.</p>
+          )}
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-xs text-muted-foreground">
+              {islandAgentIds.length}/5 selected
+            </span>
+            <Button onClick={handleSaveIslandConfig} disabled={savingIsland} size="sm">
+              {savingIsland && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Island Config
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Agents List */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold">Agents</h2>
@@ -264,12 +348,15 @@ const AiSettingsPage: React.FC = () => {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base flex items-center gap-2">
-                  {agent.isDefault ? (
-                    <Shield className="h-4 w-4 text-violet-600" />
-                  ) : (
-                    <Bot className="h-4 w-4 text-muted-foreground" />
-                  )}
+                  <div
+                    className="w-3 h-3 rounded-full shrink-0"
+                    style={{ backgroundColor: agent.color || '#6366f1' }}
+                  />
+                  {agent.isDefault && <Shield className="h-3.5 w-3.5 text-violet-600" />}
                   {agent.name}
+                  {agent.position && (
+                    <span className="text-xs font-normal text-muted-foreground">· {agent.position}</span>
+                  )}
                 </CardTitle>
                 {!agent.isDefault && (
                   <Button

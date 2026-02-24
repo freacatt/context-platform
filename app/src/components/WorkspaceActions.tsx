@@ -53,7 +53,7 @@ export const WorkspaceActions: React.FC = () => {
       toast.success("Workspace imported successfully");
       
       // Navigate to the new workspace dashboard
-      navigate(`/workspace/${newWorkspaceId}/dashboard`);
+      navigate(`/${newWorkspaceId}/dashboard`);
       
     } catch (error) {
       console.error("Import failed:", error);

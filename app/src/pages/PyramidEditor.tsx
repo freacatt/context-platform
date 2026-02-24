@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useWorkspacePath } from '@/hooks/useWorkspacePath';
 import PyramidBoard from '../components/Board/PyramidBoard';
 import { ArrowLeft, Download } from 'lucide-react';
 import { getPyramid, updatePyramidContextSources } from '../services/pyramidService';
@@ -20,6 +21,7 @@ import {
 const PyramidEditor: React.FC = () => {
   const { pyramidId } = useParams<{ pyramidId: string }>();
   const navigate = useNavigate();
+  const wp = useWorkspacePath();
   const { currentWorkspace } = useWorkspace();
   const [currentPyramid, setCurrentPyramid] = useState<Pyramid | null>(null);
   
@@ -86,7 +88,7 @@ const PyramidEditor: React.FC = () => {
     <div className="h-full bg-muted/20 flex flex-col">
       <div className="container mx-auto p-4 pb-2">
         <div className="flex justify-between items-center mb-4">
-            <Button variant="ghost" onClick={() => navigate(currentWorkspace ? `/workspace/${currentWorkspace.id}/dashboard` : '/workspaces')} className="hover:bg-muted">
+            <Button variant="ghost" onClick={() => navigate(wp('/dashboard'))} className="hover:bg-muted">
                 <ArrowLeft size={16} className="mr-2" /> Back to Dashboard
             </Button>
             {/* Global Context is now in Navbar */}

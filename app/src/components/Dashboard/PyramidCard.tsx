@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Clock, ArrowRight, Trash2, MoreVertical, Copy, Edit2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useWorkspacePath } from '@/hooks/useWorkspacePath';
 import { Pyramid } from '../../types';
 
 interface PyramidCardProps {
@@ -21,9 +22,10 @@ interface PyramidCardProps {
 
 const PyramidCard: React.FC<PyramidCardProps> = ({ pyramid, onDelete, onDuplicate, onRename }) => {
   const navigate = useNavigate();
+  const wp = useWorkspacePath();
 
   const handleOpen = () => {
-    navigate(`/pyramid/${pyramid.id}`);
+    navigate(wp(`/pyramid/${pyramid.id}`));
   };
 
   const handleDelete = () => {

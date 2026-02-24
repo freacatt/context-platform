@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useWorkspacePath } from '@/hooks/useWorkspacePath';
 import { Plus, Trash2, FileText, Search, Edit2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { UiUxArchitecture } from '../types/uiUxArchitecture';
@@ -26,6 +27,7 @@ export const UiUxArchitecturesPage: React.FC = () => {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const navigate = useNavigate();
+  const wp = useWorkspacePath();
   const [architectures, setArchitectures] = useState<UiUxArchitecture[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -68,7 +70,7 @@ export const UiUxArchitecturesPage: React.FC = () => {
       if (id) {
         setIsCreateOpen(false);
         setNewTitle('');
-        navigate(`/ui-ux-architecture/${id}`);
+        navigate(wp(`/ui-ux-architecture/${id}`));
       }
     } catch (error) {
         console.error(error);
@@ -202,7 +204,7 @@ export const UiUxArchitecturesPage: React.FC = () => {
               <Card 
                 key={arch.id} 
                 className="cursor-pointer hover:bg-muted/50 transition-colors flex flex-col"
-                onClick={() => navigate(`/ui-ux-architecture/${arch.id}`)}
+                onClick={() => navigate(wp(`/ui-ux-architecture/${arch.id}`))}
               >
                 <CardContent className="p-4 flex flex-col gap-2 h-full">
                   <div className="flex justify-between items-start">

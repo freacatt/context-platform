@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import ReactFlow, { Background, Controls, addEdge, Connection, Edge, Node, NodeMouseHandler, OnConnect, OnEdgesChange, OnNodesChange, Panel, ReactFlowProvider, useEdgesState, useNodesState, useReactFlow } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useWorkspacePath } from '@/hooks/useWorkspacePath';
 import { getDiagram, updateDiagram } from '../services/diagramService';
 import DiagramNode from '../components/Diagram/DiagramNode';
 import DiagramBlockModal from '../components/Diagram/DiagramBlockModal';
@@ -30,6 +31,7 @@ const defaultNodeData: DiagramNodeData = {
 
 const DiagramEditorContent: React.FC = () => {
   const navigate = useNavigate();
+  const wp = useWorkspacePath();
   const { id } = useParams<{ id: string }>();
   const { currentWorkspace } = useWorkspace();
   const { getNodes, getEdges } = useReactFlow();
@@ -376,7 +378,7 @@ const DiagramEditorContent: React.FC = () => {
 
         <Panel position="top-left">
           <div className="bg-background/80 backdrop-blur p-2 rounded-lg shadow border flex gap-3 items-center">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/diagrams')} className="h-8 w-8">
+            <Button variant="ghost" size="icon" onClick={() => navigate(wp('/diagrams'))} className="h-8 w-8">
               <ArrowLeft size={16} />
             </Button>
             {editingTitle ? (

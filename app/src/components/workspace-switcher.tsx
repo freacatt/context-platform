@@ -29,7 +29,7 @@ export function WorkspaceSwitcher() {
     if (workspace) {
       setCurrentWorkspace(workspace)
       // Navigate to dashboard of the new workspace
-      navigate(`/workspace/${workspace.id}/dashboard`)
+      navigate(`/${workspace.id}/dashboard`)
     }
   }
 

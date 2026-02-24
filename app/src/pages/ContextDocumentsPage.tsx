@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getUserContextDocuments, createContextDocument, deleteContextDocument, renameContextDocument, assignContextDocumentToDirectory } from '../services/contextDocumentService';
 import { getUserDirectories, createDirectory, renameDirectory, deleteDirectory } from '../services/directoryService';
 import { Link, useNavigate } from 'react-router-dom';
+import { useWorkspacePath } from '@/hooks/useWorkspacePath';
 import { ContextDocument } from '../types';
 
 import { useWorkspace } from '../contexts/WorkspaceContext';
@@ -33,6 +34,7 @@ const ContextDocumentsPage: React.FC = () => {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const navigate = useNavigate();
+  const wp = useWorkspacePath();
   const [documents, setDocuments] = useState<ContextDocument[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -93,7 +95,7 @@ const ContextDocumentsPage: React.FC = () => {
           setIsCreateOpen(false);
           setNewTitle('');
           if (id) {
-              navigate(`/context-document/${id}`);
+              navigate(wp(`/context-document/${id}`));
           }
       } catch (error) {
           console.error(error);
@@ -315,7 +317,7 @@ const ContextDocumentsPage: React.FC = () => {
                     <Button 
                       variant="ghost" 
                       className="cursor-pointer hover:bg-transparent px-3 text-indigo-700 dark:text-indigo-300 hover:text-indigo-800 dark:hover:text-indigo-200 h-9"
-                      onClick={() => navigate(`/directory/${dir.id}`)}
+                      onClick={() => navigate(wp(`/directory/${dir.id}`))}
                     >
                       <Folder size={14} className="mr-2" /> {dir.title}
                     </Button>
@@ -344,7 +346,7 @@ const ContextDocumentsPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredDocuments.map(doc => (
                 <Card key={doc.id} className="hover:shadow-md transition-shadow flex flex-col">
-                    <Link to={`/context-document/${doc.id}`} className="block flex-grow">
+                    <Link to={wp(`/context-document/${doc.id}`)} className="block flex-grow">
                         <CardContent className="p-3 pb-0 flex flex-col h-full justify-between">
                             <div>
                                 <div className="flex items-center gap-2 mb-2">

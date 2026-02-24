@@ -1,6 +1,6 @@
 import { ThemeProvider } from "@/components/theme-provider"
 import { GlobalShaderOverlay } from "@/components/ui/global-shader-overlay"
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { GlobalProvider } from './contexts/GlobalContext';
 import { AlertProvider } from './contexts/AlertContext';
@@ -32,21 +32,28 @@ import AiChatPage from './pages/AiChatPage';
 import AiSettingsPage from './pages/AiSettingsPage';
 
 import AuthenticatedLayout from './components/Layout/AuthenticatedLayout';
+import { WorkspaceRouteSync } from './components/Layout/WorkspaceRouteSync';
 import { PWAProvider } from './contexts/PWAContext';
 import { PWAPrompt } from './components/PWA/PWAPrompt';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading, isGuest } = useAuth();
-  
-  if (loading) return null; // Or a loading spinner
+
+  if (loading) return null;
   if (!user && !isGuest) return <Navigate to="/login" />;
-  
+
   return (
     <AuthenticatedLayout>
       {children}
     </AuthenticatedLayout>
   );
 };
+
+// Backward compat redirect: /workspace/:workspaceId/* -> /:workspaceId/*
+function WorkspaceRedirect() {
+  const { workspaceId, '*': rest } = useParams();
+  return <Navigate to={`/${workspaceId}/${rest || 'dashboard'}`} replace />;
+}
 
 function App() {
   return (
@@ -60,193 +67,48 @@ function App() {
                   <PWAProvider>
                 <GlobalShaderOverlay />
                 <Routes>
+                  {/* Public Routes */}
                   <Route path="/" element={<LandingPage />} />
-                <Route path="/docs" element={<DocsPage />} />
-                <Route path="/about" element={<AboutPage />} />
-                <Route path="/features" element={<FeaturesPage />} />
-                <Route path="/login" element={<LoginPage />} />
-                
-                {/* Workspaces List (Default after login) */}
-                <Route 
-                  path="/workspaces" 
-                  element={
-                    <ProtectedRoute>
-                      <WorkspacesPage />
-                    </ProtectedRoute>
-                  } 
-                />
+                  <Route path="/docs" element={<DocsPage />} />
+                  <Route path="/about" element={<AboutPage />} />
+                  <Route path="/features" element={<FeaturesPage />} />
+                  <Route path="/login" element={<LoginPage />} />
 
-                {/* Main Dashboard (Tool Selection) */}
-                <Route 
-                  path="/workspace/:workspaceId/dashboard" 
-                  element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  } 
-                />
+                  {/* Workspaces List */}
+                  <Route
+                    path="/workspaces"
+                    element={
+                      <ProtectedRoute>
+                        <WorkspacesPage />
+                      </ProtectedRoute>
+                    }
+                  />
 
-              {/* Pyramid Tool Routes */}
-              <Route 
-                path="/pyramids" 
-                element={
-                  <ProtectedRoute>
-                    <PyramidsPage />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Diagram Tool Routes */}
-              <Route 
-                path="/diagrams" 
-                element={
-                  <ProtectedRoute>
-                    <DiagramsPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/diagram/:id" 
-                element={
-                  <ProtectedRoute>
-                    <DiagramEditorPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/pyramid/:pyramidId" 
-                element={
-                  <ProtectedRoute>
-                    <PyramidEditor />
-                  </ProtectedRoute>
-                } 
-              />
+                  {/* Backward compat: /workspace/:workspaceId/* -> /:workspaceId/* */}
+                  <Route path="/workspace/:workspaceId/*" element={<WorkspaceRedirect />} />
 
-              {/* Product Definition Tool Routes */}
-              <Route 
-                path="/product-definitions" 
-                element={
-                  <ProtectedRoute>
-                    <ProductDefinitionsPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/product-definition/:id" 
-                element={
-                  <ProtectedRoute>
-                    <ProductDefinitionEditor />
-                  </ProtectedRoute>
-                } 
-              />
-
-              {/* Context & Documents Routes */}
-              <Route 
-                path="/context-documents" 
-                element={
-                  <ProtectedRoute>
-                    <ContextDocumentsPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/context-document/:id" 
-                element={
-                  <ProtectedRoute>
-                    <ContextDocumentEditor />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/context-documents/:id" 
-                element={
-                  <ProtectedRoute>
-                    <ContextDocumentEditor />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/directory/:id" 
-                element={
-                  <ProtectedRoute>
-                    <DirectoryDocumentsPage />
-                  </ProtectedRoute>
-                } 
-              />
-
-              {/* Technical Architecture Routes */}
-              <Route 
-                path="/technical-architectures" 
-                element={
-                  <ProtectedRoute>
-                    <TechnicalArchitecturesPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/technical-architecture/:id" 
-                element={
-                  <ProtectedRoute>
-                    <TechnicalArchitectureEditorPage />
-                  </ProtectedRoute>
-                } 
-              />
-
-              {/* Technical Tasks Routes */}
-              <Route 
-                path="/technical-tasks" 
-                element={
-                  <ProtectedRoute>
-                    <TechnicalTaskBoard />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/technical-task/:id" 
-                element={
-                  <ProtectedRoute>
-                    <TechnicalTaskDetail />
-                  </ProtectedRoute>
-                } 
-              />
-
-              {/* UI/UX Architecture Routes */}
-              <Route 
-                path="/ui-ux-architectures" 
-                element={
-                  <ProtectedRoute>
-                    <UiUxArchitecturesPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/ui-ux-architecture/:id" 
-                element={
-                  <ProtectedRoute>
-                    <UiUxArchitectureEditorPage />
-                  </ProtectedRoute>
-                } 
-              />
-
-               {/* AI Assistant Route */}
-               <Route
-                path="/ai-chat"
-                element={
-                  <ProtectedRoute>
-                    <AiChatPage />
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* AI Settings Route */}
-              <Route
-                path="/workspace/:workspaceId/ai-settings"
-                element={
-                  <ProtectedRoute>
-                    <AiSettingsPage />
-                  </ProtectedRoute>
-                }
-              />
+                  {/* All workspace-scoped routes */}
+                  <Route path="/:workspaceId" element={<ProtectedRoute><WorkspaceRouteSync /></ProtectedRoute>}>
+                    <Route path="dashboard" element={<Dashboard />} />
+                    <Route path="ai-chat" element={<AiChatPage />} />
+                    <Route path="ai-settings" element={<AiSettingsPage />} />
+                    <Route path="pyramids" element={<PyramidsPage />} />
+                    <Route path="pyramid/:pyramidId" element={<PyramidEditor />} />
+                    <Route path="diagrams" element={<DiagramsPage />} />
+                    <Route path="diagram/:id" element={<DiagramEditorPage />} />
+                    <Route path="product-definitions" element={<ProductDefinitionsPage />} />
+                    <Route path="product-definition/:id" element={<ProductDefinitionEditor />} />
+                    <Route path="context-documents" element={<ContextDocumentsPage />} />
+                    <Route path="context-document/:id" element={<ContextDocumentEditor />} />
+                    <Route path="context-documents/:id" element={<ContextDocumentEditor />} />
+                    <Route path="directory/:id" element={<DirectoryDocumentsPage />} />
+                    <Route path="technical-architectures" element={<TechnicalArchitecturesPage />} />
+                    <Route path="technical-architecture/:id" element={<TechnicalArchitectureEditorPage />} />
+                    <Route path="technical-tasks" element={<TechnicalTaskBoard />} />
+                    <Route path="technical-task/:id" element={<TechnicalTaskDetail />} />
+                    <Route path="ui-ux-architectures" element={<UiUxArchitecturesPage />} />
+                    <Route path="ui-ux-architecture/:id" element={<UiUxArchitectureEditorPage />} />
+                  </Route>
                 </Routes>
                 <PWAPrompt />
                 </PWAProvider>

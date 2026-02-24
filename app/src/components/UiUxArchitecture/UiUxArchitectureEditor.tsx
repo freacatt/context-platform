@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, Save, Download, ArrowLeft, Pencil, Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useWorkspacePath } from '@/hooks/useWorkspacePath';
 import { v4 as uuidv4 } from 'uuid';
 
 import { UiUxArchitecture, Page, BaseComponent, ThemeSpecification } from '../../types/uiUxArchitecture';
@@ -45,6 +46,7 @@ interface UiUxArchitectureEditorProps {
 
 const UiUxArchitectureEditorContent: React.FC<UiUxArchitectureEditorProps> = ({ architecture: initialArch }) => {
   const navigate = useNavigate();
+  const wp = useWorkspacePath();
   const [architecture, setArchitecture] = useState<UiUxArchitecture>(initialArch);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -461,7 +463,7 @@ const UiUxArchitectureEditorContent: React.FC<UiUxArchitectureEditorProps> = ({ 
           
           <Panel position="top-left">
             <div className="flex gap-3 items-center bg-background/80 backdrop-blur-sm p-2 rounded-lg border border-border shadow-sm">
-                <Button variant="ghost" onClick={() => navigate('/ui-ux-architectures')}>
+                <Button variant="ghost" onClick={() => navigate(wp('/ui-ux-architectures'))}>
                     <ArrowLeft size={16} className="mr-2" /> Back
                 </Button>
                 

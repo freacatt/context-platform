@@ -3,6 +3,7 @@ import { Search, Plus, Server, Trash2, Edit2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserTechnicalArchitectures, createTechnicalArchitecture, deleteTechnicalArchitecture, renameTechnicalArchitecture } from '../services/technicalArchitectureService';
 import { useNavigate } from 'react-router-dom';
+import { useWorkspacePath } from '@/hooks/useWorkspacePath';
 import { TechnicalArchitecture } from '../types';
 
 import { useWorkspace } from '../contexts/WorkspaceContext';
@@ -27,6 +28,7 @@ export const TechnicalArchitecturesPage: React.FC = () => {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const navigate = useNavigate();
+  const wp = useWorkspacePath();
   const [architectures, setArchitectures] = useState<TechnicalArchitecture[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -70,7 +72,7 @@ export const TechnicalArchitecturesPage: React.FC = () => {
           setNewTitle('');
           // Navigate to editor
           if (id) {
-            navigate(`/technical-architecture/${id}`);
+            navigate(wp(`/technical-architecture/${id}`));
           }
       } catch (error) {
           console.error(error);
@@ -202,7 +204,7 @@ export const TechnicalArchitecturesPage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredArchitectures.map(arch => (
                     <Card key={arch.id} className="hover:shadow-md transition-shadow border-l-4 border-l-purple-500 flex flex-col">
-                        <div className="flex-grow cursor-pointer p-0" onClick={() => navigate(`/technical-architecture/${arch.id}`)}>
+                        <div className="flex-grow cursor-pointer p-0" onClick={() => navigate(wp(`/technical-architecture/${arch.id}`))}>
                             <CardContent className="p-3">
                                 <div className="flex flex-col gap-2">
                                     <h3 className="font-semibold text-lg truncate">{arch.title}</h3>

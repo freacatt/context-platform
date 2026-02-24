@@ -1,17 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import React, { useState } from 'react';
 import { useGlobalContext } from '../contexts/GlobalContext';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { useAlert } from '../contexts/AlertContext';
-import {
-  listSessions,
-  getSession,
-  createSession,
-  sendSessionMessage,
-  updateSessionStatus,
-  deleteSession,
-} from '../services/agentPlatformClient';
-import type { SessionListItem, SessionMessage, ToolCallTrace } from '../types/session';
+import { useAgentChat } from '../hooks/useAgentChat';
+import type { ToolCallTrace } from '../types/session';
 import { Plus, MessageSquare, Trash2, Bot, PanelLeftClose, PanelLeftOpen, Wrench, ChevronDown, ChevronRight, MessageCircle } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -69,72 +61,44 @@ const ToolCallBlock: React.FC<{ toolCalls: ToolCallTrace[] }> = ({ toolCalls }) 
 };
 
 const AiChatPage: React.FC = () => {
-  const { user } = useAuth();
   const { aggregatedContext: globalContext } = useGlobalContext();
   const { currentWorkspace } = useWorkspace();
   const { showAlert } = useAlert();
 
-  const [messages, setMessages] = useState<SessionMessage[]>([]);
-  const [sessions, setSessions] = useState<SessionListItem[]>([]);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  const [isRunning, setIsRunning] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [lastToolCalls, setLastToolCalls] = useState<ToolCallTrace[]>([]);
-  const [chatOnly, setChatOnly] = useState(false);
 
   // Delete State
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
 
-  // Load sessions from server
-  const loadSessions = useCallback(async () => {
-    if (!currentWorkspace?.id) return;
-    try {
-      const agentId = currentWorkspace.aiChatAgentId || currentWorkspace.gmAgentId || "";
-      const result = await listSessions(currentWorkspace.id, agentId, "active");
-      setSessions(result);
-    } catch (error: any) {
-      console.error("Failed to load sessions:", error);
+  const agentId = currentWorkspace?.aiChatAgentId || currentWorkspace?.gmAgentId || '';
+
+  const {
+    sessions,
+    messages,
+    activeSessionId,
+    setActiveSessionId,
+    isRunning,
+    lastToolCalls,
+    chatOnly,
+    setChatOnly,
+    handleNewChat,
+    handleSendMessage,
+    handleDeleteSession,
+  } = useAgentChat({
+    workspaceId: currentWorkspace?.id,
+    agentId,
+    globalContext: globalContext || undefined,
+  });
+
+  const onSend = async ({ text }: { text: string }) => {
+    const result = await handleSendMessage(text);
+    if (result.error) {
+      showAlert({ type: 'error', title: 'Chat Error', message: result.error });
     }
-  }, [currentWorkspace?.id, currentWorkspace?.aiChatAgentId, currentWorkspace?.gmAgentId]);
-
-  useEffect(() => {
-    if (!user || !currentWorkspace?.id) return;
-    loadSessions();
-  }, [user, currentWorkspace?.id, loadSessions]);
-
-  // Load messages when active session changes
-  useEffect(() => {
-    if (!activeSessionId) {
-      setMessages([]);
-      setLastToolCalls([]);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      try {
-        const session = await getSession(activeSessionId);
-        if (!cancelled) {
-          setMessages(session.messages);
-        }
-      } catch (error: any) {
-        if (!cancelled) {
-          console.error("Failed to load session:", error);
-          setMessages([]);
-        }
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [activeSessionId]);
-
-  const handleNewChat = () => {
-    setActiveSessionId(null);
-    setMessages([]);
-    setLastToolCalls([]);
-    setChatOnly(false);
   };
 
-  const handleDeleteSession = (e: React.MouseEvent, sessionId: string, title: string) => {
+  const onDeleteClick = (e: React.MouseEvent, sessionId: string, title: string) => {
     e.stopPropagation();
     setDeleteTarget({ id: sessionId, title: title || 'Untitled Session' });
     setDeleteDialogOpen(true);
@@ -143,73 +107,11 @@ const AiChatPage: React.FC = () => {
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     try {
-      await deleteSession(deleteTarget.id);
-      if (activeSessionId === deleteTarget.id) {
-        setActiveSessionId(null);
-        setMessages([]);
-      }
+      await handleDeleteSession(deleteTarget.id);
       setDeleteDialogOpen(false);
       setDeleteTarget(null);
-      await loadSessions();
-    } catch (error: any) {
-      console.error("Failed to delete session:", error);
+    } catch {
       showAlert({ type: "error", title: "Error", message: "Failed to delete session" });
-    }
-  };
-
-  const handleSendMessage = async ({ text }: { text: string }) => {
-    if (!text.trim()) return;
-
-    setIsRunning(true);
-    setLastToolCalls([]);
-    try {
-      let sessionId = activeSessionId;
-
-      // Create new session if needed
-      if (!sessionId) {
-        const agentId = currentWorkspace?.aiChatAgentId || currentWorkspace?.gmAgentId || "";
-        if (!currentWorkspace?.id || !agentId) {
-          showAlert({ type: "warning", title: "No Agent", message: "No AI agent configured for this workspace." });
-          setIsRunning(false);
-          return;
-        }
-        const newSession = await createSession(currentWorkspace.id, agentId, undefined, chatOnly);
-        sessionId = newSession.id;
-        setActiveSessionId(newSession.id);
-      }
-
-      // Optimistically add user message to display
-      const optimisticUserMsg: SessionMessage = {
-        id: `temp-${Date.now()}`,
-        role: "user",
-        content: text,
-        timestamp: new Date().toISOString(),
-        metadata: {},
-      };
-      setMessages((prev) => [...prev, optimisticUserMsg]);
-
-      // Send message to server
-      const result = await sendSessionMessage(sessionId, text, globalContext || undefined);
-
-      // Replace optimistic message + add assistant response
-      setMessages((prev) => {
-        const withoutOptimistic = prev.filter((m) => m.id !== optimisticUserMsg.id);
-        return [...withoutOptimistic, result.userMessage, result.assistantMessage];
-      });
-
-      if (result.toolCalls.length > 0) {
-        setLastToolCalls(result.toolCalls);
-      }
-
-      // Refresh session list to show new/updated session
-      await loadSessions();
-    } catch (error: any) {
-      console.error("Error sending message:", error);
-      // Remove optimistic message on error
-      setMessages((prev) => prev.filter((m) => !m.id.startsWith("temp-")));
-      showAlert({ type: "error", title: "Chat Error", message: error?.message || "Failed to send message. Please try again." });
-    } finally {
-      setIsRunning(false);
     }
   };
 
@@ -280,7 +182,7 @@ const AiChatPage: React.FC = () => {
                   {session.status === 'active' && (
                     <button
                       className="opacity-0 group-hover:opacity-100 p-1 hover:bg-background rounded text-muted-foreground transition-opacity flex-shrink-0"
-                      onClick={(e) => handleDeleteSession(e, session.id, session.title || '')}
+                      onClick={(e) => onDeleteClick(e, session.id, session.title || '')}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -354,7 +256,7 @@ const AiChatPage: React.FC = () => {
         <div className="p-4 border-t border-border bg-background w-full mt-auto shrink-0 z-10">
           <div className="max-w-4xl mx-auto">
             <PromptInput
-              onSubmit={handleSendMessage}
+              onSubmit={onSend}
               className="border border-border rounded-2xl bg-card shadow-sm hover:shadow-md transition-shadow focus-within:ring-2 focus-within:ring-ring focus-within:border-primary"
             >
               <PromptInputTextarea

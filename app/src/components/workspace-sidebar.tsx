@@ -36,6 +36,7 @@ import { useGlobalContext } from "@/contexts/GlobalContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { useWorkspace } from "@/contexts/WorkspaceContext"
 import { useNavigate } from "react-router-dom"
+import { useWorkspacePath } from "@/hooks/useWorkspacePath"
 import { WorkspaceSwitcher } from "@/components/workspace-switcher"
 import { StorageSettingsDialog } from "@/components/storage-settings-dialog"
 import { McpAccessModal } from "@/components/McpAccess/McpAccessModal"
@@ -59,7 +60,8 @@ export function WorkspaceSidebar({ ...props }: React.ComponentProps<typeof Sideb
   const { setIsContextModalOpen, selectedSources } = useGlobalContext();
   const { currentWorkspace } = useWorkspace();
   const navigate = useNavigate();
-  
+  const wp = useWorkspacePath();
+
   // State for dynamic nav items
   const [navItems, setNavItems] = React.useState<NavItem[]>([]);
   const [isMcpModalOpen, setIsMcpModalOpen] = React.useState(false);
@@ -69,15 +71,15 @@ export function WorkspaceSidebar({ ...props }: React.ComponentProps<typeof Sideb
   React.useEffect(() => {
     // Full sidebar for workspace context
     const baseItems: NavItem[] = [
-      { title: "Dashboard", url: currentWorkspace ? `/workspace/${currentWorkspace.id}/dashboard` : "/workspaces", icon: LayoutDashboardIcon },
-      { title: "AI Assistant", url: "/ai-chat", icon: Bot },
-      { title: "Pyramid Solver", url: "/pyramids", icon: Pyramid },
-      { title: "Product Definition", url: "/product-definitions", icon: GitMerge },
-      { title: "Context & Documents", url: "/context-documents", icon: BookOpen },
-      { title: "Technical Architecture", url: "/technical-architectures", icon: Server },
-      { title: "Technical Tasks", url: "/technical-tasks", icon: CheckSquare },
-      { title: "UI/UX Architecture", url: "/ui-ux-architectures", icon: Layout },
-      { title: "Diagrams", url: "/diagrams", icon: Workflow },
+      { title: "Dashboard", url: wp('/dashboard'), icon: LayoutDashboardIcon },
+      { title: "AI Assistant", url: wp('/ai-chat'), icon: Bot },
+      { title: "Pyramid Solver", url: wp('/pyramids'), icon: Pyramid },
+      { title: "Product Definition", url: wp('/product-definitions'), icon: GitMerge },
+      { title: "Context & Documents", url: wp('/context-documents'), icon: BookOpen },
+      { title: "Technical Architecture", url: wp('/technical-architectures'), icon: Server },
+      { title: "Technical Tasks", url: wp('/technical-tasks'), icon: CheckSquare },
+      { title: "UI/UX Architecture", url: wp('/ui-ux-architectures'), icon: Layout },
+      { title: "Diagrams", url: wp('/diagrams'), icon: Workflow },
     ];
     
     setNavItems(baseItems);
@@ -118,7 +120,7 @@ export function WorkspaceSidebar({ ...props }: React.ComponentProps<typeof Sideb
         directories.forEach(dir => {
           directoryMap.set(dir.id, {
             title: dir.title,
-            url: `/directory/${dir.id}`,
+            url: wp(`/directory/${dir.id}`),
             icon: Folder,
             items: []
           });
@@ -128,7 +130,7 @@ export function WorkspaceSidebar({ ...props }: React.ComponentProps<typeof Sideb
         documents.forEach(doc => {
           const docItem: NavItem = {
             title: doc.title,
-            url: `/context-document/${doc.id}`,
+            url: wp(`/context-document/${doc.id}`),
             icon: FileText
           };
 
@@ -146,79 +148,79 @@ export function WorkspaceSidebar({ ...props }: React.ComponentProps<typeof Sideb
 
         // Construct full nav list
         setNavItems([
-          { 
-            title: "Dashboard", 
-            url: currentWorkspace ? `/workspace/${currentWorkspace.id}/dashboard` : "/workspaces",
-            icon: LayoutDashboardIcon 
+          {
+            title: "Dashboard",
+            url: wp('/dashboard'),
+            icon: LayoutDashboardIcon
           },
-          { 
-            title: "AI Assistant", 
-            url: "/ai-chat", 
-            icon: Bot 
+          {
+            title: "AI Assistant",
+            url: wp('/ai-chat'),
+            icon: Bot
           },
-          { 
-            title: "Pyramid Solver", 
-            url: "/pyramids", 
+          {
+            title: "Pyramid Solver",
+            url: wp('/pyramids'),
             icon: Pyramid,
             items: pyramids.map(p => ({
               title: p.title,
-              url: `/pyramid/${p.id}`,
+              url: wp(`/pyramid/${p.id}`),
               icon: Pyramid
             }))
           },
-          { 
-            title: "Product Definition", 
-            url: "/product-definitions", 
+          {
+            title: "Product Definition",
+            url: wp('/product-definitions'),
             icon: GitMerge,
             items: definitions.map(d => ({
               title: d.title,
-              url: `/product-definition/${d.id}`,
+              url: wp(`/product-definition/${d.id}`),
               icon: GitMerge
             }))
           },
-          { 
-            title: "Context & Documents", 
-            url: "/context-documents", 
+          {
+            title: "Context & Documents",
+            url: wp('/context-documents'),
             icon: BookOpen,
             items: contextItems
           },
-          { 
-            title: "Technical Architecture", 
-            url: "/technical-architectures", 
+          {
+            title: "Technical Architecture",
+            url: wp('/technical-architectures'),
             icon: Server,
             items: techArchs.map(t => ({
               title: t.title,
-              url: `/technical-architecture/${t.id}`,
+              url: wp(`/technical-architecture/${t.id}`),
               icon: Server
             }))
           },
-          { 
-            title: "Technical Tasks", 
-            url: "/technical-tasks", 
+          {
+            title: "Technical Tasks",
+            url: wp('/technical-tasks'),
             icon: CheckSquare,
             items: pipelines.map(p => ({
               title: p.title,
-              url: `/technical-tasks?pipeline=${p.id}`,
+              url: wp(`/technical-tasks?pipeline=${p.id}`),
               icon: ListTodo
             }))
           },
-          { 
-            title: "UI/UX Architecture", 
-            url: "/ui-ux-architectures", 
+          {
+            title: "UI/UX Architecture",
+            url: wp('/ui-ux-architectures'),
             icon: Layout,
             items: uiUxArchs.map(u => ({
               title: u.title,
-              url: `/ui-ux-architecture/${u.id}`,
+              url: wp(`/ui-ux-architecture/${u.id}`),
               icon: Layout
             }))
           },
-          { 
-            title: "Diagrams", 
-            url: "/diagrams", 
+          {
+            title: "Diagrams",
+            url: wp('/diagrams'),
             icon: Workflow,
             items: diagrams.map(d => ({
               title: d.title,
-              url: `/diagram/${d.id}`,
+              url: wp(`/diagram/${d.id}`),
               icon: Workflow
             }))
           },
@@ -263,7 +265,7 @@ export function WorkspaceSidebar({ ...props }: React.ComponentProps<typeof Sideb
           <SidebarMenuItem>
             <SidebarMenuButton
               size="lg"
-              onClick={() => currentWorkspace && navigate(`/workspace/${currentWorkspace.id}/ai-settings`)}
+              onClick={() => navigate(wp('/ai-settings'))}
               tooltip="AI Settings"
             >
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-violet-100 text-violet-600 dark:bg-violet-900 dark:text-violet-300">
