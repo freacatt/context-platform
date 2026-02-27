@@ -1,15 +1,10 @@
 import { ThemeProvider } from "@/components/theme-provider"
-import { GlobalShaderOverlay } from "@/components/ui/global-shader-overlay"
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { GlobalProvider } from './contexts/GlobalContext';
 import { AlertProvider } from './contexts/AlertContext';
 import { WorkspaceProvider } from './contexts/WorkspaceContext';
 import { ErrorBoundary } from './components/ui/error-boundary';
-import LandingPage from './pages/LandingPage';
-import DocsPage from './pages/DocsPage';
-import AboutPage from './pages/AboutPage';
-import FeaturesPage from './pages/FeaturesPage';
 import LoginPage from './pages/LoginPage';
 import WorkspacesPage from './pages/WorkspacesPage';
 import Dashboard from './pages/Dashboard';
@@ -65,13 +60,8 @@ function App() {
               <WorkspaceProvider>
                 <GlobalProvider>
                   <PWAProvider>
-                <GlobalShaderOverlay />
                 <Routes>
-                  {/* Public Routes */}
-                  <Route path="/" element={<LandingPage />} />
-                  <Route path="/docs" element={<DocsPage />} />
-                  <Route path="/about" element={<AboutPage />} />
-                  <Route path="/features" element={<FeaturesPage />} />
+                  <Route path="/" element={<Navigate to="/login" replace />} />
                   <Route path="/login" element={<LoginPage />} />
 
                   {/* Workspaces List */}

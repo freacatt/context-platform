@@ -1,11 +1,12 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import PublicLayout from '@/components/Layout/PublicLayout';
+import { GlobalShaderOverlay } from '@/components/ui/global-shader-overlay';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowRight, Layers, Workflow, FileText, CheckSquare, Layout, Server, BookOpen } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Spotlight } from '@/components/ui/spotlight';
+import { appUrl } from '@/lib/utils';
 
 const LandingPage: React.FC = () => {
   return (
@@ -15,8 +16,9 @@ const LandingPage: React.FC = () => {
             className="-top-40 left-0 md:left-60 md:-top-20 text-primary/20 dark:text-white/20"
             fill="currentColor"
         />
+        <GlobalShaderOverlay />
         <BackgroundGrid />
-        
+
         <div className="relative z-10">
             <HeroSection />
             <FeaturesGrid />
@@ -63,7 +65,7 @@ const HeroSection = () => {
         transition={{ duration: 0.5, delay: 0.2 }}
         className="text-lg md:text-xl text-muted-foreground max-w-2xl mb-10 leading-relaxed"
       >
-        The unified platform for Product Definitions, Technical Architecture, and Live Diagrams. 
+        The unified platform for Product Definitions, Technical Architecture, and Live Diagrams.
         Stop guessing. Start solving.
       </motion.p>
 
@@ -73,11 +75,11 @@ const HeroSection = () => {
         transition={{ duration: 0.5, delay: 0.3 }}
         className="flex flex-col sm:flex-row gap-4 w-full justify-center"
       >
-        <Link to="/login">
+        <a href={appUrl('/login')}>
             <Button size="lg" className="h-12 px-8 text-base rounded-full w-full sm:w-auto shadow-[0_0_20px_rgba(59,130,246,0.5)] bg-blue-600 hover:bg-blue-700 hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] border-none transition-all hover:-translate-y-1 text-white">
             Start Building Free <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
-        </Link>
+        </a>
         <Link to="/docs">
             <Button size="lg" variant="outline" className="h-12 px-8 text-base rounded-full w-full sm:w-auto bg-transparent border-border text-muted-foreground hover:bg-accent backdrop-blur-sm">
             View Documentation
@@ -158,19 +160,17 @@ const FeaturesGrid = () => {
   );
 };
 
-const FeatureCard = ({ feature, index }: { feature: any, index: number }) => {
+const FeatureCard = ({ feature, index }: { feature: { title: string; description: string; icon: React.ReactNode; className: string; color: string }, index: number }) => {
     const [isHovered, setIsHovered] = useState(false);
-    
-    // Map color names to tailwind classes dynamically usually requires safelisting or full mapping
-    // We'll use style objects for dynamic colors to be safe or explicit mapping
+
     const colorMap: Record<string, string> = {
-        blue: "rgba(59, 130, 246, 0.1)", // blue-500
-        violet: "rgba(139, 92, 246, 0.1)", // violet-500
-        emerald: "rgba(16, 185, 129, 0.1)", // emerald-500
-        orange: "rgba(249, 115, 22, 0.1)", // orange-500
-        cyan: "rgba(6, 182, 212, 0.1)", // cyan-500
-        yellow: "rgba(234, 179, 8, 0.1)", // yellow-500
-        pink: "rgba(236, 72, 153, 0.1)", // pink-500
+        blue: "rgba(59, 130, 246, 0.1)",
+        violet: "rgba(139, 92, 246, 0.1)",
+        emerald: "rgba(16, 185, 129, 0.1)",
+        orange: "rgba(249, 115, 22, 0.1)",
+        cyan: "rgba(6, 182, 212, 0.1)",
+        yellow: "rgba(234, 179, 8, 0.1)",
+        pink: "rgba(236, 72, 153, 0.1)",
     };
 
     const borderColors: Record<string, string> = {
@@ -193,17 +193,16 @@ const FeatureCard = ({ feature, index }: { feature: any, index: number }) => {
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
-            <div 
+            <div
                 className={`relative h-full rounded-2xl border border-border bg-card overflow-hidden transition-all duration-300 group`}
                 style={{
                     borderColor: isHovered ? borderColors[feature.color] : undefined
                 }}
             >
-                {/* Grid Background inside Card */}
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--foreground)/0.05)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--foreground)/0.05)_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-50"></div>
-                
+
                 <div className="relative z-10 p-8 flex flex-col h-full">
-                    <div 
+                    <div
                         className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-lg border border-border"
                         style={{ backgroundColor: isHovered ? colorMap[feature.color] : 'transparent' }}
                     >
@@ -251,7 +250,7 @@ const CTASection = () => {
     <section className="py-32 px-4 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-primary/5 pointer-events-none" />
       <div className="container mx-auto max-w-4xl text-center relative z-10">
-        <motion.h2 
+        <motion.h2
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             className="text-4xl md:text-5xl font-bold mb-6 tracking-tight text-foreground"
@@ -261,11 +260,11 @@ const CTASection = () => {
         <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
           Join thousands of engineers who are building better software with clear context and aligned architecture.
         </p>
-        <Link to="/login">
+        <a href={appUrl('/login')}>
             <Button size="lg" className="h-14 px-10 text-lg rounded-full shadow-[0_0_20px_rgba(59,130,246,0.5)] bg-blue-600 hover:bg-blue-700 hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] border-none transition-all hover:-translate-y-1 text-white">
             Get Started for Free
             </Button>
-        </Link>
+        </a>
       </div>
     </section>
   );

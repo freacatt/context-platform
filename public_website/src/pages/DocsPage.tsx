@@ -46,7 +46,7 @@ const DocsPage: React.FC = () => {
                 <CardDescription>{section.description}</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-sm font-medium text-primary hover:underline">Read more →</div>
+                <div className="text-sm font-medium text-primary hover:underline">Read more &rarr;</div>
               </CardContent>
             </Card>
           ))}

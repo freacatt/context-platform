@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Terminal, Box } from 'lucide-react';
-
+import { Box } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { appUrl } from '@/lib/utils';
 
 interface PublicLayoutProps {
   children: React.ReactNode;
@@ -14,7 +14,6 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground overflow-x-hidden">
       <Navbar />
-      {/* Main Content */}
       <main className="flex-grow pt-24">
         {children}
       </main>
@@ -38,8 +37,8 @@ const Navbar = () => {
   const links = [
     { name: 'Features', path: '/features' },
     { name: 'Docs', path: '/docs' },
-    { name: 'Pricing', path: '/pricing' }, // Added based on reference
-    { name: 'Contact', path: '/contact' }, // Added based on reference
+    { name: 'Pricing', path: '/pricing' },
+    { name: 'Contact', path: '/contact' },
   ];
 
   const formatTimeInfo = (date: Date) => {
@@ -49,7 +48,7 @@ const Navbar = () => {
       hour12: true,
       timeZoneName: 'short'
     };
-    
+
     try {
         const parts = new Intl.DateTimeFormat('en-US', options).formatToParts(date);
         const timeStr = parts
@@ -59,10 +58,10 @@ const Navbar = () => {
             .trim();
         const regionStr = parts.find(p => p.type === 'timeZoneName')?.value || '';
         return { time: timeStr, region: regionStr };
-    } catch (e) {
-        return { 
-            time: date.toLocaleTimeString(), 
-            region: 'UTC' 
+    } catch {
+        return {
+            time: date.toLocaleTimeString(),
+            region: 'UTC'
         };
     }
   };
@@ -72,6 +71,10 @@ const Navbar = () => {
   const headerBgOpacity = useTransform(scrollY, [0, 20], [0, 1]);
   const headerBackdropBlur = useTransform(scrollY, [0, 20], ["blur(0px)", "blur(12px)"]);
 
+  // Suppress unused variable warnings
+  void translateY;
+  void opacity;
+
   return (
     <motion.header
       initial={{ y: -100 }}
@@ -79,30 +82,27 @@ const Navbar = () => {
       transition={{ duration: 0.5, ease: "circOut" }}
       className="fixed top-0 left-0 right-0 z-50 px-6 py-4"
     >
-        <motion.div 
-            className="absolute inset-0 bg-background/80 border-b border-border/40" 
-            style={{ 
+        <motion.div
+            className="absolute inset-0 bg-background/80 border-b border-border/40"
+            style={{
                 opacity: headerBgOpacity,
                 backdropFilter: headerBackdropBlur,
                 WebkitBackdropFilter: headerBackdropBlur
-            }} 
+            }}
         />
 
-        {/* Dynamic Border Line on Scroll */}
-        <motion.div 
-            className="absolute bottom-0 left-0 right-0 h-[1px] bg-border/50" 
-            style={{ opacity }} 
+        <motion.div
+            className="absolute bottom-0 left-0 right-0 h-[1px] bg-border/50"
+            style={{ opacity: headerBgOpacity }}
         />
 
       <div className="relative mx-auto flex items-center justify-between max-w-[1400px]">
-        {/* Left: Location / Time */}
         <div className="flex items-center gap-3 text-sm font-medium text-muted-foreground w-1/3">
           <span className="hidden sm:inline-block">{region}</span>
           <span className="hidden sm:inline-block text-muted-foreground/40">/</span>
           <span className="tabular-nums">{timeString}</span>
         </div>
 
-        {/* Center: Logo */}
         <Link to="/" className="flex items-center justify-center gap-2 group w-1/3">
             <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-primary-foreground shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform duration-300">
                 <Box className="w-5 h-5" />
@@ -112,7 +112,6 @@ const Navbar = () => {
             </span>
         </Link>
 
-        {/* Right: Navigation */}
         <div className="flex items-center justify-end gap-6 w-1/3">
             <nav className="hidden md:flex items-center gap-6">
                 {links.map((link) => (
@@ -130,11 +129,11 @@ const Navbar = () => {
             </nav>
             <div className="flex items-center gap-2 pl-4 border-l border-border/40">
                 <ThemeToggle />
-                <Link to="/login">
+                <a href={appUrl('/login')}>
                     <Button size="sm" className="rounded-full px-5 hidden sm:flex">
                         Login
                     </Button>
-                </Link>
+                </a>
             </div>
         </div>
       </div>
@@ -171,7 +170,7 @@ const Footer = () => (
             </div>
         </div>
         <div className="mt-12 pt-8 border-t border-border/40 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
-            <div>© {new Date().getFullYear()} Context Platform. All rights reserved.</div>
+            <div>&copy; {new Date().getFullYear()} Context Platform. All rights reserved.</div>
             <div className="flex gap-6">
                 <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
                 <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>

@@ -3,7 +3,7 @@ import PublicLayout from '@/components/Layout/PublicLayout';
 import { LayoutDashboard, FileText, Cpu, Network, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { appUrl } from '@/lib/utils';
 
 const FeaturesPage: React.FC = () => {
   const features = [
@@ -38,14 +38,14 @@ const FeaturesPage: React.FC = () => {
       <div className="bg-background min-h-screen">
         <div className="container mx-auto px-4 py-24">
             <div className="text-center max-w-3xl mx-auto mb-20">
-                <motion.h1 
+                <motion.h1
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="text-4xl md:text-6xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/50"
                 >
                     Powerful Features
                 </motion.h1>
-                <motion.p 
+                <motion.p
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
@@ -57,7 +57,7 @@ const FeaturesPage: React.FC = () => {
 
             <div className="space-y-32">
                 {features.map((feature, index) => (
-                    <motion.div 
+                    <motion.div
                         key={index}
                         initial={{ opacity: 0, y: 50 }}
                         whileInView={{ opacity: 1, y: 0 }}
@@ -80,10 +80,10 @@ const FeaturesPage: React.FC = () => {
                         <div className="flex-1 w-full">
                             <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-2xl group">
                                 <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                                <img 
-                                    src={feature.image} 
-                                    alt={feature.title} 
-                                    className="w-full aspect-video object-cover transform transition-transform duration-700 group-hover:scale-105" 
+                                <img
+                                    src={feature.image}
+                                    alt={feature.title}
+                                    className="w-full aspect-video object-cover transform transition-transform duration-700 group-hover:scale-105"
                                 />
                             </div>
                         </div>
@@ -93,11 +93,11 @@ const FeaturesPage: React.FC = () => {
 
             <div className="mt-32 text-center">
                 <h2 className="text-3xl font-bold mb-8">Ready to transform your workflow?</h2>
-                <Link to="/login">
+                <a href={appUrl('/login')}>
                     <Button size="lg" className="rounded-full px-8 text-lg h-12">
                         Get Started Now
                     </Button>
-                </Link>
+                </a>
             </div>
         </div>
       </div>
