@@ -14,7 +14,7 @@
 
 > **The AI-Powered Workbench for Structured Thinking & Architecture Planning** 
 
----
+--- 
 
 ## 📖 Table of Contents
 
