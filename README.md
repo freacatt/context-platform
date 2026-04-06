@@ -10,7 +10,7 @@
  / ____/ / /_/ / /_/ __/ /_/ / /  / / / / / /
 /_/   /_/\__,_/\__/_/  \____/_/  /_/ /_/ /_/ 
                                              
-```
+``` 
 
 > **The AI-Powered Workbench for Structured Thinking & Architecture Planning** 
 
