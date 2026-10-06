@@ -9,7 +9,7 @@
 
 ## Project architecture awareness
 - UI is React + TS. Business logic must NOT live in UI components.
-- Side effects (AI calls, Firebase, storage) belong in `src/services/`.
+- Data access goes through Convex functions in `app/convex/`; UI calls them with `useQuery`/`useMutation` from feature folders in `app/src/features/`.
 - Shared state belongs in `contexts/` or custom hooks, not page components.
 - Pages orchestrate components; components do not orchestrate services.
 

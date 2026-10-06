@@ -18,9 +18,9 @@ primaryColorClass: "bg-amber-600"
 - Deleting a directory preserves its documents — moves them to root (`directoryId` = null).
 
 ## Data Model
-- Type: `ContextDocument` in `app/src/types/contextDocument.ts`
-- Service: `app/src/services/contextDocumentService.ts`
-- Directory Service: `app/src/services/directoryService.ts`
+- Type: `ContextDocument` in `app/src/data/types.ts`
+- Service: `app/convex/contextDocuments.ts`
+- Directory Service: `app/convex/directories.ts`
 
 ## Core Logic
 - `createContextDocument`: Initializes with empty content, type `"text"`.

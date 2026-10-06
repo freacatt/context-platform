@@ -1,5 +1,4 @@
 import { Dispatch, JSX, useCallback, useEffect, useRef, useState } from "react"
-import * as React from "react"
 import { $isCodeHighlightNode } from "@lexical/code"
 import { $isLinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
@@ -89,7 +88,7 @@ function FloatingTextFormat({
       }
     }
   }
-  function mouseUpListener(e: MouseEvent) {
+  function mouseUpListener() {
     if (popupCharStylesEditorRef?.current) {
       if (popupCharStylesEditorRef.current.style.pointerEvents !== "auto") {
         popupCharStylesEditorRef.current.style.pointerEvents = "auto"

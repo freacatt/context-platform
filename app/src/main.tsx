@@ -1,32 +1,21 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App'
-import { initConsoleFilter } from './utils/consoleFilter'
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { ConvexAuthProvider } from '@convex-dev/auth/react';
+import { ConvexReactClient } from 'convex/react';
+import './index.css';
+import App from './App';
 
-initConsoleFilter();
-
-const rootElement = document.getElementById('root');
-
-// Simple Error Boundary
-const ErrorFallback = ({ error }: { error: any }) => (
-  <div style={{ padding: '20px', color: 'red' }}>
-    <h2>Something went wrong:</h2>
-    <pre>{error?.message || JSON.stringify(error)}</pre>
-  </div>
-);
-
-if (rootElement) {
-  try {
-    createRoot(rootElement).render(
-      <StrictMode>
-        <App />
-      </StrictMode>,
-    )
-  } catch (e) {
-    console.error("Mounting Error:", e);
-    rootElement.innerHTML = `<div style="padding: 20px; color: red"><h2>Application Failed to Start</h2><pre>${e instanceof Error ? e.message : String(e)}</pre></div>`;
-  }
-} else {
-    console.error("Root element not found!");
+const convexUrl = import.meta.env.VITE_CONVEX_URL as string | undefined;
+if (!convexUrl) {
+  throw new Error('VITE_CONVEX_URL is not set. Run `npx convex dev` to create .env.local.');
 }
+
+const convex = new ConvexReactClient(convexUrl);
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <ConvexAuthProvider client={convex}>
+      <App />
+    </ConvexAuthProvider>
+  </StrictMode>,
+);

@@ -1,36 +1,28 @@
-# Pyramid Solver — Monorepo
-
-Multi-project workspace with a React SPA, a FastAPI agent backend, and an MCP gateway.
+# Context Platform — Monorepo
 
 ## Architecture
 
 ```
-Client (SPA) → Firebase Auth → Agent Server (FastAPI)
-                                    ↓
-                    ┌──────────┬──────────┬──────────┐
-                    │  Qdrant  │Firestore │ LLM API  │
-                    │(Vectors) │ (Shared) │(External)│
-                    └──────────┴──────────┴──────────┘
+React SPA (app/src) ──useQuery / useMutation──▶ Convex (app/convex): auth, functions, database
 ```
 
 ## Sub-Projects
 
 | Directory | Stack | Purpose |
 |-----------|-------|---------|
-| `app/` | React 19 + TypeScript + Vite | SPA workspace UI |
-| `agent-platform/` | FastAPI + Python | Agent orchestration server |
-| `mcp-gateway/` | Node.js | MCP integration layer |
+| `app/` | React 19 + TypeScript + Vite + Convex | The product: SPA, backend and shared domain logic |
+| `public_website/` | React + TypeScript + Vite | Public marketing site |
 
 ## Key Boundaries
 
-- SPA communicates with Agent Server ONLY via authenticated HTTP/JSON APIs.
-- Firebase Auth is the ONLY identity provider. `firebase_uid` is canonical user ID.
-- Firestore = shared data store (both frontend and agent-platform). Qdrant = vector store.
+- Convex is the only backend (database, functions, auth). There is no other server or data store.
+- The SPA reaches data only through Convex functions; each function enforces auth and workspace ownership via `app/convex/lib/access.ts`.
 - NO cross-workspace data access anywhere in the stack.
+- Pure domain logic lives in `app/shared/` and is used by both backend and frontend.
 
 ## Documentation Sync
 
-When changing `agent-platform/`, keep in sync: `agent-platform/README.md` and `agent-platform/CLAUDE.md`.
+When changing `app/`, keep in sync: `app/CLAUDE.md`, `app/architecture.md` and `app/.trae/rules/core.md` (mirror of `app/CLAUDE.md`).
 
 ## Slash Commands
 

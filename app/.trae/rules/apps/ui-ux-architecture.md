@@ -14,9 +14,8 @@ primaryColorClass: "bg-pink-600"
 - Timestamps (`createdAt`, `updatedAt`) MUST always be returned as ISO strings.
 
 ## Data Model
-- Type: `UiUxArchitecture` in `app/src/types/uiUxArchitecture.ts` — contains `ui_ux_architecture_metadata`, `theme_specification`, `base_components`, `pages`, `ux_patterns`.
-- Service: `app/src/services/uiUxArchitectureService.ts`
+- Type: `UiUxArchitecture` in `app/shared/types/uiUxArchitecture.ts` — contains `ui_ux_architecture_metadata`, `theme_specification`, `base_components`, `pages`, `ux_patterns`.
+- Service: `app/convex/uiUxArchitectures.ts`
 
 ## Core Logic
 - `createUiUxArchitecture`: Initializes with theme specification (colors, typography, spacing), UX patterns (loading/error/empty states), and empty component/page lists.
-- `mapArchitectureFromStorage`: Converts Firestore `Timestamp` or string timestamps to ISO strings.

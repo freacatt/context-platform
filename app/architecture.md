@@ -1,486 +1,142 @@
-# Frontend App — Architecture
+# App — Architecture
 
 ## Overview
 
-React 19 + TypeScript SPA that provides a workspace-based platform for problem-solving, product management, technical documentation, and AI-powered assistance. Communicates with Agent Platform backend exclusively via authenticated HTTP/JSON APIs.
-
 ```
-Browser (SPA)
-  ├── Firebase Auth (Google OAuth, Email/Password, Guest)
-  ├── Dexie.js (IndexedDB — local-first storage)
-  ├── Firebase Firestore (cloud sync)
-  └── Agent Platform API (AI features)
+Browser (React SPA)
+   │  useQuery / useMutation / useAction (WebSocket, live updates)
+   ▼
+Convex
+   ├── Auth (Convex Auth — email/password, JWT sessions)
+   ├── Functions (convex/*.ts) — every call checks auth + workspace ownership
+   ├── Scheduler — Pyramid Solver runs, one action per row
+   └── Database (schema in convex/schema.ts)
          │
-   ┌─────┼────────────┐
-   ▼     ▼            ▼
-Firestore  Qdrant   LLM APIs
-(Shared)  (Vectors) (via Agent Platform)
+         ▼ (actions only)
+      OpenRouter (chat completions, model catalog)
 ```
 
----
+There is one backend: Convex. Queries are reactive, so every screen updates live when data changes — in another tab, or after a mutation — with no manual refetching or sync layer.
 
-## Tech Stack
+## Layers
 
-| Layer | Technology |
-|-------|-----------|
-| Framework | React 19 + TypeScript |
-| Build | Vite |
-| Styling | Tailwind CSS + Shadcn UI (Radix Primitives) |
-| State | Zustand (global) + React Context (feature-scoped) |
-| Routing | React Router DOM v7 |
-| Local DB | Dexie.js (IndexedDB) |
-| Cloud DB | Firebase Firestore |
-| Auth | Firebase Auth |
-| AI | Agent Platform Client (HTTP) |
+| Layer | Location | Responsibility |
+|-------|----------|----------------|
+| Domain | `shared/` | Pure types, defaults and rules (pyramid engine, knowledge layer, AI contracts, templates, empty architectures, task data). No I/O. Used by both server and client. |
+| Backend | `convex/` | Schema, auth, access control, one module per table, workspace export/import. |
+| Data types | `src/data/types.ts` | Convex `Doc<>` types narrowed with `shared/` types for editor-owned JSON fields. |
+| Features | `src/features/<domain>/` | Screens and components for one app; call Convex directly. |
+| Shared UI | `src/components/` | `collection/` (standard list screen), `layout/` (shell, nav), `ui/` (shadcn). |
+| Helpers | `src/lib/`, `src/hooks/` | Pure, tested helpers: exports, rich text, object paths, field text, debounced save, errors. |
 
----
+## Data model
 
-## Directory Structure
+| Table | Key fields | Notes |
+|-------|------------|-------|
+| `users`, `auth*` | — | Managed by Convex Auth. |
+| `workspaces` | `ownerId`, `name` | Index `by_owner`. Owner is the only user with access. |
+| `pyramids` | `title`, `config`, `status`, `currentRow`, `spent`, `budgetCap?`, `estimate?`, `brief?`, `rowResults`, `executionId?` | One Pyramid Solver run. Amounts are decimal USD strings. |
+| `pyramidCells` | `pyramidId`, `label`, `row`, `cell`, `originalNextQuestion?` | Host conclusions; `cell.nextQuestion` is the effective one (checkpoint edits win). Index `by_pyramid`. |
+| `pyramidCalls` | `pyramidId`, `row`, `role`, `model`, `messages`, `output`, tokens, `cost`, `status` | Every provider attempt, append-only (transcripts, re-estimation). Not exported in backups. |
+| `productDefinitions` | `title`, `spec?`, `data?` | `spec` is a `ProductSpec`; `data` is the previous mind-map version, read as a spec until first saved. |
+| `designSystems`, `technicalPlans`, `decisions`, `glossaries`, `researchStudies`, `roadmaps` | `title`, `spec` | Spec documents (`shared/specs/`); functions from `convex/lib/specDocs.ts`. |
+| `pyramidFiles` | `pyramidId`, `title`, `content` | Markdown uploaded as context of one pyramid. Index `by_pyramid`. |
+| `directories` | `title` | |
+| `contextDocuments` | `title`, `content`, `directoryId?` | Content is Lexical JSON. Index `by_directory`. |
+| `diagrams` | `title`, `nodes`, `edges` | React Flow state. |
+| `technicalArchitectures` | `title`, `spec?` + 12 optional legacy section fields | `spec` is a `TechnicalArchitectureSpec`; legacy sections are read as a spec until the first save clears them. |
+| `uiUxArchitectures` | `title`, `designSystemId?`, metadata, pages, UX patterns | Legacy `theme_specification`/`base_components` until moved into a design system. |
+| `pipelines`, `technicalTasks` | — | Legacy (Technical Tasks): never created; converted into technical plans. |
+| `links` | `fromApp`, `fromId`, `toApp`, `toId`, `kind`, `createdAt` | Explicit relation between two items of the workspace. Ids are strings (any knowledge app); indexes `by_from`, `by_to`. No `title`. |
+| `contextPacks` | `title`, `refs`, `linkDepth` | A saved selection of knowledge items. |
 
-```
-app/src/
-├── App.tsx                     # Entry point, provider stack, routing
-├── components/                 # Reusable UI components
-│   ├── ui/                     # Generic Shadcn primitives (button, card, dialog, accordion, etc.)
-│   ├── ai-elements/            # Conversation, Message, PromptInput components
-│   ├── AgentIsland/            # Floating agent bar with chat modal
-│   ├── AgentSettings/          # AgentConfigModal
-│   ├── Board/                  # PyramidBoard, Block, BlockModal
-│   ├── Chat/                   # (reserved for future chat components)
-│   ├── Common/                 # AiRecommendationButton, ContextAttachmentsField
-│   ├── Dashboard/              # CreatePyramidModal, PyramidCard, AppCard3D
-│   ├── Diagram/                # DiagramBlockModal, DiagramNode
-│   ├── GlobalContext/          # ContextSelectorModal, GlobalContextManager
-│   ├── Layout/                 # AuthenticatedLayout, PublicLayout
-│   ├── Navbar/                 # Navbar, ContextModal
-│   ├── ProductDefinition/      # TopicEditModal, ProductDefinitionNode
-│   ├── TechnicalTask/          # Task board, pipeline, detail components
-│   ├── editor/                 # Rich text editor with plugins
-│   └── PWA/                    # PWAPrompt
-├── contexts/                   # React Context providers
-│   ├── AuthContext.tsx          # User auth, guest mode, Firebase
-│   ├── WorkspaceContext.tsx     # Workspace selection, agent setup
-│   ├── GlobalContext.tsx        # AI context sources, aggregation
-│   ├── AlertContext.tsx         # Global toast notifications
-│   └── PWAContext.tsx           # PWA install prompt
-├── hooks/                      # Custom React hooks
-├── lib/                        # Utilities (utils.ts)
-├── pages/                      # Route-level screens
-├── services/                   # Business logic & data access
-│   ├── storage.ts              # CORE: Dual storage adapter (Local + Cloud)
-│   ├── localDB.ts              # Dexie.js IndexedDB configuration
-│   ├── firebase.ts             # Firebase Auth & Firestore init
-│   ├── agentPlatformClient.ts  # Agent Platform REST API client
-│   ├── aiService.ts            # AI wrapper (session-based chat)
-│   ├── contextAdapter.ts       # Unified context data fetching
-│   ├── pyramidService.ts       # Pyramid CRUD
-│   ├── productDefinitionService.ts
-│   ├── contextDocumentService.ts
-│   ├── directoryService.ts
-│   ├── diagramService.ts
-│   ├── technicalArchitectureService.ts
-│   ├── technicalTaskService.ts
-│   ├── uiUxArchitectureService.ts
-│   ├── workspaceService.ts
-│   ├── workspaceSettingsService.ts
-│   ├── exportService.ts
-│   └── productDefinitionTemplates.ts
-└── types/                      # TypeScript domain models
-    ├── pyramid.ts
-    ├── workspace.ts
-    ├── productDefinition.ts
-    ├── contextDocument.ts
-    ├── diagram.ts
-    ├── technicalArchitecture.ts
-    ├── technicalTask.ts
-    ├── uiUxArchitecture.ts
-    ├── agent.ts
-    ├── session.ts
-    ├── contextSource.ts
-    ├── directory.ts
-    └── index.ts
-```
+Every workspace table has `workspaceId` + index `by_workspace`; documents also have `title` and `updatedAt`. Deleting a workspace deletes everything in it.
 
----
+Per-user tables (not workspace data): `aiSettings` (OpenRouter key, default model, default pyramid panel/host; index `by_user`), `pyramidPresets` (saved panel + host + prompts) and `aiModelCache` (the public OpenRouter catalog, refreshed at most daily).
 
-## Context Providers (Provider Stack)
+## AI
+
+`convex/lib/openrouter.ts` talks to OpenRouter over `fetch` (429/5xx/transport → retryable `ProviderError`; other 4xx → `ProviderConfigError`). `convex/lib/ai.ts` is the one entry point for actions: it resolves the user's key (or the deployment's `OPENROUTER_API_KEY`) and default model and turns provider errors into readable `ConvexError`s. The browser uses `api.ai.complete`, `api.ai.listModels` and `api.ai.testConnection`; the key never leaves the server.
+
+## Pyramid Solver
+
+Ported from Roundboard. The pure engine lives in `shared/pyramid/`: `board` (geometry, critical path), `config` (defaults + validation), `prompts`, `parsing` (tolerant JSON, per-kind validation), `rowContext`, `cost` (estimate + re-estimate from measured tokens), `money`, `roundtable` (`Caller` with retries/repair prompts/budget guard, `runRow`, `makeBrief`) and `report` (Markdown, HTML, transcripts).
 
 ```
-ThemeProvider
-  └── ErrorBoundary
-      └── Router
-          └── AuthProvider          # User auth state
-              └── AlertProvider     # Toast notifications
-                  └── WorkspaceProvider  # Workspace management
-                      └── GlobalProvider # AI context aggregation
-                          └── PWAProvider
-                              └── Routes
+draft ─estimate─► estimated ─confirm─► running ─row done─► awaiting_approval ─approve─► running
+                                         │  └─last row─► completed
+                                         ├─projected > cap─► paused_budget ─raiseBudget─► awaiting_approval | running
+                                         ├─row fails / runner dies─► failed ─resume─► running
+any non-terminal ─cancel─► cancelled
 ```
 
-### AuthContext
-- Firebase Google OAuth, Email/Password, Guest mode
-- Creates user document on first sign-in
-- Clears local DB on login to prevent cross-user data leaks
-- Reauthentication flow for sensitive operations
-- Exports: `useAuth()`, methods: `loginAsGuest`, `signInWithGoogle`, `signInWithEmail`, `signUpWithEmail`, `logout`
-
-### WorkspaceContext
-- Loads all workspaces for current user
-- Auto-setup of agent-platform infrastructure on workspace creation (Qdrant + GM agent)
-- Persists current workspace to localStorage
-- Agent ID assignments: gmAgentId, aiRecommendationAgentId, aiChatAgentId
-- Exports: `useWorkspace()`, methods: `createNewWorkspace`, `removeWorkspace`, `refreshWorkspaces`, `setCurrentWorkspace`
-
-### GlobalContext
-- Manages workspace-level context sources for AI inclusion
-- Fetches and aggregates selected context data into formatted text
-- Auto-saves selections to Firebase per workspace
-- Uses `contextAdapter` for unified data fetching across all entity types
-- Exports: `useGlobalContext()`, state: `selectedSources`, `aggregatedContext`, `isContextLoading`
-
-### AlertContext
-- Global alert/toast system with auto-dismiss
-- Types: success, warning, error, info
-- Exports: `useAlert()`, methods: `showAlert`, `hideAlert`
-
----
-
-## Data Storage Architecture
-
-### Dual Storage (storage.ts)
-- **Guest users**: LocalDB (Dexie/IndexedDB) only
-- **Auth users**: LocalDB + Firebase Firestore
-- **Read strategy**: LocalDB first -> if not found, try Firestore -> auto-sync to LocalDB
-- **Write strategy**: Both LocalDB and Firestore (if authenticated)
-
-### Storage API
-```typescript
-storage.createId()                           // nanoid generation
-storage.save(collection, data)               // Create/Update
-storage.get(collection, id)                  // Read (local-first)
-storage.update(collection, id, data)         // Partial update
-storage.delete(collection, id)               // Delete
-storage.query(collection, filters)           // Query with filters
-storage.subscribe(collection, id, callback)  // Real-time subscription
-```
-
-### LocalDB Tables (Dexie)
-pyramids, productDefinitions, contextDocuments, directories, uiUxArchitectures, diagrams, technicalTasks, pipelines, technicalArchitectures, globalTasks, workspaces, workspace_mcp_settings
-
-**Note:** `conversations` and `messages` tables were removed in v5 — sessions (server-side) replace them.
-
----
-
-## Routing
-
-### Public Routes
-| Path | Page | Description |
-|------|------|-------------|
-| `/` | LandingPage | Marketing/intro |
-| `/docs` | DocsPage | Documentation |
-| `/about` | AboutPage | About info |
-| `/features` | FeaturesPage | Feature showcase |
-| `/login` | LoginPage | Auth (Google, Email, Guest) |
-
-### Authenticated Routes (ProtectedRoute)
-
-#### Workspaces
-| Path | Page | Description |
-|------|------|-------------|
-| `/workspaces` | WorkspacesPage | Workspace list and creation |
-
-All workspace-scoped routes are nested under `/:workspaceId` using a `WorkspaceRouteSync` layout route that syncs the URL workspace ID to context.
-
-| `/:workspaceId/dashboard` | Dashboard | Main app selector (8 categories) |
-
-#### Problem Solving, Thinking and Planning (bg-indigo-600)
-| Path | Page | Description |
-|------|------|-------------|
-| `/:workspaceId/pyramids` | PyramidsPage | Pyramid list |
-| `/:workspaceId/pyramid/:id` | PyramidEditor | 8x8 grid editor |
-| `/:workspaceId/diagrams` | DiagramsPage | Diagram list |
-| `/:workspaceId/diagram/:id` | DiagramEditor | ReactFlow visual editor |
-
-#### Product Design & Management (bg-teal-600 / bg-pink-600)
-| Path | Page | Description |
-|------|------|-------------|
-| `/:workspaceId/product-definitions` | ProductDefinitionsPage | Product def list |
-| `/:workspaceId/product-definition/:id` | ProductDefinitionEditor | Hierarchical mindmap editor |
-| `/:workspaceId/ui-ux-architectures` | UiUxArchitecturesPage | UI/UX list |
-| `/:workspaceId/ui-ux-architecture/:id` | UiUxArchitectureEditorPage | Theme/component/page editor |
-
-#### Knowledge Base (bg-amber-600)
-| Path | Page | Description |
-|------|------|-------------|
-| `/:workspaceId/context-documents` | ContextDocumentsPage | Document list |
-| `/:workspaceId/context-document/:id` | ContextDocumentEditor | Rich text editor |
-| `/:workspaceId/directory/:id` | DirectoryDocumentsPage | Directory contents |
-
-#### Technical (bg-purple-600 / bg-blue-600)
-| Path | Page | Description |
-|------|------|-------------|
-| `/:workspaceId/technical-architectures` | TechnicalArchitecturesPage | Architecture list |
-| `/:workspaceId/technical-architecture/:id` | TechnicalArchitectureEditorPage | Architecture editor |
-| `/:workspaceId/technical-tasks` | TechnicalTaskBoard | Kanban board |
-| `/:workspaceId/technical-task/:id` | TechnicalTaskDetail | Task detail view |
-
-#### AI Apps (bg-violet-600)
-| Path | Page | Description |
-|------|------|-------------|
-| `/:workspaceId/ai-chat` | AiChatPage | Session-based AI chat |
-| `/:workspaceId/ai-settings` | AiSettingsPage | Agent configuration |
-
----
-
-## Workspace Apps
-
-### Pyramid Solver
-- **8x8 grid** of blocks (64 blocks, always)
-- Block types: regular, combined
-- Context attachments, export to Excel/Markdown
-- Real-time subscription via storage adapter
-
-### Product Definition
-- **Hierarchical mindmap** with root node always "root"
-- Templates: classic-product-definition, shape-up-methodology, blank
-- React Flow visualization, topic modal with AI suggestions
-- Context attachments per node
-
-### Context Documents
-- Text/document types with rich editor
-- Directory organization (deleting directory moves docs to root)
-- Used as context sources across all other apps
-
-### Diagrams
-- ReactFlow-based visual editor
-- Nodes with title, description, context attachments
-- Edge connections between nodes
-
-### Technical Architecture
-- 10+ sections: system architecture, technology stack, code organization, design patterns, API standards, security, performance, testing, deployment, preservation rules, AI instructions
-- Each section: main + advanced subsections
-- Initialized with full deep structure on creation
-
-### UI/UX Architecture
-- Theme specification (colors, typography, spacing, border radius)
-- Base component catalog
-- Page definitions with routing
-- UX patterns (loading, error, empty states)
-
-### Technical Tasks (Kanban)
-- Pipeline-based kanban board ("Backlog" auto-created)
-- Task types: NEW_TASK, FIX_TASK
-- Priority: LOW, MEDIUM, HIGH, CRITICAL
-- Status: PENDING, IN_PROGRESS, COMPLETED, BLOCKED
-- Dual-write to technicalTasks + globalTasks collections
-
----
-
-## AI Features
-
-### AI Chat (AiChatPage)
-- **Server-side sessions** via Agent Platform API
-- Session management: create, list, load messages, send messages, close
-- Agent selection: workspace.aiChatAgentId or workspace.gmAgentId fallback
-- Global context injected on every message
-- Tool call traces displayed in expandable UI blocks
-- Optimistic message rendering
-- **Chat-only mode**: Toggle before starting a session to disable tool execution (pure conversation)
-
-**Flow:**
-```
-User types message
-  ├── If no active session: createSession(workspaceId, agentId, chatOnly?)
-  ├── Optimistically add user message to UI
-  ├── sendSessionMessage(sessionId, message, globalContext)
-  ├── Replace optimistic msg with server response
-  ├── Display assistant response + tool call traces (if not chat_only)
-  └── Refresh session list
-```
-
-### AI Settings (AiSettingsPage)
-- Load agents for workspace from agent-platform API
-- Agent assignment: which agent handles recommendations vs chat
-- Agent CRUD: create, edit (modal), delete with confirmation
-- Agent cards show: type badge, model info, orchestrator badge, MCP count, app access tags
-
-### Agent Configuration (AgentConfigModal)
-- Name, model selection (auto/manual with provider+model)
-- Agent instructions (system prompt)
-- Orchestrator toggle (can delegate tasks)
-- **App Access**: Accordion-based per-app permission selection (create, read, update, delete, list) with select/deselect all
-- **MCP Servers**: Dynamic list with name, URL, auth type (none/bearer/api_key)
-
-### Field AI Recommendations
-- `AiRecommendationButton` component used across apps
-- Calls `/recommend` endpoint with prompt_type and variables
-- Agent selection: workspace.aiRecommendationAgentId or gmAgentId
-- Used in: product definition topics, technical task descriptions, diagram nodes
-
-### Global Context System
-- Users select context sources from GlobalContext modal
-- Sources: any entity type (pyramid, product def, diagram, doc, architecture, task)
-- Persisted per workspace in Firebase
-- `contextAdapter` fetches actual data and formats as markdown
-- Injected into every AI message
-
----
-
-## Agent Platform Client (agentPlatformClient.ts)
-
-All requests include Firebase ID token via `Authorization: Bearer <token>`.
-
-### Endpoints Used
-| Function | Method | Path |
-|----------|--------|------|
-| setupWorkspace | POST | /workspaces/setup |
-| getWorkspace | GET | /workspaces/{id} |
-| getAgents | GET | /agents |
-| createAgent | POST | /agents |
-| updateAgent | PUT | /agents/{id} |
-| deleteAgent | DELETE | /agents/{id} |
-| recommend | POST | /recommend |
-| createSession | POST | /sessions (supports chatOnly flag) |
-| listSessions | GET | /sessions |
-| getSession | GET | /sessions/{id} |
-| sendSessionMessage | POST | /sessions/{id}/messages |
-| deleteSession | DELETE | /sessions/{id} |
-| updateSessionStatus | PATCH | /sessions/{id} |
-| getApps | GET | /apps |
-| getModels | GET | /models |
-
-### Data Conversion
-- API uses snake_case, frontend uses camelCase
-- Mappers: `mapAgent()`, `mapSession()`, `mapSessionListItem()`, `mapSessionMessageResponse()`
-
----
-
-## Key Data Types
-
-### Agent (agent.ts)
-```typescript
-AgentConfig {
-  id, workspaceId, userId, name, type ('gm'|'custom')
-  modelMode ('auto'|'manual'), modelProvider?, modelName?
-  skills[], context (system prompt), isDefault, isOrchestrator
-  appAccess: AppAccessEntry[]    // [{appId, permissions[]}]
-  mcpServers: McpServerEntry[]   // [{name, url, auth}]
-  orchestratorConfig: OrchestratorConfig | null
-}
-```
-
-### Session (session.ts)
-```typescript
-Session { id, workspaceId, agentId, userId, title, status, messages[], metadata, parentSessionId }
-SessionMessage { id, role, content, timestamp, metadata }
-SessionListItem { id, title, status, messageCount, lastMessagePreview }
-SessionMessageResponse { userMessage, assistantMessage, model, toolCalls[] }
-ToolCallTrace { toolId, args, result }
-```
-
-### Workspace (workspace.ts)
-```typescript
-Workspace {
-  id, userId, name, createdAt, lastModified
-  gmAgentId?, aiRecommendationAgentId?, aiChatAgentId?
-}
-```
-
-### Context Source (contextSource.ts)
-```typescript
-ContextSource {
-  id, type ('contextDocument'|'productDefinition'|'pyramid'|'technicalArchitecture'|
-            'technicalTask'|'uiUxArchitecture'|'directory'|'diagram'), title?
-}
-```
-
----
-
-## Data Flow Patterns
-
-### Create Entity
-```
-User Action (Modal) -> Service.create(userId, workspaceId, ...) -> storage.save(collection, data) -> LocalDB + Firestore -> Refresh list
-```
-
-### Edit Entity
-```
-User Change (UI) -> Service.update(id, data) -> storage.update(collection, id, data) -> LocalDB + Firestore -> subscription callback -> re-render
-```
-
-### Workspace Switch
-```
-User selects workspace -> setCurrentWorkspace() -> ensureWorkspaceSetup() (if no gmAgentId) -> setupWorkspaceAgentPlatform() -> agents ready
-```
-
-### Context Aggregation
-```
-User selects sources -> save to workspace.globalContextSources -> for each: contextAdapter.fetchContextData() -> formatContextDataForAI() -> aggregatedContext injected into AI
-```
-
----
-
-## Firestore Security Rules
-
-### Frontend-managed collections (full CRUD)
-pyramids, productDefinitions, contextDocuments, directories, diagrams, technicalArchitectures, technicalTasks, uiUxArchitectures, pipelines, globalTasks, workspaces, users, workspace_mcp_settings
-
-**Rule pattern**: `allow create: if isOwner(request.resource.data.userId); allow read, update, delete: if isOwner(resource.data.userId);`
-
-### Agent-platform-managed collections (read-only from frontend)
-agents, sessions — writes via Admin SDK (bypasses rules)
-
-**Rule pattern**: `allow read: if request.auth != null && resource.data.userId == request.auth.uid;`
-
----
-
-## Key Architecture Decisions
-
-1. **Local-first storage**: Dexie (IndexedDB) for instant reads, Firestore for cloud sync. Guest users work entirely offline.
-2. **Service layer**: All data access goes through services, never direct storage calls from components.
-3. **Agent Platform API**: All AI features go through authenticated HTTP calls to FastAPI backend. No direct LLM calls from frontend.
-4. **Server-side sessions**: Chat conversations managed by agent-platform, not local storage. Frontend is display-only.
-5. **Global context**: Workspace-level context aggregation injected into every AI interaction.
-6. **Workspace isolation**: All entities scoped by userId + workspaceId. Workspace deletion cascades.
-7. **Shadcn UI**: All primitives from Radix via Shadcn. Custom components compose these primitives.
-
----
-
-## Agent Island (3D Agent Bar)
-
-Floating glassmorphism bar at center-bottom of workspace pages. Agents rendered as blur-styled buttons with name, position, and color. Clicking an agent opens a per-agent chat modal.
-
-### Component Tree
-```
-AuthenticatedLayout
-  └── AgentIsland (fixed bottom-center, glassmorphism)
-        ├── AgentButton × N (blur/glass styled, color accent)
-        ├── "All Agents" button → /ai-chat
-        ├── "AI Settings" button → /ai-settings
-        └── AgentChatModal (Dialog with chat session)
-              └── useAgentChat hook (shared with AiChatPage)
-```
-
-### Files
-| File | Purpose |
-|------|---------|
-| `components/AgentIsland/AgentIsland.tsx` | Container: glassmorphism bar, visibility logic, modal state |
-| `components/AgentIsland/AgentButton.tsx` | Per-agent blur/glass button with color, name, position, status badge |
-| `components/AgentIsland/AgentChatModal.tsx` | Dialog with session sidebar + chat area for a specific agent |
-| `components/AgentIsland/useAgentIslandAgents.ts` | Hook: fetches agents via `getAgents(workspaceId)` |
-| `components/AgentIsland/useAgentLastSessionStatus.ts` | Hook: fetches last session status per agent |
-| `hooks/useAgentChat.ts` | Extracted chat logic shared between AgentChatModal and AiChatPage |
-| `lib/agent-colors.ts` | Color palette (12 colors) + `getRandomAgentColor()` helper |
-
-### Agent Data Model (new fields)
-- `position: string` — Agent role (e.g., "General Manager", "Designer")
-- `color: string` — Hex color from palette, used for button accent
-- Default GM agent: name "Jeana", position "General Manager", color "#6366f1"
-
-### Behavior
-- Max 5 agents visible, configurable via `workspace.islandAgentIds` in AI Settings
-- Click agent → opens `AgentChatModal` (not navigation)
-- Right-side buttons: "All Agents" (→ /ai-chat), "AI Settings" (→ /ai-settings)
-- Status badge on agent buttons: green pulse = active session, amber = paused, none = no session
-- Hidden on `/ai-chat` page and `/workspaces` page
-- Context awareness: modal uses `useCurrentPageContext` to pass page context to agent
+`pyramidRunner.step` (scheduled action) writes the brief or runs one row, records each call as it finishes (`spent` stays truthful), and commits the row atomically only if the run is still `running` under the same `executionId` — so cancel/resume elsewhere turn a late commit into a no-op. Before each call it checks the run is still live and that spent < cap; after a row it pauses when the remaining rows are projected past the cap. A watchdog fails a run whose runner stopped writing (actions are capped at 10 minutes); resume retries only the uncommitted row.
+
+## Knowledge layer
+
+Every workspace item is also a **knowledge item**: Markdown with a stable ref (`{ app, id }`, where `app` is the workspace app key = table name) and relations to other items.
+
+- `shared/knowledge/registry.ts` — `KNOWLEDGE_APPS` (key, label, zip folder), in dashboard order; the single place an app plugs in.
+- `shared/knowledge/serializers.ts` — `toKnowledgeItem(source)` per app (pure; Markdown builders in `shared/knowledge/markdown/`, re-exported by the per-item downloads in `src/lib/export/`) and `derivedEdges(source)`: relations read from an item's own fields (task → architecture `depends-on`, pyramid → context documents `references`). Derived edges are never stored.
+- `shared/knowledge/graph.ts` — `linkClosure` (BFS over links in both directions up to a depth, `-1` = all) and `edgesWithin`.
+- `shared/knowledge/bundle.ts` — export formats: zip entries (`<folder>/<slug>.md` with YAML frontmatter and `[[wiki-links]]`, `INDEX.md`, `graph.json`) and a single Markdown file (anchors, demoted headings, relations table).
+- `convex/lib/knowledge.ts` — loads items by ref (same-workspace check), all items and edges of a workspace, serializer inputs (pyramid cells, folder/pipeline titles), and `deleteLinksOf`, which every item delete calls.
+- `convex/links.ts` (`listForItem`, `create`, `remove`), `convex/knowledge.ts` (`catalog`, `collect`), `convex/contextPacks.ts`.
+
+Link kinds: `references`, `depends-on`, `implements`, `derived-from`, `related`. Self-links and duplicates (same from, to, kind) are refused.
+
+## Apps
+
+| App | Table(s) | Notes |
+|-----|----------|-------|
+| Pyramid Solver | `pyramids`, `pyramidCells`, `pyramidCalls`, `pyramidFiles` | Context: items, packs and uploaded files (`convex/lib/pyramidContext.ts`). "Save as decision" when completed. |
+| Diagrams | `diagrams` | |
+| Decisions | `decisions` | ADRs. |
+| Product Definition | `productDefinitions` | Product model with entities (personas, jobs, features, …). |
+| Research & Insights | `researchStudies` | Sources → insights with evidence. |
+| Goals & Roadmap | `roadmaps` | Goals with key results; initiatives Now/Next/Later. |
+| Design Systems | `designSystems` | Tokens and components; Markdown, W3C tokens, CSS exports. |
+| UI/UX Architecture | `uiUxArchitectures` | Pages and navigation, built with one design system. |
+| Context & Documents | `contextDocuments`, `directories` | |
+| Glossary | `glossaries` | Terms, definitions, aliases. |
+| Technical Architecture | `technicalArchitectures` | Components (diagram + Mermaid), stack, data, interfaces, concerns, delivery, rules; exports Markdown and AGENTS.md. |
+| Technical Plans | `technicalPlans` | Replaced Technical Tasks; inputs are links. |
+
+Spec apps share `convex/lib/specDocs.ts` (list/get/create/rename/update/duplicate/remove, normalized specs) and the frontend pieces in `src/features/specs/` and `src/components/form/`.
+
+## Access control (`convex/lib/access.ts`)
+
+- `requireUserId` — the signed-in user, or throw.
+- `getOwnedWorkspace` / `requireOwnedWorkspace` — workspace only if `ownerId` is the caller.
+- `getOwnedDoc` / `requireOwnedDoc` — a document only if its workspace is owned by the caller.
+- `getOwnedDocById` — same, from an untrusted string (URL); malformed ids → `null`.
+- `listInWorkspace` — all documents of a table in an owned workspace, else `[]`.
+
+Queries never throw for missing access (they return `null`/`[]`), so screens degrade gracefully on sign-out. Mutations throw `ConvexError` with a user-facing message.
+
+## Frontend
+
+- **Routing** (`src/App.tsx`): `/login`, `/workspaces`, and `/:workspaceId/*`. Every screen is lazy-loaded.
+- **Current workspace**: the URL is the source of truth. `WorkspaceLayout` resolves `:workspaceId` against the user's workspaces (redirecting if unknown) and provides it via `useWorkspace()`.
+- **Feature pages** share one design: `PageHeader` fed by `appPage(key)` (each app's title, description, icon colour and card icon tint live in `WORKSPACE_APPS`), `CollectionToolbar`, `CollectionCard`, `EmptyState`. `CollectionPage` composes them for plain collections; Context & Documents and the Task Board use the same pieces around their own content.
+- **Editors** keep a local draft keyed by document id and autosave with `useDebouncedSave` (pending saves flush on unmount), so their own server echoes never reset what the user is typing.
+- **Task board** drag-and-drop uses Convex optimistic updates.
+- **Settings** (`/:workspaceId/settings`, sidebar footer): OpenRouter key, default models, panel presets, model catalog. Settings are per user, not per workspace.
+- **Export knowledge** (`/:workspaceId/export-knowledge`, sidebar footer above Settings): pick items per app, expand along links (none/1/2/all), download a single `.md` or a `.zip` (built in the browser with `fflate`), save/load the selection as a context pack. The header's **Export workspace** button is the JSON backup.
+- **Knowledge graph** (`/:workspaceId/knowledge-graph`, sidebar footer): Obsidian-style — a live `d3-force` simulation positions dots (coloured by app, sized by connections) rendered by React Flow; drag pulls neighbours, hover focuses a node and its neighbours, click shows details, double-click opens. Search, app toggles, orphans, repel and link-distance controls. Pure graph building in `features/knowledge/graphModel.ts`.
+- **Links**: every item editor has a Links button (`features/knowledge/LinksButton.tsx`) showing links and backlinks (derived ones marked "auto") and adding/removing explicit links.
+- **AI pickers** use `useModels()` (one catalog per page load) and `ModelInput` from `src/features/ai/`.
+
+## Workspace backup
+
+`workspaces.exportData` returns a JSON document (format `context-platform/workspace`, version 4; pyramids with their cells and files, without call transcripts; every app's documents; links and context packs; legacy tasks not yet converted); `workspaces.importData` creates a new workspace from it, re-linking directories, pyramid context (items, packs, files), design systems of UI/UX architectures, links and context pack refs (unmappable ones are dropped). Legacy technical tasks import as technical plans (linked to their architecture); previous-version product definitions import as specs. Old block-grid pyramids import as drafts of their root question; a run caught mid-row imports as `failed` so it can be resumed. The parser (`convex/lib/workspaceTransfer.ts`) also reads exports from the previous Firestore-based version of the app.
+
+## Testing
+
+| Suite | Tooling | Location |
+|-------|---------|----------|
+| Backend | `convex-test` (in-memory Convex) + fake OpenRouter `fetch` | `convex/*.test.ts` — behavior + access control per module; whole pyramid runs end to end |
+| Domain / helpers | Vitest | `shared/*.test.ts`, `src/lib/**/*.test.ts`, `src/features/**/*.test.ts` |
+| Smoke | Vitest + Testing Library (jsdom), fake `convex/react` | `src/test/smoke/` — every route renders; main flows call the right functions |
+
+Run everything with `npm run check`.

@@ -4,7 +4,11 @@ import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { ComponentProps, forwardRef } from "react"
 
-type ButtonProps = ComponentProps<typeof Button>
+// Framer Motion redefines these DOM handlers with different signatures.
+type ButtonProps = Omit<
+  ComponentProps<typeof Button>,
+  "onDrag" | "onDragStart" | "onDragEnd" | "onAnimationStart" | "onAnimationEnd"
+>
 
 const MotionButton = motion.create(Button)
 

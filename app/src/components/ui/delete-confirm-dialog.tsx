@@ -31,7 +31,10 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
   onConfirm,
   isDeleting = false,
 }) => {
-  const [inputValue, setInputValue] = useState('');
+  // Remember which item the confirmation was typed for, so it never carries over to the next one.
+  const [typed, setTyped] = useState({ itemName, value: '' });
+  const inputValue = open && typed.itemName === itemName ? typed.value : '';
+  const setInputValue = (value: string) => setTyped({ itemName, value });
 
   const handleConfirm = () => {
     if (inputValue === itemName) {

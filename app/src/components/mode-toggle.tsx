@@ -1,6 +1,5 @@
 "use client"
 
-import * as React from "react"
 import { Moon, Sun, ChevronsUpDown } from "lucide-react"
 import { useTheme } from "next-themes"
 

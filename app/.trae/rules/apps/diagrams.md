@@ -14,8 +14,8 @@ primaryColorClass: "bg-rose-600"
 - `nodes` and `edges` MUST default to empty arrays if undefined in storage.
 
 ## Data Model
-- Types: `Diagram`, `DiagramNodeData` in `app/src/types/diagram.ts`
-- Service: `app/src/services/diagramService.ts`
+- Types: `Diagram`, `DiagramNodeData` in `app/shared/types/diagram.ts`
+- Service: `app/convex/diagrams.ts`
 
 ## Core Logic
 - Standard CRUD: `createDiagram`, `getDiagram`, `updateDiagram`, `deleteDiagram`.

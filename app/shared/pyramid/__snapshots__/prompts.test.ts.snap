@@ -1,0 +1,110 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`prompts > row 2 of a 3×3 board (snapshot) 1`] = `
+"# Root question
+Root question?
+
+# Context brief
+The brief.
+
+# Where we are
+The board is a 3x3 diamond. This is row 2 of 4: expansion (questions branch out).
+Cell kinds:
+- EDGE: answer the single parent's next question, then ask a new next question.
+- MERGE: combine the two parents' next questions into one combined question, answer it, then ask a new next question.
+- FINAL: combine the two parents' next questions into a combined question whose answer resolves the root question,
+  answer it as the final answer to the root question, and ask no next question.
+When several cells answer the same question, give each cell a distinct angle and ask different next questions.
+
+# Parent cells
+## A2 (edge)
+Conclusion: Conclusion A2
+Dissent:
+- X vs Y
+Next question: Next from A2?
+
+## B1 (edge)
+Conclusion: Conclusion B1
+Next question: Next from B1?
+
+# Cells in this row
+- A3 (EDGE):
+  answer the question from A2: "Next from A2?"
+- B2 (MERGE):
+  combine the questions from A2: "Next from A2?" and B1: "Next from B1?"
+- C1 (EDGE):
+  answer the question from B1: "Next from B1?"
+
+# Your task
+Answer every cell listed above.
+
+# Output
+Return exactly one JSON object with one entry per cell, labels A3, B2, C1 and no others:
+{"cells": [{"label": "<label>", "combined_question": "<string or null>", "answer": "<string>", "next_question": "<string or null>"}]}
+Rules:
+- combined_question: a string for MERGE and FINAL cells; null for EDGE cells.
+- answer: at most 120 words.
+- next_question: a string for EDGE and MERGE cells; null for the FINAL cell."
+`;
+
+exports[`prompts > row 2 of a 3×3 board (snapshot) 2`] = `
+"# Root question
+Root question?
+
+# Context brief
+The brief.
+
+# Where we are
+The board is a 3x3 diamond. This is row 2 of 4: expansion (questions branch out).
+Cell kinds:
+- EDGE: answer the single parent's next question, then ask a new next question.
+- MERGE: combine the two parents' next questions into one combined question, answer it, then ask a new next question.
+- FINAL: combine the two parents' next questions into a combined question whose answer resolves the root question,
+  answer it as the final answer to the root question, and ask no next question.
+When several cells answer the same question, give each cell a distinct angle and ask different next questions.
+
+# Parent cells
+## A2 (edge)
+Conclusion: Conclusion A2
+Dissent:
+- X vs Y
+Next question: Next from A2?
+
+## B1 (edge)
+Conclusion: Conclusion B1
+Next question: Next from B1?
+
+# Cells in this row
+- A3 (EDGE):
+  answer the question from A2: "Next from A2?"
+- B2 (MERGE):
+  combine the questions from A2: "Next from A2?" and B1: "Next from B1?"
+- C1 (EDGE):
+  answer the question from B1: "Next from B1?"
+
+# Panelist answers
+## Panelist 1
+### A3
+Answer: one
+
+## Panelist 2
+### A3
+Answer: two
+
+# Your task
+Conclude every cell of this row from the panelist answers above. Your output is authoritative:
+it is what later rows build on.
+
+# Output
+Return exactly one JSON object with one entry per cell, labels A3, B2, C1 and no others:
+{"cells": [{"label": "<label>", "combined_question": "<string or null>", "conclusion": "<string>", "dissent": ["<string>"], "confidence": <number 0..1>, "next_question": "<string or null>", "summary": "<string>", "primary_parent": "<label or null>"}]}
+Rules:
+- combined_question: a string for MERGE and FINAL cells; null for EDGE cells.
+- conclusion: at most 200 words.
+- dissent: real disagreements between panelists worth keeping; [] when there are none.
+- confidence: from 0 to 1.
+- next_question: a string for EDGE and MERGE cells; null for the FINAL cell.
+- summary: at most 100 words, understandable on its own; later rows see only this.
+- primary_parent: for MERGE and FINAL cells, the parent label whose line of reasoning contributed most
+  (B2: A2 or B1); null for EDGE cells."
+`;

@@ -1,95 +1,62 @@
-# Deployment Guide
+# Deployment
 
-This guide will help you deploy your **Context Platform** application to production using **Firebase** and **Vercel** (or any static site host).
+The app is two parts:
 
-## 1. Firebase Setup
+- **Backend**: Convex (database, server functions, auth), deployed with the Convex CLI.
+- **Frontend**: a static Vite build (`dist/`) that any static host can serve (Cloudflare Pages, Vercel, Netlify, …).
 
-You need to set up a Firebase project.
+## 1. Create a production Convex deployment
 
-1.  **Go to Firebase Console**: [console.firebase.google.com](https://console.firebase.google.com).
-2.  **Add Project**: Create a new project.
-3.  **Enable Authentication**:
-    *   Go to **Authentication** > **Sign-in method**.
-    *   Enable **Email/Password**.
-4.  **Enable Firestore Database**:
-    *   Go to **Firestore Database**.
-    *   Click **Create Database**.
-    *   Start in **Production mode** (or Test mode if you prefer).
-    *   Choose a location.
-5.  **Get Configuration**:
-    *   Go to **Project Settings** (gear icon).
-    *   Scroll down to **Your apps**.
-    *   Click the web icon (`</>`) to add a web app.
-    *   Copy the `firebaseConfig` values (apiKey, authDomain, etc.).
-
-## 2. Firestore Security Rules
-
-You should set up Firestore security rules to protect your data. Go to **Firestore Database** > **Rules** and configure them according to your needs (e.g., only authenticated users can read/write their own data).
-
-Example basic rules:
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}
+```bash
+cd app
+npx convex login          # once; links the project to your Convex account
+npx convex deploy         # pushes schema + functions to the production deployment
 ```
 
-## 3. Deploying the Frontend (Vercel Recommended)
+`convex deploy` prints the production URL (`https://<name>.convex.cloud`).
 
-We recommend using Vercel as it works seamlessly with Vite and React.
+## 2. Configure auth on production
 
-### Option A: Using Vercel CLI (Fastest)
+Convex Auth signs sessions with a key pair stored as deployment environment variables. Generate them for production, with `SITE_URL` set to the frontend's public URL:
 
-1.  **Install Vercel CLI**:
-    ```bash
-    npm i -g vercel
-    ```
-2.  **Login**:
-    ```bash
-    vercel login
-    ```
-3.  **Deploy**:
-    Run the following command in your project root:
-    ```bash
-    vercel
-    ```
-    *   Follow the prompts (accept defaults usually).
-    *   It will ask specifically about your settings.
+```bash
+SITE_URL=https://app.example.com npm run setup:auth -- --prod
+```
 
-4.  **Environment Variables**:
-    *   During the setup, or afterwards in the Vercel Dashboard (Settings > Environment Variables), you **MUST** add these variables:
-        *   `VITE_FIREBASE_API_KEY`
-        *   `VITE_FIREBASE_AUTH_DOMAIN`
-        *   `VITE_FIREBASE_PROJECT_ID`
-        *   `VITE_FIREBASE_STORAGE_BUCKET`
-        *   `VITE_FIREBASE_MESSAGING_SENDER_ID`
-        *   `VITE_FIREBASE_APP_ID`
+Re-running it rotates the keys and signs everyone out.
 
-### Option B: Using Vercel Dashboard (Git Integration)
+### AI (optional)
 
-1.  Push your code to a GitHub/GitLab/Bitbucket repository.
-2.  Log in to [Vercel](https://vercel.com) and click **Add New > Project**.
-3.  Import your repository.
-4.  In the **Environment Variables** section, add the Firebase configuration variables listed above.
-5.  Click **Deploy**.
+Each user adds their own OpenRouter key on the Settings page. To give every user a shared key instead, set it on the deployment (users' own keys still win):
 
-## 4. MCP Server (Optional)
+```bash
+npx convex env set OPENROUTER_API_KEY sk-or-v1-... --prod
+```
 
-If you want to use the MCP Server capability (for IDE integration):
+### Migrating old pyramids
 
-1.  The `mcp-server` folder is a separate Node.js application.
-2.  It is meant to run **locally** on your machine to bridge your IDE (like Cursor or Windsurf) with your remote Firebase database.
-3.  You do not typically "deploy" this to the web for public users.
-4.  To use it:
-    *   Ensure `mcp-server/.env` has your Firebase keys.
-    *   Run `npm run build` inside `mcp-server`.
-    *   Configure your IDE to point to the build file (instructions in `mcp-server/README.md`).
+Pyramids from the hand-filled block-grid version no longer match the schema, so the first deploy fails on a deployment that has them. Deploy once with `schemaValidation: false` as the second argument of `defineSchema` in `convex/schema.ts`, run `npx convex run pyramidMigrations:legacyToDrafts --prod` (each becomes a draft of its root question, the problem statement becomes its context), then deploy again with validation on.
 
-## Troubleshooting
+## 3. Build and host the frontend
 
-*   **White Screen on Deploy**: Check the browser console. It usually means environment variables are missing.
-*   **"Permission denied"**: This means Firestore Security Rules are blocking access. Ensure you are logged in, or check the Rules in Firebase Console.
+Build with the production Convex URL baked in:
+
+```bash
+VITE_CONVEX_URL=https://<name>.convex.cloud npm run build
+```
+
+Upload `dist/` to your static host and configure a single-page-app fallback (all paths → `index.html`).
+
+**Cloudflare Pages:** build command `npm run build`, output directory `app/dist`, root directory `app`, environment variable `VITE_CONVEX_URL`. Add a `public/_redirects` file containing `/* /index.html 200` for client-side routing.
+
+A one-step alternative that deploys the backend and builds the frontend with the right URL:
+
+```bash
+npx convex deploy --cmd 'npm run build'
+```
+
+## Checklist
+
+- `npm run check` passes.
+- `SITE_URL`, `JWT_PRIVATE_KEY` and `JWKS` are set on the production deployment (`npx convex env list --prod`).
+- The host serves `index.html` for unknown paths.

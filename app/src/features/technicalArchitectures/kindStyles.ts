@@ -1,0 +1,56 @@
+import type { ComponentKind } from '@shared/specs/technicalArchitecture';
+import {
+  Box,
+  Boxes,
+  Cloud,
+  Cog,
+  Database,
+  Globe,
+  HardDrive,
+  ListOrdered,
+  MemoryStick,
+  Monitor,
+  Package,
+  Plug,
+  Search,
+  Smartphone,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react';
+
+export const KIND_ICONS: Record<ComponentKind, LucideIcon> = {
+  'web-app': Globe,
+  'mobile-app': Smartphone,
+  'desktop-app': Monitor,
+  api: Plug,
+  service: Boxes,
+  worker: Cog,
+  function: Zap,
+  database: Database,
+  cache: MemoryStick,
+  queue: ListOrdered,
+  storage: HardDrive,
+  search: Search,
+  external: Cloud,
+  library: Package,
+  other: Box,
+};
+
+/** Colour family per kind: clients, services, data, messaging, external. */
+export const KIND_TONES: Record<ComponentKind, string> = {
+  'web-app': 'border-sky-500/50 bg-sky-500/10 text-sky-700 dark:text-sky-300',
+  'mobile-app': 'border-sky-500/50 bg-sky-500/10 text-sky-700 dark:text-sky-300',
+  'desktop-app': 'border-sky-500/50 bg-sky-500/10 text-sky-700 dark:text-sky-300',
+  api: 'border-violet-500/50 bg-violet-500/10 text-violet-700 dark:text-violet-300',
+  service: 'border-violet-500/50 bg-violet-500/10 text-violet-700 dark:text-violet-300',
+  worker: 'border-violet-500/50 bg-violet-500/10 text-violet-700 dark:text-violet-300',
+  function: 'border-violet-500/50 bg-violet-500/10 text-violet-700 dark:text-violet-300',
+  library: 'border-violet-500/50 bg-violet-500/10 text-violet-700 dark:text-violet-300',
+  database: 'border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  cache: 'border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  storage: 'border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  search: 'border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  queue: 'border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+  external: 'border-slate-400/60 bg-slate-500/10 text-slate-700 dark:text-slate-300 border-dashed',
+  other: 'border-slate-400/60 bg-slate-500/10 text-slate-700 dark:text-slate-300',
+};

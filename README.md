@@ -12,154 +12,56 @@
                                              
 ``` 
  
-> **The AI-Powered Workbench for Structured Thinking & Architecture Planning** 
-
---- 
-
-## 📖 Table of Contents
-
-- [Introduction](#-introduction)
-- [Key Features](#-key-features)
-- [Methodology](#-methodology)
-- [Tech Stack](#-tech-stack)
-- [Project Structure](#-project-structure)
-- [Getting Started](#-getting-started)
-- [Configuration](#-configuration)
-- [Deployment](#-deployment)
-- [Contributing](#-contributing)
+> **A workbench for structured thinking and architecture planning**
 
 ---
 
-## 🧠 Introduction
+## Introduction
 
-**Context Platform** is a specialized IDE for thought. It transforms the way you solve complex problems by combining the **Pyramid Principle** with **Generative AI**. Instead of staring at a blank page, you build structured logic trees, define product requirements, and map out technical architectures—all with Claude AI as your pair thinker.
+**Context Platform** is a workspace for structured thinking. It combines the **Pyramid Principle** (a core question broken into MECE sub-questions) with structured documents for product definitions, technical architecture, UI/UX architecture, tasks and diagrams.
 
-It is designed for:
-*   **Product Managers** defining scope and requirements.
-*   **Architects** planning system components and data flows.
-*   **Engineers** breaking down technical tasks.
-*   **Founders** organizing business strategy.
+## Architecture
 
----
-
-## ✨ Key Features
-
-| Feature | Description |
-| :--- | :--- |
-| **Thinking Pyramids** | Break down broad problems into specific, actionable questions using a visual tree structure. |
-| **AI Co-Pilot** | Integrated **Claude AI** helps generate sub-questions, answers, and summaries at every level of your thinking process. |
-| **Product Specs** | Dedicated editors for defining **Product Definitions**, scope, risks, and success metrics. |
-| **Architecture** | Visual tools for mapping **Technical Architectures** and **UI/UX Flows**. |
-| **Context Awareness** | Upload documents and define a "Global Context" so the AI understands your specific project domain. |
-| **Real-Time Sync** | Built on **Firebase**, enabling seamless synchronization across devices and users. |
-
----
-
-## � Methodology
-
-The platform is built around the **Pyramid Principle**:
-
-1.  **Start with the Core Question**: What are you trying to solve?
-2.  **Group & Summarize**: Group related insights and summarize them upwards.
-3.  **MECE**: Ensure your breakdown is *Mutually Exclusive and Collectively Exhaustive*.
-
-```text
-       [ Main Problem ]
-           /      \
-      [Why?]      [How?]
-      /    \      /    \
-   [A]     [B]  [C]    [D]
+```
+React SPA (app/src) ──useQuery / useMutation──▶ Convex (app/convex)
+                                                 ├── Auth (email/password)
+                                                 ├── Functions (access-checked)
+                                                 └── Database
 ```
 
----
+| Directory | Stack | Purpose |
+|-----------|-------|---------|
+| `app/` | React 19, TypeScript, Vite, Tailwind/shadcn, Convex | The product: SPA (`src/`), backend (`convex/`), shared domain logic (`shared/`) |
+| `public_website/` | React, TypeScript, Vite | Public marketing site |
 
-## 🛠 Tech Stack
+Convex is the only backend: database, server functions and auth. Every function checks that the signed-in user owns the workspace it touches.
 
-**Frontend**
-*   ![React](https://img.shields.io/badge/-React-20232A?logo=react&logoColor=61DAFB) **React 18** - UI Library
-*   ![TypeScript](https://img.shields.io/badge/-TypeScript-007ACC?logo=typescript&logoColor=white) **TypeScript** - Type Safety
-*   ![Vite](https://img.shields.io/badge/-Vite-646CFF?logo=vite&logoColor=white) **Vite** - Build Tool
-*   ![Tailwind](https://img.shields.io/badge/-Tailwind-38B2AC?logo=tailwind-css&logoColor=white) **Tailwind CSS** - Styling
-*   ![Radix UI](https://img.shields.io/badge/-Radix%20UI-161618?logo=radix-ui&logoColor=white) **Radix UI** - Accessible Primitives
+## Workspace apps
 
-**Backend & Services**
-*   ![Firebase](https://img.shields.io/badge/-Firebase-FFCA28?logo=firebase&logoColor=black) **Firebase** - Auth, Firestore, Hosting
-*   ![Anthropic](https://img.shields.io/badge/-Anthropic-d97757) **Anthropic API** - AI Intelligence (Claude models)
+Pyramid Solver, Diagrams, Decisions, Product Definitions, Research & Insights, Goals & Roadmaps, Design Systems, UI/UX Architectures, Context Documents, Glossaries, Technical Architectures and Technical Plans.
 
----
+Every item can link to any other; the knowledge graph shows them all. **Export knowledge** downloads any selection (plus what it links to) as one Markdown file or a zip of Markdown files with an index and a relations graph, and the same selections (context packs), items and uploaded Markdown feed the Pyramid Solver as context. **Export workspace** is a full JSON backup that imports into a new workspace.
 
-## 🚀 Getting Started
+## Getting started
 
-### Prerequisites
-
-*   **Node.js** (v16+)
-*   **Firebase Account** (for backend)
-*   **Anthropic API Key** (for AI features)
-
-### Installation
-
-1.  **Clone the repository**
-    ```bash
-    git clone https://github.com/your-username/context-platform.git
-    cd context-platform
-    ```
-
-2.  **Install dependencies**
-    ```bash
-    npm install
-    ```
-
-3.  **Configure Environment**
-    Create a `.env` file in the root directory:
-    ```bash
-    cp .env.example .env
-    ```
-    
-    Update `.env` with your credentials:
-    ```properties
-    VITE_FIREBASE_API_KEY=...
-    VITE_FIREBASE_AUTH_DOMAIN=...
-    VITE_FIREBASE_PROJECT_ID=...
-    # ... other firebase config
-    ```
-
-4.  **Run Development Server**
-    ```bash
-    npm run dev
-    ```
-    Open [http://localhost:5173](http://localhost:5173) to view it in the browser.
-
----
-
-## ⚙️ Configuration
-
-### Setting up AI (Claude)
-1.  Launch the application.
-2.  Navigate to **Settings** or click the **"Set API Key"** button in the top bar.
-3.  Paste your **Anthropic API Key**.
-    *   *Note: The key is stored securely in your user profile in Firestore.*
-
----
-
-## 🚢 Deployment
-
-Deploy to Firebase Hosting with a single command:
+Requires Node 20+. No accounts or API keys are needed for local development.
 
 ```bash
-npm run deploy
+cd app
+npm install
+npx convex dev --once     # first run: creates a local Convex backend and .env.local
+npm run setup:auth        # first run: generates the auth signing keys
+npm run dev               # Convex + Vite at http://localhost:5173
 ```
-*This script builds the application (`vite build`) and deploys it (`firebase deploy`).*
 
----
+The first `npx convex dev` asks whether to use a Convex account or run locally; choose local (or set `CONVEX_AGENT_MODE=anonymous` to skip the prompt).
 
-## 🤝 Contributing
+## Quality checks
 
-1.  **Fork** the project.
-2.  **Create** your feature branch (`git checkout -b feature/NewFeature`).
-3.  **Commit** your changes (`git commit -m 'Add some NewFeature'`).
-4.  **Push** to the branch (`git push origin feature/NewFeature`).
-5.  **Open** a Pull Request.
+```bash
+cd app
+npm run check   # typecheck + lint + backend and frontend tests
+npm run build   # production build
+```
 
----
-
-> **Happy Thinking!** 🧩
+See `app/architecture.md` for the design, `app/CLAUDE.md` for coding rules and `app/DEPLOYMENT.md` for deployment.

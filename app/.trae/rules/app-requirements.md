@@ -19,7 +19,6 @@ Every workspace App MUST satisfy these requirements. Per-app details are in `app
 | Deletion | MUST require typing object name to confirm |
 | Renaming | Supported |
 | Search | Local filter/search on App page |
-| Global Context | Registered as distinct category, selectable in Global Context |
 | Documentation | Update `.trae/rules/app/apps/` when logic or data structure changes |
 | Category | Declared in app rule file frontmatter; used for Dashboard grouping |
 | Color | Canonical Tailwind class in rule file `primaryColorClass`; used on dashboard cards |
@@ -34,6 +33,3 @@ Every workspace App MUST satisfy these requirements. Per-app details are in `app
 - **Delete**: User MUST type the object name to confirm deletion.
 - **Rename**: Supported for all objects.
 
-## MUST — Global Context
-- App domain objects registered as a distinct category in Global Context.
-- Objects selectable and usable for AI context and cross-referencing.

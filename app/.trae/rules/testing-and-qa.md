@@ -15,21 +15,20 @@ A change is done ONLY when ALL are true:
 - No console errors
 - Typecheck/build passes (`npm run build`)
 - Tests added/updated for new behavior
-- If touching Firebase or AI: error states handled and safe
+- If touching Convex functions: auth/ownership checks covered by tests
 
 ## MUST — Testing Rules
 
 - ADD unit tests for any new logic (data transforms, prompt builders, store adapters)
 - ADD component test if UI behavior changes
 - ADD e2e test only if it changes a critical user flow
-- NEVER hit real Anthropic API in tests — mock/fake client
-- NEVER use real Firebase in unit tests — mock adapter or emulator
+- Backend tests use `convex-test` (in-memory); never a real deployment
 - DO NOT write tests for `.trae/` config/rule files
 
 ## MUST — Test Organization
 
 - All tests in `app/src/test/`, mirroring source structure
-- Example: `app/src/services/auth.ts` → `app/src/test/services/auth.test.ts`
+- Example: `app/src/lib/richText.ts` → `app/src/lib/richText.test.ts`
 - Tooling: Vitest for unit/component tests
 - Naming: `*.test.ts(x)` next to source OR in `__tests__/` (be consistent per feature)
 - Component: `PascalCase.tsx`, Hook: `useX.ts`
@@ -59,4 +58,4 @@ Include in every PR:
 - What changed (1-3 bullets)
 - How to test (commands + clicks)
 - Screenshots for UI changes
-- Risk note if touching: Firebase paths/rules, auth, AI prompts
+- Risk note if touching: Convex schema, auth, access checks

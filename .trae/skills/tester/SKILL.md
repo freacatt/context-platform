@@ -10,7 +10,7 @@ Prove the change works from a user's and system's perspective.
 
 ## Unit / functionality tests
 - Test services and hooks directly.
-- Mock external dependencies (AI, Firebase).
+- Backend: test Convex functions with `convex-test`. Frontend: fake `convex/react` (see `app/src/test/fakeConvex.ts`).
 - Assert behavior, not structure.
 
 ## UI tests

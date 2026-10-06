@@ -1,51 +1,19 @@
-import path from "path"
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { VitePWA } from 'vite-plugin-pwa'
+import path from 'path';
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [
-    react(),
-    VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'robots.txt'],
-      manifest: {
-        name: 'Context Platform',
-        short_name: 'context-platform',
-        description: 'Context Platform Application',
-        theme_color: '#ffffff',
-        icons: [
-          {
-            src: 'favicon.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
-            purpose: 'any maskable'
-          },
-          {
-            src: 'pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png'
-          }
-        ]
-      },
-      workbox: {
-        maximumFileSizeToCacheInBytes: 6000000
-      },
-      devOptions: {
-        enabled: true
-      }
-    })
-  ],
+  plugins: [react()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      '@': path.resolve(__dirname, './src'),
+      '@shared': path.resolve(__dirname, './shared'),
     },
     dedupe: ['react', 'react-dom'],
   },
-})
+  server: {
+    // Lets a launcher pick a free port; defaults to Vite's usual 5173.
+    port: Number(process.env.PORT) || 5173,
+  },
+});

@@ -7,7 +7,7 @@
 - Components (`src/components/`):
   - Pure UI + minimal state.
 - Services (`src/services/`):
-  - AI (Anthropic), Firebase, persistence, side effects.
+  - Convex functions (data + auth), persistence, side effects.
 - Hooks (`src/hooks/`):
   - Reusable stateful logic.
 - Types (`src/types/`):
@@ -46,7 +46,7 @@
 - Deploy: npm run deploy
 
 ## Security & secrets
-- Anthropic API key is user-provided via UI and stored in Firestore.
+- Auth is Convex Auth (email/password); every function resolves the user server-side.
 - Never hardcode or log secrets.
 - No secrets in commits or tests.
 

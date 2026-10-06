@@ -11,15 +11,15 @@ primaryColorClass: "bg-blue-600"
 # Technical Tasks Rules
 
 ## CRITICAL
-- A "Backlog" pipeline is auto-created if no pipelines exist.
+- A "Backlog" pipeline is created with every workspace; the last pipeline cannot be deleted.
 - Tasks MUST always belong to a `pipelineId`.
-- `batchUpdateTasks` MUST dual-write to both `technicalTasks` and `globalTasks`.
 
 ## Data Model
-- Types: `TechnicalTask`, `TechnicalTaskData` in `app/src/types/technicalTask.ts`
-- Service: `app/src/services/technicalTaskService.ts`
+- Types: `TechnicalTask`, `TechnicalTaskData` in `app/shared/types/technicalTask.ts`
+- Service: `app/convex/technicalTasks.ts` + `app/convex/pipelines.ts`
 
 ## Core Logic
-- `getPipelines`: Fetches pipelines, auto-deduplicates "Backlog" if multiple found.
-- `batchUpdatePipelines`: Updates pipeline order.
-- `batchUpdateTasks`: Updates task order and pipeline assignment (drag-drop). Dual-writes to `technicalTasks` + `globalTasks`.
+- `technicalTasks.create`: new tasks go to the top of their pipeline with default data (`createDefaultTaskData`).
+- `technicalTasks.move`: applies drag-and-drop placements (computed by `placementsAfterDrop`).
+- `pipelines.reorder`: sets pipeline order from an ordered id list.
+- `pipelines.remove`: deletes the pipeline and its tasks.

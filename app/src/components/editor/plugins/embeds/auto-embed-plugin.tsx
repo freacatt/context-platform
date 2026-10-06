@@ -224,10 +224,8 @@ export function AutoEmbedPlugin(): JSX.Element {
         menuRenderFn={(
           anchorElementRef,
           {
-            selectedIndex,
             options,
             selectOptionAndCleanUp,
-            setHighlightedIndex,
           }
         ) => {
           return anchorElementRef.current ? (
@@ -243,7 +241,7 @@ export function AutoEmbedPlugin(): JSX.Element {
                     <Command>
                       <CommandList>
                         <CommandGroup>
-                          {options.map((option, i: number) => (
+                          {options.map((option) => (
                             <CommandItem
                               key={option.key}
                               value={option.title}

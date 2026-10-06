@@ -27,7 +27,7 @@ Protect code quality, architecture, and future maintainability.
 
 ### Security
 - No secrets exposed?
-- AI/Firebase usage safe?
+- Convex functions check auth and workspace ownership (see `convex/lib/access.ts`)?
 
 ## Verdict
 - APPROVE

@@ -107,7 +107,7 @@ import { Separator } from "@/components/ui/separator"
 const placeholder = "Press / for commands..."
 const maxLength = 500
 
-export function Plugins({}) {
+export function Plugins() {
   const [floatingAnchorElem, setFloatingAnchorElem] =
     useState<HTMLDivElement | null>(null)
   const [isLinkEditMode, setIsLinkEditMode] = useState<boolean>(false)

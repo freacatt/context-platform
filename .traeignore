@@ -1,6 +1,5 @@
 node_modules/
 dist/
 venv/
-.firebase/
 .vercel/
 *.log

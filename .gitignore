@@ -13,7 +13,6 @@ dist-ssr
 *.local
 .env
 **/service-account*.json
-**/firebase-service-account*.json
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -26,3 +25,12 @@ dist-ssr
 *.sw?
 .vercel
 venv
+# Python / build artifacts
+__pycache__/
+*.pyc
+dev-dist
+venv/
+.venv/
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/
